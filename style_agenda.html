@@ -1,0 +1,212 @@
+<style>
+/* ======================================================
+   MODUL AGENDA & TINDAK LANJUT — E-OFFICE KPU SIAK
+   Design System: style.html
+   ====================================================== */
+
+/* ---- PRIORITAS ---- */
+.badge-prioritas-rendah { background: #e0f2fe; color: #0284c7; }
+.badge-prioritas-sedang { background: #fef3c7; color: #b45309; }
+.badge-prioritas-tinggi { background: #fee2e2; color: #dc2626; }
+.badge-prioritas-mendesak { background: #fce4ec; color: #c62828; }
+
+/* ---- STATUS AGENDA ---- */
+.badge-status-rencana   { background: #e0e7ff; color: #4338ca; }
+.badge-status-berjalan  { background: #dbeafe; color: #2563eb; }
+.badge-status-selesai   { background: #d1fae5; color: #059669; }
+.badge-status-terlambat { background: #fee2e2; color: #dc2626; }
+
+/* ---- SUMBER ---- */
+.sumber-badge { display:inline-block; padding:2px 8px; border-radius:6px; font-size:10px; font-weight:700; text-transform:uppercase; }
+.sumber-badge.notulen   { background:#f3e8ff; color:#7c3aed; }
+.sumber-badge.pegawai   { background:#dbeafe; color:#2563eb; }
+.sumber-badge.pimpinan  { background:#fee2e2; color:#dc2626; }
+.sumber-badge.rapat     { background:#d1fae5; color:#059669; }
+
+/* ---- PROGRESS BAR ---- */
+.progress-bar-container { width:100%; height:8px; background:#e5e7eb; border-radius:999px; overflow:hidden; }
+.progress-bar-fill { height:100%; border-radius:999px; transition:width 0.5s ease; }
+.progress-bar-fill.rendah  { background:#ef4444; }
+.progress-bar-fill.sedang  { background:#f59e0b; }
+.progress-bar-fill.tinggi  { background:#3b82f6; }
+.progress-bar-fill.selesai { background:#10b981; }
+
+/* ---- WIZARD ---- */
+.wizard-container {
+  background:#ffffff; border-radius:18px; padding:28px;
+  box-shadow:0 8px 24px rgba(15,23,42,0.06);
+}
+
+.wizard-steps {
+  display:flex; gap:0; margin-bottom:32px;
+  position:relative;
+}
+
+.wizard-step {
+  flex:1; text-align:center; position:relative; padding:0 8px;
+}
+
+.wizard-step::after {
+  content:''; position:absolute; top:20px; left:50%; width:100%;
+  height:2px; background:#e5e7eb; z-index:0;
+}
+
+.wizard-step:last-child::after { display:none; }
+
+.wizard-step .step-circle {
+  width:40px; height:40px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  margin:0 auto 8px; font-size:16px; font-weight:800;
+  position:relative; z-index:1;
+  background:#f1f5f9; color:#94a3b8; border:2px solid #e2e8f0;
+  transition:all 0.3s ease;
+}
+
+.wizard-step.active .step-circle {
+  background:linear-gradient(135deg,#dc2626,#b91c1c);
+  color:#ffffff; border-color:#dc2626; box-shadow:0 4px 12px rgba(220,38,38,0.3);
+}
+
+.wizard-step.completed .step-circle {
+  background:#10b981; color:#ffffff; border-color:#10b981;
+}
+
+.wizard-step .step-label {
+  font-size:12px; font-weight:700; color:#94a3b8; text-transform:uppercase;
+  transition:color 0.3s;
+}
+
+.wizard-step.active .step-label { color:#b30000; }
+.wizard-step.completed .step-label { color:#059669; }
+
+.wizard-step .step-desc {
+  font-size:11px; color:#94a3b8; margin-top:2px;
+}
+
+.wizard-body { min-height:300px; }
+.wizard-footer {
+  display:flex; justify-content:space-between; margin-top:24px; padding-top:20px;
+  border-top:1px solid #e5e7eb;
+}
+
+/* ---- ASSIGNMENT TYPE SELECTOR ---- */
+.assignment-options {
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px;
+}
+
+.assignment-option {
+  padding:16px; border:2px solid #e5e7eb; border-radius:14px;
+  cursor:pointer; text-align:center; transition:all 0.2s ease;
+  background:#ffffff;
+}
+
+.assignment-option:hover { border-color:#b30000; background:#fdeaea; }
+.assignment-option.selected { border-color:#b30000; background:#fef2f2; }
+.assignment-option i { font-size:24px; color:#b30000; margin-bottom:8px; }
+.assignment-option .title { font-size:14px; font-weight:700; color:#0f172a; }
+.assignment-option .desc { font-size:11px; color:#64748b; margin-top:4px; }
+
+/* ---- ASSIGNMENT CHIPS ---- */
+.assignment-chip {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:4px 12px; background:#f1f5f9; border-radius:999px;
+  font-size:12px; font-weight:600; color:#334155;
+}
+
+.assignment-chip .avatar {
+  width:22px; height:22px; border-radius:50%;
+  background:linear-gradient(135deg,#dc2626,#b91c1c);
+  color:#fff; display:flex; align-items:center; justify-content:center;
+  font-size:10px; font-weight:700;
+}
+
+.assignment-chip.pic { background:#fee2e2; color:#991b1b; }
+.assignment-chip.pic .avatar { background:linear-gradient(135deg,#991b1b,#7f1d1d); }
+
+/* ---- TIMELINE WORKFLOW ---- */
+.timeline { position:relative; padding-left:36px; }
+.timeline::before {
+  content:''; position:absolute; left:14px; top:0; bottom:0;
+  width:2px; background:#e5e7eb;
+}
+.timeline-item { position:relative; padding-bottom:20px; }
+.timeline-item:last-child { padding-bottom:0; }
+
+.timeline-dot {
+  position:absolute; left:-30px; top:4px;
+  width:28px; height:28px; border-radius:50%;
+  background:#ffffff; border:2px solid #e5e7eb;
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:700; color:#94a3b8; z-index:1;
+}
+
+.timeline-dot.active    { background:#dbeafe; border-color:#3b82f6; color:#2563eb; }
+.timeline-dot.completed { background:#d1fae5; border-color:#10b981; color:#059669; }
+
+/* ---- WORKFLOW CARD ---- */
+.workflow-card {
+  background:#ffffff; border:1px solid #e5e7eb; border-radius:14px;
+  padding:16px; transition:all 0.2s ease;
+}
+.workflow-card:hover { box-shadow:0 4px 12px rgba(0,0,0,0.06); }
+.workflow-card.completed { border-left:4px solid #10b981; }
+.workflow-card.active { border-left:4px solid #3b82f6; }
+
+/* ---- PROGRESS ITEM ---- */
+.progress-item {
+  background:#f9fafb; border:1px solid #f1f5f9; border-radius:10px;
+  padding:12px; margin-bottom:8px; transition:all 0.2s ease;
+}
+.progress-item:hover { background:#ffffff; border-color:#e2e8f0; }
+.progress-item.completed { background:#f0fdf4; border-color:#bbf7d0; }
+
+/* ---- EVIDENCE ---- */
+.evidence-item {
+  display:flex; align-items:center; gap:10px; padding:8px 12px;
+  background:#ffffff; border:1px solid #e5e7eb; border-radius:8px; font-size:13px;
+}
+.evidence-item a { color:#2563eb; text-decoration:none; font-weight:600; }
+.evidence-item a:hover { text-decoration:underline; }
+
+/* ---- DETAIL SECTION ---- */
+.detail-section {
+  background:#ffffff; border-radius:18px; padding:24px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.04); margin-bottom:20px;
+}
+.detail-section h3 { font-size:16px; font-weight:700; color:#0f172a; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.detail-section h3 i { color:#b30000; }
+
+/* ---- INFO GRID ---- */
+.info-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; }
+.info-item { display:flex; flex-direction:column; gap:4px; }
+.info-item .label { font-size:11px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.05em; }
+.info-item .value { font-size:14px; font-weight:600; color:#0f172a; }
+
+/* ---- AGENDA TABLE ---- */
+.agenda-title-cell { font-weight:700; color:#0f172a; }
+.agenda-subtitle-cell { font-size:12px; color:#94a3b8; margin-top:2px; }
+
+.agenda-actions { display:flex; gap:6px; }
+.agenda-actions button {
+  width:32px; height:32px; border-radius:8px; border:none; cursor:pointer;
+  transition:all 0.2s ease; display:flex; align-items:center; justify-content:center; font-size:13px;
+}
+.agenda-actions button:hover { transform:scale(1.1); }
+.btn-agenda-view  { background:#e0f2fe; color:#0284c7; }
+.btn-agenda-edit  { background:#fef3c7; color:#b45309; }
+.btn-agenda-delete{ background:#fee2e2; color:#dc2626; }
+
+/* ---- RESPONSIVE ---- */
+@media (max-width:768px) {
+  .info-grid { grid-template-columns:1fr 1fr; }
+  .detail-section { padding:16px; border-radius:14px; }
+  .wizard-steps { flex-wrap:wrap; gap:12px; }
+  .wizard-step { min-width:80px; }
+  .assignment-options { grid-template-columns:1fr 1fr; }
+}
+
+@media (max-width:480px) {
+  .info-grid { grid-template-columns:1fr; }
+  .assignment-options { grid-template-columns:1fr; }
+}
+</style>

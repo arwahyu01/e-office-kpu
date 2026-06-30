@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <base target="_top">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+    <title>Absensi WFA - KPU Siak</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        html, body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background: #f4f7fe; 
+            color: #1e293b; 
+            overflow-x: hidden;
+            width: 100%;
+            position: relative;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .bg-indigo-custom { background: #5c59f0; }
+        .card-white { background: white; border-radius: 20px; box-shadow: 0 4px 15px -2px rgba(0, 0, 0, 0.04); width: 100%; }
+        
+        /* Button Styles */
+        .btn-action { transition: all 0.2s ease; cursor: pointer; }
+        .btn-action:active { transform: scale(0.96); }
+        
+        /* Status Badges */
+        .badge-green { background: #ecfdf5; color: #10b981; border: 1px solid #d1fae5; }
+        .badge-amber { background: #fffbeb; color: #f59e0b; border: 1px solid #fef3c7; }
+        .badge-red { background: #fef2f2; color: #ef4444; border: 1px solid #fee2e2; }
+
+        /* Custom Scrollbar */
+        .custom-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        * { -webkit-font-smoothing: antialiased; }
+        
+        /* Animasi fade untuk refresh tabel */
+        .fade-in { animation: fadeIn 0.2s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        /* Style input date */
+        input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; }
+        input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+    </style>
+</head>
+
+<body class="min-h-screen pb-10">
+    <!-- NAVIGATION / HEADER -->
+    <nav class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+        <div class="flex items-center gap-3 overflow-hidden">
+            <div id="avatar" class="flex-shrink-0 w-11 h-11 bg-indigo-custom text-white flex items-center justify-center rounded-xl font-bold text-lg shadow-lg shadow-indigo-100">?</div>
+            <div class="overflow-hidden">
+                <h2 id="user-nama" class="font-bold text-base text-slate-800 leading-tight truncate">Memuat...</h2>
+                <p id="user-jabatan" class="text-[11px] text-indigo-600 font-bold uppercase truncate">Loading...</p>
+            </div>
+        </div>
+        <button onclick="bukaModalLaporan()" class="flex-shrink-0 ml-2 px-3 py-2 bg-white text-indigo-600 rounded-lg font-bold text-xs shadow-sm border border-slate-100 btn-action">
+            <i class="fa fa-file-invoice mr-1"></i> LAPORAN
+        </button>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 overflow-hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 md:gap-8">
+            
+            <!-- LEFT COLUMN: CLOCK & STATS -->
+            <div class="lg:col-span-4 space-y-5">
+                <!-- Clock Card -->
+                <div class="bg-indigo-custom rounded-[24px] p-6 text-center text-white shadow-xl shadow-indigo-50 relative overflow-hidden">
+                    <p id="live-date" class="text-xs font-medium opacity-90 mb-1"></p>
+                    <h1 id="live-clock" class="text-4xl md:text-5xl font-extrabold tracking-tight mb-3 italic">00:00:00</h1>
+                    <div class="inline-flex items-center gap-2 px-3 py-1 bg-white/20 rounded-full text-[10px] font-bold uppercase tracking-wide border border-white/20 backdrop-blur-sm">
+                        <i class="fa fa-clock"></i> <span id="label-jadwal">MEMUAT JADWAL...</span>
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="card-white p-4 text-center">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Total Hadir</p>
+                        <h3 id="st-hadir" class="text-2xl font-black text-slate-800">0</h3>
+                    </div>
+                    <div class="card-white p-4 text-center">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Terlambat</p>
+                        <h3 id="st-telat" class="text-2xl font-black text-slate-800">0</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: ACTIONS & RECENT HISTORY -->
+            <div class="lg:col-span-8 space-y-5">
+                
+                <!-- Action Buttons -->
+                <div class="grid grid-cols-2 gap-4">
+                    <button onclick="prosesAbsen('MASUK')" class="card-white p-5 md:p-8 text-center btn-action hover:bg-emerald-50 border-2 border-transparent hover:border-emerald-100 group">
+                        <div class="w-12 h-12 bg-emerald-50 text-emerald-500 rounded-2xl mx-auto flex items-center justify-center text-xl mb-3 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                            <i class="fa fa-fingerprint"></i>
+                        </div>
+                        <span class="block text-[10px] font-bold text-slate-400 uppercase mb-0.5">Clock In</span>
+                        <span class="text-sm font-bold text-slate-800 uppercase">Absen Masuk</span>
+                    </button>
+
+                    <button onclick="prosesAbsen('PULANG')" class="card-white p-5 md:p-8 text-center btn-action hover:bg-amber-50 border-2 border-transparent hover:border-amber-100 group">
+                        <div class="w-12 h-12 bg-amber-50 text-amber-500 rounded-2xl mx-auto flex items-center justify-center text-xl mb-3 group-hover:bg-amber-500 group-hover:text-white transition-colors">
+                            <i class="fa fa-door-open"></i>
+                        </div>
+                        <span id="label-jam-pulang" class="block text-[10px] font-bold text-slate-400 uppercase mb-0.5">Clock Out</span>
+                        <span class="text-sm font-bold text-slate-800 uppercase">Absen Pulang</span>
+                    </button>
+                </div>
+
+                <!-- History 7 Days -->
+                <div class="card-white overflow-hidden">
+                    <div class="px-5 py-4 border-b border-slate-50 bg-slate-50/50">
+                        <h3 class="font-bold text-slate-800 text-xs uppercase">Riwayat 7 Hari Terakhir</h3>
+                    </div>
+                    <div id="log-container" class="p-4 space-y-3 max-h-[350px] overflow-y-auto custom-scroll">
+                        <p class="text-center py-6 text-slate-400 text-xs font-medium italic">Memuat riwayat...</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- FULL REPORT MODAL dengan PENCARIAN TANGGAL -->
+    <div id="modal-laporan" class="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-900/60 backdrop-blur-sm hidden">
+        <div class="bg-white w-full max-w-4xl max-h-[85vh] rounded-[20px] shadow-2xl flex flex-col overflow-hidden">
+            <div class="p-5 border-b flex justify-between items-center bg-slate-50 flex-wrap gap-3">
+                <div>
+                    <h2 class="text-base font-bold text-slate-800">Laporan Detail</h2>
+                    <p class="text-[10px] font-semibold text-indigo-600 uppercase">Seluruh Riwayat Absensi</p>
+                </div>
+                <button onclick="tutupModalLaporan()" class="w-9 h-9 bg-white rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all border border-slate-100 shadow-sm"><i class="fa fa-times text-sm"></i></button>
+            </div>
+            
+            <!-- BAR PENCARIAN TANGGAL -->
+            <div class="px-5 py-3 bg-white border-b border-slate-100 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <i class="fa fa-calendar-alt text-indigo-400 text-sm"></i>
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wide">Filter Tanggal:</span>
+                    <div class="relative">
+                        <input type="date" id="search-tanggal" class="pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 outline-none transition-all w-40 bg-white" placeholder="Cari tanggal...">
+                        <i class="fa fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[11px]"></i>
+                    </div>
+                </div>
+                <div class="flex gap-2 w-full sm:w-auto justify-end">
+                    <button onclick="resetPencarianTanggal()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-[10px] font-bold text-slate-600 transition flex items-center gap-1"><i class="fa fa-undo-alt text-[10px]"></i> Reset</button>
+                    <div class="text-[10px] font-medium text-slate-400 bg-slate-50 px-2 py-1 rounded-full flex items-center gap-1">
+                        <i class="fa fa-database"></i> <span id="total-row-count">0</span> data
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex-1 overflow-x-auto p-3 custom-scroll">
+                <table class="min-w-full">
+                    <thead class="sticky top-0 bg-white z-10">
+                        <tr class="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b text-left">
+                            <th class="px-3 py-3">Tanggal</th>
+                            <th class="px-3 py-3">Masuk</th>
+                            <th class="px-3 py-3">Pulang</th>
+                            <th class="px-3 py-3">Status</th>
+                            <th class="px-3 py-3 text-right">Durasi Kerja</th>
+                        </tr>
+                    </thead>
+                    <tbody id="full-report-body" class="text-xs font-medium text-slate-600"></tbody>
+                </table>
+                <div id="no-data-tanggal" class="hidden text-center py-8 text-slate-400 text-xs italic">⚠️ Tidak ada data absensi untuk tanggal yang dipilih.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let userData = null;
+        let masterLogs = [];       
+        let filteredLogs = [];      
+
+        function updateUIJadwal() {
+            const now = new Date();
+            const hari = now.getDay();
+            const label = document.getElementById("label-jadwal");
+            const labelPulang = document.getElementById("label-jam-pulang");
+            
+            if(hari === 5) {
+                label.innerText = "JUMAT: 16:30";
+                labelPulang.innerText = "Out - 16.30";
+            } else {
+                label.innerText = "SENIN-KAMIS: 16:00";
+                labelPulang.innerText = "Out - 16.00";
+            }
+        }
+
+        window.onload = () => {
+            const stored = localStorage.getItem("userProfile");
+            if (!stored) {
+                console.warn("User profile tidak ditemukan, pastikan login terlebih dahulu");
+                return;
+            }
+            userData = JSON.parse(stored);
+            
+            document.getElementById("user-nama").innerText = userData.nama || "-";
+            document.getElementById("user-jabatan").innerText = userData.jabatan || "-";
+            document.getElementById("avatar").innerText = (userData.nama || "?").charAt(0).toUpperCase();
+
+            setInterval(() => {
+                const now = new Date();
+                document.getElementById("live-clock").innerText = now.toLocaleTimeString("id-ID", {hour12:false});
+                document.getElementById("live-date").innerText = now.toLocaleDateString("id-ID", {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+            }, 1000);
+            
+            updateUIJadwal();
+            loadStats();
+        }
+
+        function loadStats() {
+            google.script.run.withSuccessHandler(res => {
+                if(res.success) {
+                    masterLogs = res.data.logs || [];
+                    document.getElementById("st-hadir").innerText = res.data.hadir || 0;
+                    document.getElementById("st-telat").innerText = res.data.telat || 0;
+                    renderPreview();
+                    filteredLogs = [...masterLogs];
+                } else {
+                    console.error("Gagal memuat statistik");
+                }
+            }).getStats(userData.email);
+        }
+
+        function renderPreview() {
+            const container = document.getElementById("log-container");
+            let html = "";
+            const recent = [...masterLogs].slice(0, 7);
+            if(recent.length === 0) {
+                container.innerHTML = "<p class='text-center py-6 text-slate-400 text-xs font-medium italic'>Belum ada riwayat.</p>";
+                return;
+            }
+            recent.forEach(l => {
+                const statusText = l[5] || "Tidak Terdefinisi";
+                const sClass = statusText.includes("Tepat") ? "badge-green" : (statusText.includes("Ganti Waktu") || statusText.includes("Toleransi") ? "badge-amber" : "badge-red");
+                const tglSplit = l[0] ? l[0].split('/') : ['?','?'];
+                const day = tglSplit[0] || '??';
+                const month = tglSplit[1] || '??';
+                html += `
+                <div class="p-3 rounded-xl border border-slate-100 bg-white flex justify-between items-center gap-2">
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <div class="flex-shrink-0 text-center bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">
+                            <p class="text-[9px] font-bold text-slate-400 leading-none mb-0.5">${month}</p>
+                            <p class="text-sm font-extrabold text-slate-800 leading-none">${day}</p>
+                        </div>
+                        <div class="overflow-hidden">
+                            <p class="text-[11px] font-bold text-slate-700 truncate mb-0.5">${l[0]}</p>
+                            <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${sClass} whitespace-nowrap inline-block">${statusText}</span>
+                        </div>
+                    </div>
+                    <div class="flex-shrink-0 flex gap-4 text-center">
+                        <div><p class="text-[9px] text-slate-400 uppercase">In</p><p class="text-xs font-bold text-slate-800">${l[3] || '--:--'}</p></div>
+                        <div><p class="text-[9px] text-slate-400 uppercase">Out</p><p class="text-xs font-bold text-slate-800">${l[4] || '--:--'}</p></div>
+                    </div>
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        // ================== FUNGSI PENCARIAN TANGGAL LAPORAN ==================
+        function bukaModalLaporan() {
+            if(!masterLogs.length) {
+                Swal.fire({ title: 'Memuat data...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                google.script.run.withSuccessHandler(res => {
+                    Swal.close();
+                    if(res.success) {
+                        masterLogs = res.data.logs || [];
+                        filteredLogs = [...masterLogs];
+                        renderFullReport(filteredLogs);
+                        document.getElementById("modal-laporan").classList.remove("hidden");
+                        document.getElementById("total-row-count").innerText = filteredLogs.length;
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Gagal', text: 'Tidak dapat memuat data laporan', customClass: { popup: 'rounded-[20px]' } });
+                    }
+                }).getStats(userData.email);
+            } else {
+                resetPencarianTanggal();
+                document.getElementById("modal-laporan").classList.remove("hidden");
+            }
+            const dateInput = document.getElementById("search-tanggal");
+            if(dateInput) dateInput.value = "";
+        }
+
+        function renderFullReport(logsArray) {
+            const body = document.getElementById("full-report-body");
+            const noDataDiv = document.getElementById("no-data-tanggal");
+            if(!body) return;
+            
+            if(!logsArray || logsArray.length === 0) {
+                body.innerHTML = "";
+                noDataDiv.classList.remove("hidden");
+                document.getElementById("total-row-count").innerText = "0";
+                return;
+            }
+            noDataDiv.classList.add("hidden");
+            let html = "";
+            [...logsArray].reverse().forEach(l => {
+                const tanggal = l[0] || "-";
+                const jamMasuk = l[3] || "--:--";
+                const jamPulang = l[4] || "--:--";
+                const status = l[5] || "-";
+                const durasi = l[7] || "-";
+                // Style badge status dinamis
+                let statusClass = "";
+                if(status.includes("Tepat")) statusClass = "badge-green";
+                else if(status.includes("Terlambat")) statusClass = "badge-red";
+                else statusClass = "badge-amber";
+                
+                html += `
+                <tr class="border-b hover:bg-slate-50 transition-colors fade-in">
+                    <td class="px-3 py-3 text-xs font-medium text-slate-800 whitespace-nowrap">${tanggal}</td>
+                    <td class="px-3 py-3 text-xs text-slate-600 font-mono">${jamMasuk}</td>
+                    <td class="px-3 py-3 text-xs text-slate-600 font-mono">${jamPulang}</td>
+                    <td class="px-3 py-3"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${statusClass} inline-block">${status}</span></td>
+                    <td class="px-3 py-3 text-right font-bold text-indigo-600 text-xs">${durasi}</td>
+                </tr>`;
+            });
+            body.innerHTML = html;
+            document.getElementById("total-row-count").innerText = logsArray.length;
+        }
+
+        // ================== FUNGSI PENCARIAN TANGGAL LAPORAN ==================
+        function filterLaporanByTanggal() {
+            const searchValue = document.getElementById("search-tanggal").value;
+            if(!searchValue) {
+                filteredLogs = [...masterLogs];
+                renderFullReport(filteredLogs);
+                document.getElementById("total-row-count").innerText = filteredLogs.length;
+                const noDataDiv = document.getElementById("no-data-tanggal");
+                if(noDataDiv && filteredLogs.length === 0) noDataDiv.classList.remove("hidden");
+                else if(noDataDiv) noDataDiv.classList.add("hidden");
+                return;
+            }
+            const [year, month, day] = searchValue.split("-");
+            const formattedMonth = month.padStart(2, '0');
+            const formattedDay = day.padStart(2, '0');
+            const targetDateFormatted = `${formattedDay}/${formattedMonth}/${year}`;
+            
+            
+            filteredLogs = masterLogs.filter(log => {
+                if(!log[0]) return false;
+                const logDate = log[0].trim();
+                return logDate === targetDateFormatted;
+            });
+            
+            renderFullReport(filteredLogs);
+            document.getElementById("total-row-count").innerText = filteredLogs.length;
+            
+            const noDataDiv = document.getElementById("no-data-tanggal");
+            if(filteredLogs.length === 0) {
+                if(noDataDiv) noDataDiv.classList.remove("hidden");
+            } else {
+                if(noDataDiv) noDataDiv.classList.add("hidden");
+            }
+        }
+
+        function resetPencarianTanggal() {
+            const dateInput = document.getElementById("search-tanggal");
+            if(dateInput) dateInput.value = "";
+            filteredLogs = [...masterLogs];
+            renderFullReport(filteredLogs);
+            document.getElementById("total-row-count").innerText = filteredLogs.length;
+            const noDataDiv = document.getElementById("no-data-tanggal");
+            if(noDataDiv) noDataDiv.classList.add("hidden");
+        }
+        
+        function tutupModalLaporan() { 
+            document.getElementById("modal-laporan").classList.add("hidden");
+            const dateInput = document.getElementById("search-tanggal");
+            if(dateInput) dateInput.value = "";
+        }
+
+        function prosesAbsen(tipe) {
+            if(!userData || !userData.email) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Data user tidak valid. Silakan login ulang.', customClass: { popup: 'rounded-[20px]' } });
+                return;
+            }
+            Swal.fire({
+                title: `<span class="text-base font-bold">KONFIRMASI ${tipe}</span>`,
+                text: 'Kirim data absensi Anda sekarang?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: tipe === 'MASUK' ? '#10b981' : '#5c59f0',
+                confirmButtonText: 'YA, KIRIM',
+                cancelButtonText: 'BATAL',
+                customClass: { popup: 'rounded-[20px] p-6' }
+            }).then(result => {
+                if(!result.isConfirmed) return;
+                Swal.fire({ title: 'Memproses...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                google.script.run.withSuccessHandler(res => {
+                    if(res.success) {
+                        Swal.fire({ icon: 'success', title: 'Berhasil!', text: res.message, customClass: { popup: 'rounded-[20px]' } });
+                        loadStats();
+                    } else {
+                        Swal.fire({ icon: 'warning', title: 'Perhatian', text: res.error, customClass: { popup: 'rounded-[20px]' } });
+                    }
+                }).submitAbsen(tipe, userData.email);
+            });
+        }
+   
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById("search-tanggal");
+            if(searchInput) {
+                searchInput.addEventListener('input', function(e) {
+                    if(document.getElementById("modal-laporan").classList.contains("hidden")) return;
+                    filterLaporanByTanggal();
+                });
+            }
+        });
+        
+        if(document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {});
+        } else {
+            setTimeout(() => {
+                const searchInput = document.getElementById("search-tanggal");
+                if(searchInput && !searchInput.hasListener) {
+                    searchInput.addEventListener('input', function() {
+                        if(!document.getElementById("modal-laporan").classList.contains("hidden")) filterLaporanByTanggal();
+                    });
+                    searchInput.hasListener = true;
+                }
+            }, 100);
+        }
+        
+        const originalBukaModal = bukaModalLaporan;
+        window.bukaModalLaporan = function() {
+            if(userData && (!masterLogs.length || masterLogs.length === 0)) {
+                google.script.run.withSuccessHandler(res => {
+                    if(res.success) {
+                        masterLogs = res.data.logs || [];
+                        filteredLogs = [...masterLogs];
+                        document.getElementById("st-hadir").innerText = res.data.hadir || 0;
+                        document.getElementById("st-telat").innerText = res.data.telat || 0;
+                        renderPreview();
+                        originalBukaModal();
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Gagal', text: 'Tidak dapat memuat data laporan' });
+                    }
+                }).getStats(userData.email);
+            } else {
+                if(document.getElementById("search-tanggal")) document.getElementById("search-tanggal").value = "";
+                filteredLogs = [...masterLogs];
+                renderFullReport(filteredLogs);
+                document.getElementById("modal-laporan").classList.remove("hidden");
+                document.getElementById("total-row-count").innerText = filteredLogs.length;
+                const noDataDiv = document.getElementById("no-data-tanggal");
+                if(noDataDiv) noDataDiv.classList.add("hidden");
+            }
+        };
+        
+        window.tutupModalLaporan = tutupModalLaporan;
+        window.resetPencarianTanggal = resetPencarianTanggal;
+        window.filterLaporanByTanggal = filterLaporanByTanggal;
+        window.prosesAbsen = prosesAbsen;
+    </script>
+</body>
+</html>

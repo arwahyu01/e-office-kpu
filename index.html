@@ -1,0 +1,2996 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <base target="_top">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-LKH | KPU SIAK</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+          rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {}
+            }
+        }
+    </script>
+    <?!= include('style'); ?>
+    <style>
+        select:focus {
+            outline: none;
+            border-color: #dc2626;
+            box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.15);
+        }
+    </style>
+</head>
+
+<body>
+<div id="loading">
+    <div class="loading-spinner"></div>
+    <p class="loading-text">Memuat Data...</p>
+</div>
+
+<button id="sidebarToggle" class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+    <i class="fas fa-bars"></i>
+</button>
+
+<!-- Auth Page -->
+<main id="authPage" class="page">
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header" style="text-align: center; margin-bottom: 30px;">
+                <div class="auth-logo"
+                     style="width: clamp(60px, 15vw, 80px); height: clamp(60px, 15vw, 80px); background: linear-gradient(135deg, #b30000 0%, #ff4d4d 100%); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                    <i class="fas fa-calendar-check" style="font-size: clamp(24px, 6vw, 36px); color: white;"></i>
+                </div>
+                <h2
+                        style="font-size: clamp(1.5rem, 6vw, 1.75rem); font-weight: 800; color: #1e293b; margin-bottom: 8px;">
+                    E-LKH <span style="color: #b30000;">KPU</span></h2>
+                <p style="color: #64748b; font-size: clamp(13px, 3vw, 14px);">Sistem Laporan Kinerja Harian</p>
+                <p style="color: #64748b; font-size: clamp(13px, 3vw, 14px);">Komisi Pemilihan Umum Kabupaten Siak
+                </p>
+            </div>
+
+            <div
+                    style="display: flex; gap: 4px; background: #f8fafc; padding: 4px; border-radius: 16px; margin-bottom: 25px;">
+                <button id="tabLogin"
+                        style="flex: 1; padding: 16px; border: none; background: white; color: #b30000; border-radius: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); font-size: clamp(14px, 3vw, 15px);">
+                    <i class="fas fa-sign-in-alt" style="margin-right: 8px;"></i> Login
+                </button>
+                <button id="tabDaftar"
+                        style="flex: 1; padding: 16px; border: none; background: none; color: #64748b; border-radius: 14px; font-weight: 600; cursor: pointer; font-size: clamp(14px, 3vw, 15px);">
+                    <i class="fas fa-user-plus" style="margin-right: 8px;"></i> Daftar
+                </button>
+            </div>
+
+            <!-- Login Form -->
+            <div id="formLogin">
+                <div class="form-group">
+                    <label for="lEmail"
+                           style="display: block; margin-bottom: 8px; color: #475569; font-weight: 600; font-size: clamp(13px, 3vw, 14px);">
+                        <i class="fas fa-envelope" style="margin-right: 8px;"></i> Alamat Email
+                    </label>
+                    <input type="email" id="lEmail" class="form-control" placeholder="contoh: nama@gmail.com"
+                           required>
+                </div>
+
+                <div class="form-group" style="margin-top: 20px;">
+                    <label for="lPass"
+                           style="display: block; margin-bottom: 8px; color: #475569; font-weight: 600; font-size: clamp(13px, 3vw, 14px);">
+                        <i class="fas fa-lock" style="margin-right: 8px;"></i> Password
+                    </label>
+                    <div style="position: relative;">
+                        <input type="password" id="lPass" class="form-control" placeholder="Masukkan password Anda"
+                               required style="padding-right: 45px;">
+                        <button type="button" onclick="togglePassword('lPass')"
+                                style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #64748b; cursor: pointer; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button id="btnLogin" class="btn-primary" style="margin-top: 30px; width: 100%;">
+                    <i class="fas fa-sign-in-alt"></i> Masuk ke Sistem
+                </button>
+
+                <div id="loginError"
+                     style="background: #fee2e2; color: #dc2626; padding: 14px; border-radius: 12px; margin: 20px 0; display: none;">
+                    <i class="fas fa-exclamation-triangle" style="margin-right: 10px;"></i>
+                    <span id="errorMessage"></span>
+                </div>
+                <div class="forgot-password">
+                    <a href="#" id="forgotPassword">
+                        <i class="fas fa-unlock-alt"></i> Lupa password?
+                    </a>
+                </div>
+
+            </div>
+
+            <!-- Daftar Form -->
+            <div id="formDaftar" style="display: none;">
+                <div class="form-group">
+                    <label for="dNama"
+                           style="display: block; margin-bottom: 8px; color: #475569; font-weight: 600; font-size: clamp(13px, 3vw, 14px);">
+                        <i class="fas fa-user" style="margin-right: 8px;"></i> Pilih Nama Anda
+                    </label>
+                    <select id="dNama" class="form-control" required>
+                        <option value="">-- Pilih nama dari daftar pegawai --</option>
+                    </select>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 20px;">
+                    <div class="form-group">
+                        <label for="dNip"
+                               style="display: block; margin-bottom: 8px; color: #475569; font-weight: 600; font-size: clamp(13px, 3vw, 14px);">
+                            <i class="fas fa-id-card" style="margin-right: 8px;"></i> NIP
+                        </label>
+                        <input type="text" id="dNip" class="form-control" readonly
+                               style="background: none;color: #64748b;">
+                    </div>
+                    <div class="form-group">
+                        <label for="dJab"
+                               style="display: block; margin-bottom: 8px; color: #475569; font-weight: 600; font-size: clamp(13px, 3vw, 14px);">
+                            <i class="fas fa-briefcase" style="margin-right: 8px;"></i> Jabatan
+                        </label>
+                        <input type="text" id="dJab" class="form-control" readonly
+                               style="background: none;color: #64748b;">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 20px;">
+                    <label for="dEmail"
+                           style="display: block; margin-bottom: 8px; color: #475569; font-weight: 600; font-size: clamp(13px, 3vw, 14px);">
+                        <i class="fas fa-at" style="margin-right: 8px;"></i> Alamat Email
+                    </label>
+                    <input type="email" id="dEmail" class="form-control" placeholder="Email aktif Anda" required>
+                </div>
+
+                <div class="form-group" style="margin-top: 20px;">
+                    <label for="dPass"
+                           style="display: block; margin-bottom: 8px; color: #475569; font-weight: 600; font-size: clamp(13px, 3vw, 14px);">
+                        <i class="fas fa-key" style="margin-right: 8px;"></i> Buat Password
+                    </label>
+                    <div style="position: relative;">
+                        <input type="password" id="dPass" class="form-control" placeholder="Minimal 6 karakter"
+                               required minlength="6" style="padding-right: 45px;">
+                        <button type="button" onclick="togglePassword('dPass')"
+                                style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #64748b; cursor: pointer; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <div
+                            style="margin-top: 8px; display: flex; align-items: center; color: #64748b; font-size: clamp(11px, 2.5vw, 12px);">
+                        <i class="fas fa-info-circle" style="margin-right: 6px;"></i>
+                        <span>Password harus minimal 6 karakter</span>
+                    </div>
+                </div>
+
+                <button id="btnDaftar" class="btn-primary" style="margin-top: 30px; width: 100%;">
+                    <i class="fas fa-user-plus"></i> Daftar Akun Baru
+                </button>
+
+                <div id="registerError"
+                     style="background: #fee2e2; color: #dc2626; padding: 14px; border-radius: 12px; margin: 20px 0; display: none;">
+                    <i class="fas fa-exclamation-triangle" style="margin-right: 10px;"></i>
+                    <span id="registerErrorMessage"></span>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0; text-align: center;">
+                <p style="color: #64748b; font-size: clamp(11px, 2.5vw, 12px);">
+                    <i class="fas fa-info-circle" style="margin-right: 5px;"></i>
+                    E-LKH <span class="app-version"></span> • © KPU Kabupaten Siak
+                </p>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Dashboard -->
+<main id="dashboard" style="display: none;">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-content">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="logo-text">E-LKH <span>KPU</span></div>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <button class="nav-item active" onclick="switchMenu('dashboard',this)" data-tooltip="Dashboard">
+                    <i class="fas fa-chart-line"></i> <span class="hide-on-mobile">Dashboard</span>
+                </button>
+                <button class="nav-item" onclick="switchMenu('profil',this)" data-tooltip="Profil">
+                    <i class="fas fa-id-card"></i> <span class="hide-on-mobile">Profil</span>
+                </button>
+                <button class="nav-item" onclick="switchMenu('laporan',this)" data-tooltip="Laporan">
+                    <i class="fas fa-file-alt"></i> <span class="hide-on-mobile">Laporan</span>
+                </button>
+                <a href="https://script.google.com/macros/s/AKfycbxejATwEFa6KmgBqjxFGiA2L_mEJGG0-CaHGsaIyxedRz5_vGA-QiAIhSE-mYwXFY_E/exec?page=agenda-tindak-lanjut"
+                   target="_top" class="nav-item">
+                    <i class="fas fa-diagram-project"></i><span class="hide-on-mobile">Agenda</span>
+                </a>
+                <button class="nav-item" onclick="switchMenu('verifikasi',this)" data-tooltip="Verifikasi">
+                    <i class="fas fa-check-double"></i>
+                    <span class="hide-on-mobile">Verifikasi</span>
+                    <span class="nav-badge" id="badge-verifikasi" style="display:none;">0</span>
+                </button>
+                <button id="menuMonitoring" class="nav-item" style="display:none;"
+                        onclick="switchMenu('monitoring',this)" data-tooltip="Monitoring">
+                    <i class="fas fa-chart-simple"></i> <span class="hide-on-mobile">Monitoring</span>
+                </button>
+                <a href="https://script.google.com/macros/s/AKfycbxejATwEFa6KmgBqjxFGiA2L_mEJGG0-CaHGsaIyxedRz5_vGA-QiAIhSE-mYwXFY_E/exec?page=absensi"
+                   target="_top" class="nav-item">
+                    <i class="fas fa-fingerprint"></i><span class="hide-on-mobile">Absensi WFA</span>
+                </a>
+                <a href="https://script.google.com/macros/s/AKfycbxejATwEFa6KmgBqjxFGiA2L_mEJGG0-CaHGsaIyxedRz5_vGA-QiAIhSE-mYwXFY_E/exec?page=presensi"
+                   target="_top" class="nav-item">
+                    <i class="fas fa-clock"></i>
+                    <span class="hide-on-mobile">Monitoring Presensi</span>
+                </a>
+                <a href="#" class="nav-item" onclick="logout(); return false;" data-tooltip="Keluar">
+                    <i class="fas fa-arrow-right-from-bracket"></i>
+                    <span class="hide-on-mobile">Logout</span>
+                </a>
+            </nav>
+        </div>
+
+        <div class="sidebar-footer">
+            <div class="footer-main">
+                <div class="institution-brand">
+                    <div class="brand-icon">
+                        <i class="fas fa-university"></i>
+                    </div>
+                    <div class="brand-info">
+                        <div class="brand-name">KPU Kabupaten Siak</div>
+                        <div class="brand-subtitle">Laporan Tertata, Kinerja Terjaga</div>
+                    </div>
+                </div>
+
+                <div class="system-info">
+                    <div class="info-item">
+                        <i class="fas fa-database"></i>
+                        <span>Google Drive Sync</span>
+                    </div>
+                    <div class="info-item">
+                        <div class="status-dot active"></div>
+                        <span class="app-version"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-copyright">
+                © 2026 KPU Kabupaten Siak
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Dashboard Section -->
+        <div id="section-dashboard" class="content-section" style="display: block;">
+            <div class="hero-section">
+                <h1>Laporan Kerja</h1>
+                <p>Kelola dan pantau aktivitas harian Anda dengan mudah dan efisien</p>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-list-check"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="statTotal">0</h3>
+                        <p>Total LKH Periode Ini</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-calendar-day"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="statToday">--</h3>
+                        <p>Terakhir Ditambahkan</p>
+                    </div>
+                </div>
+
+                <div class="stat-card quote">
+                    <div class="stat-icon">
+                        <i class="fas fa-quote-left"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 style="font-size: clamp(14px, 3.5vw, 16px); font-weight: 600; font-style: italic;">
+                            "Produktivitas adalah kunci keberhasilan tim."</h3>
+                        <p>Quote Hari Ini</p>
+                    </div>
+                </div>
+            </div>
+            <div class="filter-bar">
+                <div class="filter-group">
+                    <label for="bulan" hidden></label>
+                    <select id="bulan" class="filter-select">
+                        <!-- List Of Month -->
+                    </select>
+                    <label for="tahun" hidden></label>
+                    <select id="tahun" class="filter-select">
+                        <!-- List of Year -->
+                    </select>
+                    <button class="btn-primary" onclick="loadAgenda()">
+                        <i class="fas fa-filter"></i> Filter Periode
+                    </button>
+                </div>
+                <div class="filter-info">
+                    Menampilkan <span id="countView">0</span> laporan
+                </div>
+            </div>
+            <div style="text-align: right; margin: 20px 0;">
+                <button class="btn-primary" onclick="openForm()">
+                    <i class="fas fa-plus"></i> Tambah Laporan
+                </button>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Tanggal</th>
+                        <th>Kegiatan</th>
+                        <th>Output</th>
+                        <th class="mobile-only">Aksi</th>
+                    </tr>
+                    </thead>
+                    <tbody id="agendaBody">
+                    <tr>
+                        <td colspan="5">
+                            <div class="empty-state">
+                                <i class="fas fa-calendar-plus"></i>
+                                <h3>Belum Ada LKH</h3>
+                                <p>Mulai dengan menambahkan laporan kinerja baru</p>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Profile Section -->
+        <div id="section-profil" class="content-section hidden">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h1 class="text-2xl font-semibold text-gray-800">Profil Pegawai</h1>
+                    <p class="text-gray-500 text-sm">Informasi detail akun Anda</p>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <div class="flex items-center gap-4 border-b pb-5 mb-5">
+                    <div
+                            class="w-16 h-16 rounded-full bg-red-600 flex items-center justify-center text-white text-2xl">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div>
+                        <h2 id="profileName" class="text-xl font-semibold text-gray-800">Nama Pegawai</h2>
+                        <p id="profileJabatan" class="text-gray-500 text-sm">Jabatan</p>
+                        <p id="profileUnit" class="text-gray-400 text-xs">Unit Kerja</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <p class="text-xs text-gray-500">NIP</p>
+                        <p id="profileNip" class="font-semibold text-gray-800">-</p>
+                    </div>
+
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <p class="text-xs text-gray-500">Golongan</p>
+                        <p id="profileGol" class="font-semibold text-gray-800">-</p>
+                    </div>
+
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <p class="text-xs text-gray-500">Subbag</p>
+                        <p id="profileSubbag" class="font-semibold text-gray-800">-</p>
+                    </div>
+
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <p class="text-xs text-gray-500">Email</p>
+                        <p id="profileEmail" class="font-semibold text-gray-800">-</p>
+                    </div>
+
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <p class="text-xs text-gray-500">Atasan Langsung</p>
+                        <p id="profileAtasan" class="font-semibold text-gray-800">-</p>
+                    </div>
+
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <p class="text-xs text-gray-500">Status</p>
+                        <span id="profileStatus"
+                              class="inline-block px-3 py-1 text-xs font-semibold bg-green-100 text-green-700 rounded-full">
+                                Aktif
+                            </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reports Section -->
+        <div id="section-laporan" class="content-section" style="display: none;">
+            <div class="page-header">
+                <div>
+                    <h1>Laporan Harian Kinerja (LHK)</h1>
+                    <p>Riwayat pengajuan dan status persetujuan laporan kinerja</p>
+                </div>
+            </div>
+
+            <div class="reports-container responsive-container">
+                <div class="report-history-card">
+
+                    <div class="laporan-header">
+                        <div class="laporan-title">
+                            <h4>
+                                <i class="fas fa-history"></i> Riwayat Pengajuan LHK
+                            </h4>
+                        </div>
+
+                        <div class="tn-action">
+
+                            <button onclick="openCetakAgenda()" class="btn-primary">
+                                <i class="fas fa-paper-plane"></i>
+                                Ajukan LHK
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="riwayatLaporan" class="laporan-container">
+                        <div class="empty-state">
+                            <i class="fas fa-file-alt"></i>
+                            <h3>Memuat data pengajuan...</h3>
+                            <p>Riwayat pengajuan LHK akan tampil di sini.</p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Verifikasi Section -->
+        <div id="section-verifikasi" class="content-section" style="display:none;">
+
+            <div class="page-header">
+                <h1>Verifikasi LHK</h1>
+                <p>Daftar pengajuan laporan dari pegawai</p>
+            </div>
+
+            <div class="report-history-card">
+
+                <div id="tableVerifikasi">
+                    <div class="empty-state">
+                        <i class="fas fa-hourglass-half"></i>
+                        <h3>Memuat data...</h3>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Monitoring Section -->
+        <div id="section-monitoring" class="content-section" style="display:none">
+            <div class="page-header">
+                <div>
+                    <h1>Monitoring LKH Pegawai</h1>
+                    <p>Pemantauan pengisian dan pengajuan LKH pegawai</p>
+                </div>
+            </div>
+
+            <div class="filter-bar mb-6">
+                <div class="filter-group">
+                    <label for="monitorSubbag" hidden></label>
+                    <select id="monitorSubbag" class="filter-select">
+                        <option value="">Semua Subbagian</option>
+                        <option value="Keuangan, Umum dan Logistik">Keuangan, Umum dan Logistik</option>
+                        <option value="Teknis Penyelenggara dan Hukum">Teknis Penyelenggara dan Hukum</option>
+                        <option value="Perencanaan Data dan Informasi">Perencanaan Data dan Informasi</option>
+                        <option value="Sumber Daya Manusia dan Partisipasi Masyarakat">Sumber Daya Manusia dan
+                            Partisipasi Masyarakat
+                        </option>
+                    </select>
+
+                    <label for="monitorPegawai" hidden></label>
+                    <select id="monitorPegawai" class="filter-select">
+                        <option value="">Semua Pegawai</option>
+                    </select>
+
+                    <label for="monitorBulan" hidden></label>
+                    <select id="monitorBulan" class="filter-select">
+                        <option value="">Bulan</option>
+                    </select>
+
+                    <label for="monitorTahun" hidden></label>
+                    <select id="monitorTahun" class="filter-select">
+                        <option value="">Tahun</option>
+                    </select>
+
+                    <button class="btn-primary" onclick="loadMonitoring()">
+                        <i class="fas fa-filter"></i> Tampilkan
+                    </button>
+                </div>
+
+                <div class="filter-info">
+                    Total Pegawai: <strong id="monitorTotal">0</strong>
+                </div>
+            </div>
+
+            <div class="stats-grid mb-6">
+
+                <div class="stat-card stat-chart justify-center">
+                    <canvas id="monitorChart" width="160" height="160"></canvas>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon text-green-600">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="monDisetujui">0</h3>
+                        <p>Disetujui</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon text-yellow-500">
+                        <i class="fas fa-paper-plane"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="monDiajukan">0</h3>
+                        <p>Diajukan</p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon text-red-600">
+                        <i class="fas fa-times-circle"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="monBelum">0</h3>
+                        <p>Draft</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="table-container">
+                <table class="monitor-table">
+                    <thead>
+                    <tr>
+                        <th>Nama</th>
+                        <th>Subbagian</th>
+                        <th class="text-center">Uraian</th>
+                        <th class="text-center">Hari Kerja</th>
+                        <th class="text-center">Kinerja</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-center">Aksi</th>
+                        <!-- <th>Keterangan</th> -->
+                    </tr>
+                    </thead>
+                    <tbody id="monitoringBody">
+                    <tr>
+                        <td colspan="8">
+                            <div class="empty-state">
+                                <i class="fas fa-search"></i>
+                                <h3>Belum ada data</h3>
+                                <p>Gunakan filter untuk menampilkan monitoring</p>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Agenda Detail Per User-->
+        <div id="agendaDetailSection" class="content-section" style="display:none">
+            <div class="page-header"></div>
+            <div class="summary-box" id="agendaSummary"></div>
+            <div class="ringkasan">
+                <div class="ai-summary-card">
+                    <div class="ai-summary-header">
+                        <div class="ai-summary-title">
+                            🤖 Ringkasan & Evaluasi AI
+                        </div>
+                        <div class="ai-summary-badge" id="aiPenilaianBadge">
+                            -
+                        </div>
+                    </div>
+
+                    <div class="ai-summary-content">
+
+                        <div class="ai-section">
+                            <div class="ai-section-label">Ringkasan Aktivitas</div>
+                            <div class="ai-section-text" id="aiRingkasan">
+                                Memuat ringkasan...
+                            </div>
+                        </div>
+
+                        <div class="ai-section">
+                            <div class="ai-section-label">Evaluasi Kinerja</div>
+                            <div class="ai-section-text" id="aiEvaluasi">
+                                Memuat evaluasi...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABLE -->
+            <div class="table-container">
+                <table class="monitor-table">
+                    <thead>
+                    <tr>
+                        <th style="width:120px">Tanggal</th>
+                        <th>Hari</th>
+                        <th>Uraian</th>
+                        <th>Output</th>
+                        <th>Keterangan</th>
+                    </tr>
+                    </thead>
+                    <tbody id="detailAgendaBody">
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">
+                            Belum ada data
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</main>
+
+<!-- Cetak Agenda Modal -->
+<div id="modalCetakAgenda" class="modal">
+    <div class="modal-content modal-md">
+        <div class="modal-header">
+            <h3>
+                <i class="fas fa-file-signature"></i>
+                Pengajuan Laporan Kinerja (LHK)
+            </h3>
+            <button class="modal-close" onclick="closeCetakAgenda()">×</button>
+        </div>
+
+        <div class="modal-body">
+            <div class="form-section">
+                <label for="periodeCetak" class="form-label">Periode Laporan</label>
+                <select id="periodeCetak" class="form-control">
+                    <option value="">-- Pilih Periode --</option>
+                </select>
+                <div class="form-hint">
+                    Periode LHK dihitung dari tanggal 21 bulan berjalan sampai tanggal 20 bulan berikutnya.
+                </div>
+            </div>
+
+            <div class="form-section">
+                <label for="tCetak" class="form-label">Tanggal Dokumen</label>
+                <input type="date" id="tCetak" class="form-control" required>
+                <div class="form-hint">
+                    Tanggal ini akan tercetak pada dokumen LHK.
+                </div>
+            </div>
+            <div class="form-hint">
+                ℹ️ Laporan akan dikirim ke atasan langsung untuk proses persetujuan.
+            </div>
+
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeCetakAgenda()">
+                Batal
+            </button>
+
+            <button id="btnPreviewAgenda" class="btn-preview" onclick="previewAgenda()">
+                <i class="fas fa-eye"></i> Lihat Draft
+            </button>
+
+            <button id="btnCetakAgenda" class="btn-primary" onclick="submitCetakAgenda()">
+                <i class="fas fa-paper-plane"></i> Ajukan LHK
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<!-- Add Agenda Modal -->
+<div id="formModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><b>Tambah Laporan Baru</b></h2>
+            <button onclick="closeForm()" class="close-btn" aria-label="Tutup">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <form id="agendaForm" onsubmit="return false;">
+            <div class="form-group">
+                <label for="fTanggal">Tanggal Pelaksanaan</label>
+                <input type="date" id="fTanggal" class="form-control" required>
+            </div>
+
+            <div class="form-group mt-5">
+                <label for="fKegiatan">Uraian Pekerjaan</label>
+                <textarea id="fKegiatan" class="form-control" rows="5"
+                          placeholder="Deskripsikan kegiatan yang akan dilakukan..." required></textarea>
+                <small class="text-muted">
+                    Tips: Tekan Enter untuk baris baru. Gunakan penomoran otomatis.
+                </small>
+            </div>
+
+            <div class="form-row mt-5">
+                <div class="form-group">
+                    <label for="fHasil">Target Output</label>
+                    <select id="fHasil" class="form-control" required>
+                        <option value="">Pilih Output</option>
+                        <option value="Dokumen">Dokumen</option>
+                        <option value="Laporan">Laporan</option>
+                        <option value="NIHIL">Nihil</option>
+                    </select>
+                    <small class="text-muted">
+                        Hari Libur Nasional Selain <b>Sabtu & Minggu</b> Silahkan Pilih NIHIL.
+                    </small>
+                </div>
+
+                <div class="form-group mt-5">
+                    <label for="fKet">Keterangan Tambahan</label>
+                    <input type="text" id="fKet" class="form-control" placeholder="Opsional">
+                </div>
+            </div>
+
+            <button type="button" onclick="simpanAgenda()" class="btn-primary full-width" style="margin-top: 24px;">
+                <i class="fas fa-save"></i> Simpan Data
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Agenda Modal -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Edit Laporan</h2>
+            <button onclick="closeEdit()" class="close-btn" aria-label="Tutup">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <input type="hidden" id="eId">
+
+        <div class="form-group">
+            <label for="eTanggal">Tanggal</label>
+            <input type="date" id="eTanggal" class="form-control" required>
+        </div>
+
+        <div class="form-group mt-3">
+            <label for="eKegiatan">Kegiatan</label>
+            <textarea id="eKegiatan" class="form-control" rows="5" required></textarea>
+            <small class="text-muted">
+                Tips: Tekan Enter untuk baris baru. Gunakan penomoran otomatis.
+            </small>
+        </div>
+
+        <div class="form-group mt-3">
+            <label for="eHasil">Output</label>
+            <select id="eHasil" class="form-control" required>
+                <option value="Dokumen">Dokumen</option>
+                <option value="Laporan">Laporan</option>
+                <option value="NIHIL">Nihil</option>
+            </select>
+            <small class="text-muted">
+                Hari Libur Nasional Selain <b>Sabtu & Minggu</b> Silahkan Pilih NIHIL.
+            </small>
+        </div>
+
+        <div class="form-group mt-3">
+            <label for="eKet">Keterangan</label>
+            <input type="text" id="eKet" class="form-control">
+        </div>
+
+        <button type="button" onclick="updateAgenda()" class="btn-primary full-width" style="margin-top: 24px;">
+            <i class="fas fa-sync-alt"></i> Update Perubahan
+        </button>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div id="confirmModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 text-center">
+        <h3 id="confirmTitle" class="text-lg font-semibold mb-2"></h3>
+        <p id="confirmMessage" class="text-slate-600 mb-5"></p>
+        <div class="flex justify-center gap-3">
+            <button onclick="closeConfirm()"
+                    class="px-4 py-2 rounded bg-slate-200 hover:bg-slate-300 text-sm font-semibold">
+                Batal
+            </button>
+            <button id="confirmOkBtn" class="px-4 py-2 rounded text-white text-sm font-semibold">
+                Ya, Lanjutkan
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Tolak LHK Modal -->
+<div id="modalTolak" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+        <h3 class="text-lg font-semibold mb-3">Tolak LHK</h3>
+        <p class="text-sm text-slate-600 mb-3">
+            Berikan catatan agar pegawai mengetahui perbaikan yang diperlukan.
+        </p>
+        <label for="emailAtasanTolak"></label>
+        <input id="emailAtasanTolak" name="emailAtasanTolak" hidden>
+        <label for="catatanTolak"></label>
+        <textarea id="catatanTolak"
+                  class="w-full border border-slate-300 rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+                  rows="4" placeholder="Tuliskan alasan penolakan...">
+            </textarea>
+        <div class="flex justify-end gap-3 mt-4">
+            <button onclick="closeModalTolak()"
+                    class="px-4 py-2 rounded bg-slate-200 hover:bg-slate-300 text-sm font-semibold">
+                Batal
+            </button>
+            <button onclick="submitTolak()"
+                    class="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white text-sm font-semibold">
+                Tolak LHK
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.__INIT_PAGE__ = '<?= INIT_PAGE ?>';
+    let __APP_INITIALIZED__ = false;
+    let __IS_LOGGING_OUT__ = false;
+    let masterPegawai = [];
+    let currentAgendaList = [];
+    let userProfile = null;
+    let allPegawaiData = [];
+    let isLoading = false;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        if (__APP_INITIALIZED__) return;
+        __APP_INITIALIZED__ = true;
+
+        console.log('🚀 Aplikasi Initializing...');
+
+        try {
+            checkUserSession();
+            initializeEventListeners();
+            loadDailyQuote();
+            loadSystemVersion();
+            setTimeout(hideLoading, 300);
+
+        } catch (error) {
+            console.error('Initialization Error:', error);
+            hideLoading();
+        }
+    });
+
+    function activateMenu(menuId) {
+        document.querySelectorAll('.content-section')
+            .forEach(s => s.style.display = 'none');
+
+        const target = document.getElementById('section-' + menuId);
+        if (target) target.style.display = 'block';
+
+        document.querySelectorAll('.nav-item')
+            .forEach(i => i.classList.remove('active'));
+
+        const activeItem = document.querySelector(
+            `.nav-item[onclick*="${menuId}"]`
+        );
+        if (activeItem) activeItem.classList.add('active');
+    }
+
+    function showDashboard() {
+        const page = window.__INIT_PAGE__;
+        if (page) {
+            activateMenu(page);
+        }
+        showPage('dashboard');
+        sidebarAccess();
+        initDashboard();
+        loadVerifikasi();
+    }
+
+    document.getElementById('eKegiatan').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+
+            const lines = this.value.split('\n');
+            const last = lines[lines.length - 1];
+            const match = last.match(/^(\d+)\.\s/);
+
+            let next = 1;
+            if (match) next = parseInt(match[1], 10) + 1;
+
+            this.value += '\n' + next + '. ';
+        }
+    });
+
+    document.getElementById('fKegiatan').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+
+            const lines = this.value.split('\n');
+            const last = lines[lines.length - 1];
+            const match = last.match(/^(\d+)\.\s/);
+
+            let next = 1;
+            if (match) next = parseInt(match[1], 10) + 1;
+
+            this.value += '\n' + next + '. ';
+        }
+    });
+
+    document.addEventListener('click', function (event) {
+        const sidebar = document.getElementById('sidebar');
+        const toggleBtn = document.getElementById('sidebarToggle');
+
+        if (window.innerWidth <= 768 &&
+            sidebar.classList.contains('open') &&
+            !sidebar.contains(event.target) &&
+            !toggleBtn.contains(event.target)) {
+            sidebar.classList.remove('open');
+        }
+    });
+
+    function loadSystemVersion() {
+        google.script.run
+            .withSuccessHandler(function (res) {
+                if (!res) return;
+                document.querySelectorAll('.app-version').forEach(el => {
+                    el.textContent = 'v' + res.version;
+                });
+            })
+            .withFailureHandler(function (err) {
+                console.error('Gagal mengambil versi sistem', err);
+            })
+            .getSystemVersion();
+    }
+
+    function sidebarAccess() {
+        const level = userProfile.level || '';
+        if (level === 'USER' || level === 'JAGAT_SAKSANA') {
+            document.getElementById('menuMonitoring').style.display = 'none';
+        } else {
+            document.getElementById('menuMonitoring').style.display = 'flex';
+        }
+    }
+
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        sidebar.classList.toggle('open');
+    }
+
+    function adjustFontSizes() {
+        const baseSize = Math.max(14, Math.min(16, window.innerWidth / 100));
+        document.documentElement.style.fontSize = baseSize + 'px';
+    }
+
+    window.addEventListener('load', function () {
+        adjustFontSizes();
+    });
+
+    window.addEventListener('resize', adjustFontSizes);
+
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    document.addEventListener('touchstart', e => {
+        touchStartX = e.changedTouches[0].screenX;
+    });
+
+    document.addEventListener('touchend', e => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+    });
+
+    function handleSwipe() {
+        const swipeThreshold = 50;
+        const swipeDistance = touchEndX - touchStartX;
+
+        if (Math.abs(swipeDistance) > swipeThreshold) {
+            if (swipeDistance > 0 && touchStartX < 50) {
+                document.getElementById('sidebar').classList.add('open');
+            } else if (swipeDistance < 0) {
+                document.getElementById('sidebar').classList.remove('open');
+            }
+        }
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (modal.style.display === 'flex') {
+                    modal.style.display = 'none';
+                }
+            });
+
+            if (window.innerWidth <= 768) {
+                document.getElementById('sidebar').classList.remove('open');
+            }
+        }
+    });
+
+    function switchMenu(menuId, element) {
+        if (window.innerWidth <= 768) {
+            document.getElementById('sidebar').classList.remove('open');
+        }
+        const sections = document.querySelectorAll('.content-section');
+        sections.forEach(section => {
+            section.style.display = 'none';
+        });
+
+        const targetSection = document.getElementById('section-' + menuId);
+        if (targetSection) {
+            targetSection.style.display = 'block';
+        } else {
+            const dashboardSection = document.getElementById('section-dashboard');
+            if (dashboardSection) {
+                dashboardSection.style.display = 'block';
+            }
+        }
+
+        const sidebarItems = document.querySelectorAll('.nav-item');
+        sidebarItems.forEach(item => {
+            item.classList.remove('active');
+        });
+
+        if (element) {
+            element.classList.add('active');
+        } else {
+            const targetItem = Array.from(sidebarItems).find(item => {
+                const onclick = item.getAttribute('onclick');
+                return onclick && onclick.includes(menuId);
+            });
+
+            if (targetItem) {
+                targetItem.classList.add('active');
+            }
+        }
+
+        switch (menuId) {
+            case 'profil':
+                loadUserProfile();
+                break;
+            case 'dashboard':
+                loadAgenda();
+                break;
+            case 'laporan':
+                loadLaporan();
+                break;
+            case 'verifikasi':
+                loadVerifikasi();
+                break;
+            case 'monitoring':
+                initMonitoringFilter();
+                break;
+        }
+    }
+
+    const QUOTE_URL = 'https://raw.githubusercontent.com/arwahyu01/kata-kata-motivasi/main/words';
+    function loadDailyQuote() {
+        const quoteEl = document.querySelector('.stat-card.quote h3');
+        const labelEl = document.querySelector('.stat-card.quote p');
+
+        if (!quoteEl) return;
+
+        fetch(QUOTE_URL)
+            .then(res => {
+                if (!res.ok) throw new Error('Gagal load quote');
+                return res.json();
+            })
+            .then(data => {
+                if (!data.words || !data.words.length) throw new Error('Data kosong');
+
+                const randomIndex = Math.floor(Math.random() * data.words.length);
+                const item = data.words[randomIndex];
+
+                quoteEl.textContent = `"${item.kutipan}"`;
+
+                if (labelEl) {
+                    labelEl.textContent = item.sumber
+                        ? `— ${item.sumber}`
+                        : 'Quote Hari Ini';
+                }
+            })
+            .catch(err => {
+                console.warn('Quote fallback:', err);
+                quoteEl.textContent = '"Produktivitas adalah kunci keberhasilan tim."';
+                if (labelEl) labelEl.textContent = 'Quote Hari Ini';
+            });
+    }
+
+    function showLoading(message = 'Memuat Data...') {
+        if (isLoading) return;
+
+        isLoading = true;
+        const loading = document.getElementById('loading');
+        const loadingText = loading.querySelector('.loading-text');
+
+        if (loadingText) {
+            loadingText.textContent = message;
+        }
+
+        loading.style.display = 'flex';
+
+        setTimeout(() => {
+            if (isLoading) {
+                hideLoading();
+            }
+        }, 30000);
+    }
+
+    function hideLoading() {
+        isLoading = false;
+        const loading = document.getElementById('loading');
+
+        loading.style.opacity = '0';
+        loading.style.transition = 'opacity 0.3s ease';
+
+        setTimeout(() => {
+            loading.style.display = 'none';
+            loading.style.opacity = '1';
+        }, 300);
+    }
+
+    function togglePassword(id) {
+        const input = document.getElementById(id);
+        const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+        input.setAttribute('type', type);
+
+        const icon = input.nextElementSibling.querySelector('i');
+        if (icon) {
+            if (type === 'text') {
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+    }
+
+    function showAlert(title, message, type = 'success') {
+        hideLoading();
+        Swal.fire({
+            title: title,
+            text: message,
+            icon: type,
+            confirmButtonColor: '#b30000',
+            timer: 3000
+        });
+    }
+
+    function showConfirm(title, message, callback) {
+        Swal.fire({
+            title: title,
+            text: message,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#b30000',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Ya',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                callback();
+            }
+        });
+    }
+
+    function initializeEventListeners() {
+        const tabLogin = document.getElementById('tabLogin');
+        const tabDaftar = document.getElementById('tabDaftar');
+        const formLogin = document.getElementById('formLogin');
+        const formDaftar = document.getElementById('formDaftar');
+
+        if (tabLogin && tabDaftar) {
+            tabLogin.addEventListener('click', function () {
+                this.style.background = 'white';
+                this.style.color = '#b30000';
+                tabDaftar.style.background = 'none';
+                tabDaftar.style.color = '#64748b';
+                formLogin.style.display = 'block';
+                formDaftar.style.display = 'none';
+
+                document.getElementById('loginError').style.display = 'none';
+            });
+
+            tabDaftar.addEventListener('click', function () {
+                this.style.background = 'white';
+                this.style.color = '#b30000';
+                tabLogin.style.background = 'none';
+                tabLogin.style.color = '#64748b';
+                formLogin.style.display = 'none';
+                formDaftar.style.display = 'block';
+
+                document.getElementById('registerError').style.display = 'none';
+
+                if (masterPegawai.length === 0) {
+                    loadMasterPegawai();
+                }
+            });
+        }
+
+        const btnLogin = document.getElementById('btnLogin');
+        const btnDaftar = document.getElementById('btnDaftar');
+
+        if (btnLogin) {
+            btnLogin.addEventListener('click', handleLogin);
+        }
+
+        if (btnDaftar) {
+            btnDaftar.addEventListener('click', handleDaftar);
+        }
+
+        const dNama = document.getElementById('dNama');
+        if (dNama) {
+            dNama.addEventListener('change', handleNamaChange);
+        }
+
+        const lPass = document.getElementById('lPass');
+        if (lPass) {
+            lPass.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    handleLogin();
+                }
+            });
+        }
+
+        const dPass = document.getElementById('dPass');
+        if (dPass) {
+            dPass.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    handleDaftar();
+                }
+            });
+        }
+
+        const lEmail = document.getElementById('lEmail');
+        if (lEmail) {
+            lEmail.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    handleLogin();
+                }
+            });
+        }
+    }
+
+    function showPage(pageId) {
+        const pages = ['authPage', 'dashboard'];
+        pages.forEach(page => {
+            const element = document.getElementById(page);
+            if (element) element.style.display = 'none';
+        });
+
+        const targetPage = document.getElementById(pageId);
+        if (targetPage) {
+            targetPage.style.display = 'block';
+        } else {
+            console.error('Page not found:', pageId);
+        }
+    }
+
+    function switchAuthTab(tab) {
+        const isLogin = tab === 'login';
+
+        const loginTab = document.getElementById('tabLogin');
+        const daftarTab = document.getElementById('tabDaftar');
+
+        if (loginTab && daftarTab) {
+            if (isLogin) {
+                loginTab.style.background = 'white';
+                loginTab.style.color = '#b30000';
+                loginTab.style.fontWeight = '700';
+                daftarTab.style.background = 'none';
+                daftarTab.style.color = '#64748b';
+                daftarTab.style.fontWeight = '600';
+            } else {
+                loginTab.style.background = 'none';
+                loginTab.style.color = '#64748b';
+                loginTab.style.fontWeight = '600';
+                daftarTab.style.background = 'white';
+                daftarTab.style.color = '#b30000';
+                daftarTab.style.fontWeight = '700';
+            }
+        }
+
+        if (isLogin) {
+            const emailInput = document.getElementById('lEmail');
+            emailInput.value = localStorage.getItem('userEmail') || '';
+            emailInput.focus();
+            const passInput = document.getElementById('lPass');
+            passInput.value = localStorage.getItem('userPass') || '';
+            passInput.focus();
+        }
+
+        const formLogin = document.getElementById('formLogin');
+        const formDaftar = document.getElementById('formDaftar');
+
+        if (formLogin) formLogin.style.display = isLogin ? 'block' : 'none';
+        if (formDaftar) formDaftar.style.display = isLogin ? 'none' : 'block';
+
+        if (!isLogin && masterPegawai.length === 0) {
+            loadMasterPegawai();
+        }
+    }
+
+    function handleLogin() {
+        const email = document.getElementById('lEmail').value.trim();
+        const password = document.getElementById('lPass').value;
+
+        if (!email || !password) {
+            showAlert('Perhatian', 'Email dan password harus diisi', 'warning');
+            return;
+        }
+
+        showLoading('Verifikasi login...');
+
+        localStorage.setItem('userEmail', email);
+        localStorage.setItem('userPass', password);
+
+        google.script.run
+            .withSuccessHandler(function (res) {
+                hideLoading();
+
+                if (res && res.success && res.user) {
+                    showAlert('Berhasil', 'Login berhasil', 'success');
+                    onLoginSuccess(res.user);
+                } else {
+                    showError(res?.message || 'Email atau password salah');
+                }
+            })
+            .withFailureHandler(function (error) {
+                hideLoading();
+                showError('Terjadi kesalahan: ' + error.toString());
+            })
+            .prosesLogin({
+                email: email,
+                password: password
+            });
+    }
+
+    function onLoginSuccess(user) {
+        const session = {
+            email: user.email,
+            nama: user.nama,
+            nip: user.nip,
+            jabatan: user.jabatan,
+            gol: user.gol,
+            subbag: user.subbag,
+            level: user.level,
+            nip_atasan: user.nip_atasan,
+            nama_atasan: user.nama_atasan,
+            level_presensi: user.level_presensi,
+            loginAt: Date.now()
+        };
+
+        localStorage.setItem('userProfile', JSON.stringify(session));
+
+        userProfile = session;
+        window.currentUser = session;
+
+        showDashboard();
+    }
+
+    function handleDaftar() {
+        const nama = document.getElementById('dNama').value;
+        const email = document.getElementById('dEmail').value.trim();
+        const password = document.getElementById('dPass').value;
+
+        if (!nama || !email || !password) {
+            showAlert('Perhatian', 'Semua field harus diisi', 'warning');
+            return;
+        }
+
+        if (password.length < 6) {
+            showAlert('Perhatian', 'Password minimal 6 karakter', 'warning');
+            return;
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            showAlert('Perhatian', 'Format email tidak valid', 'warning');
+            return;
+        }
+
+        showLoading('Mendaftarkan akun...');
+
+        google.script.run
+            .withSuccessHandler(function (res) {
+                hideLoading();
+
+                if (res && res.success) {
+                    showAlert('Berhasil', res.message, 'success');
+                    document.getElementById('lEmail').value = email;
+                    switchAuthTab('login');
+                    document.getElementById('lPass').value = '';
+                    document.getElementById('lPass').focus();
+                } else {
+                    showRegisterError(res?.message || 'Gagal mendaftar');
+                }
+            })
+            .withFailureHandler(function (error) {
+                hideLoading();
+                showRegisterError('Terjadi kesalahan: ' + error.toString());
+            })
+            .prosesDaftar({
+                nama: nama,
+                email: email,
+                password: password
+            });
+    }
+
+    function loadMasterPegawai() {
+        showLoading('Memuat data pegawai...');
+
+        google.script.run
+            .withSuccessHandler(function (data) {
+                hideLoading();
+
+                if (data && Array.isArray(data)) {
+                    masterPegawai = data;
+                    populateNamaDropdown(data);
+                } else {
+                    console.warn('Data pegawai tidak valid:', data);
+                    masterPegawai = [];
+                    populateNamaDropdown([]);
+                }
+            })
+            .withFailureHandler(function (error) {
+                hideLoading();
+                console.error('Error loading master pegawai:', error);
+                showAlert('Error', 'Gagal memuat data pegawai', 'error');
+                masterPegawai = [];
+                populateNamaDropdown([]);
+            })
+            .getMasterPegawai();
+    }
+
+    function populateNamaDropdown(data) {
+        const select = document.getElementById('dNama');
+        if (!select) {
+            console.error('Dropdown element not found!');
+            return;
+        }
+
+        select.innerHTML = '<option value="">-- Pilih nama dari daftar pegawai --</option>';
+
+        if (data && data.length > 0) {
+            data.forEach(pegawai => {
+                const option = document.createElement('option');
+                option.value = pegawai.nama;
+                option.textContent = `${pegawai.nama}${pegawai.nip ? ` (${pegawai.nip})` : ''}${pegawai.jabatan ? ` - ${pegawai.jabatan}` : ''}`;
+                select.appendChild(option);
+            });
+        }
+    }
+
+    function handleNamaChange() {
+        const selectedNama = this.value;
+        const pegawai = masterPegawai.find(p => p.nama === selectedNama);
+
+        if (pegawai) {
+            document.getElementById('dNip').value = pegawai.nip || '';
+            document.getElementById('dJab').value = pegawai.jabatan || '';
+
+            if (pegawai.email) {
+                document.getElementById('dEmail').value = pegawai.email;
+            } else {
+                document.getElementById('dEmail').value = '';
+            }
+        } else {
+            document.getElementById('dNip').value = '';
+            document.getElementById('dJab').value = '';
+            document.getElementById('dEmail').value = '';
+        }
+    }
+
+    function showError(message) {
+        const errorDiv = document.getElementById('loginError');
+        const errorMsg = document.getElementById('errorMessage');
+
+        if (errorDiv && errorMsg) {
+            errorMsg.textContent = message;
+            errorDiv.style.display = 'block';
+
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+    }
+
+    function showRegisterError(message) {
+        const errorDiv = document.getElementById('registerError');
+        const errorMsg = document.getElementById('registerErrorMessage');
+
+        if (errorDiv && errorMsg) {
+            errorMsg.textContent = message;
+            errorDiv.style.display = 'block';
+
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+    }
+
+    function initDashboard() {
+        initFilterOptions();
+        loadAgenda();
+        loadUserProfile();
+    }
+
+    function initFilterOptions() {
+        const mSel = document.getElementById('bulan');
+        const ySel = document.getElementById('tahun');
+        if (!mSel) return;
+
+        const bulan = [
+            'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+        ];
+
+        const now = new Date();
+        let m = now.getMonth() + 1 + (now.getDate() >= 21 ? 1 : 0);
+        let y = now.getFullYear();
+
+        if (m > 12) {
+            m = 1;
+            y++;
+        }
+
+        mSel.innerHTML = bulan.map((_, i) => {
+
+            const em = i + 1;
+            const sm = em === 1 ? 12 : em - 1;
+            const sy = em === 1 ? y - 1 : y;
+            return `<option value="${em}">
+                21 ${bulan[sm - 1]} ${sy} - 20 ${bulan[em - 1]} ${y}
+            </option>`;
+
+        }).join('');
+
+        if (ySel) {
+            ySel.innerHTML = Array.from(
+                {length: y - 2024},
+                (_, i) => `<option value="${y - i}">${y - i}</option>`
+            ).join('');
+            ySel.value = y;
+        }
+
+        mSel.value = m;
+
+    }
+
+    function loadAgenda() {
+        if (!userProfile || !userProfile.email) {
+            showAlert('Error', 'Silakan login terlebih dahulu', 'error');
+            return;
+        }
+
+        const bulan = document.getElementById('bulan')?.value;
+        const tahun = document.getElementById('tahun')?.value;
+
+        if (!bulan || !tahun) {
+            showAlert('Perhatian', 'Pilih bulan dan tahun terlebih dahulu', 'warning');
+            return;
+        }
+
+        showLoading('Memuat laporan...');
+
+        google.script.run
+            .withSuccessHandler(function (response) {
+                hideLoading();
+
+                if (response && response.agenda) {
+                    renderAgendaTable(response.agenda || []);
+                    updateStats(response.stats || {totalBulanIni: 0, tanggalTerakhir: '--'});
+                } else {
+                    renderAgendaTable([]);
+                    updateStats({totalBulanIni: 0, tanggalTerakhir: '--'});
+                    document.getElementById('countView').textContent = '0';
+                }
+            })
+            .withFailureHandler(function (error) {
+                hideLoading();
+                console.error('Error loading LKH:', error);
+
+                renderAgendaTable([]);
+                updateStats({totalBulanIni: 0, tanggalTerakhir: '--'});
+                document.getElementById('countView').textContent = '0';
+
+                showAlert('Error', 'Gagal memuat data LKH', 'error');
+            })
+            .getFullDashboardData({
+                bulan: bulan,
+                tahun: tahun,
+                user: {
+                    email: userProfile.email,
+                    nama: userProfile.nama
+                }
+            });
+    }
+
+    function renderAgendaTable(agenda) {
+        const tbody = document.getElementById('agendaBody');
+        const countElement = document.getElementById('countView');
+
+        if (!tbody || !countElement) return;
+
+        currentAgendaList = Array.isArray(agenda) ? agenda : [];
+        countElement.textContent = currentAgendaList.length;
+
+        if (currentAgendaList.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                  <td colspan="4" style="text-align: center; padding: 40px;">
+                    <i class="fas fa-calendar-plus" style="font-size: 48px; color: #cbd5e1; margin-bottom: 16px;"></i>
+                    <p style="color: #64748b; font-weight: 500;">Tidak ada LKH untuk ditampilkan</p>
+                  </td>
+                </tr>
+              `;
+            return;
+        }
+
+        let html = '';
+        currentAgendaList.forEach(item => {
+            if (!item || !item.id) return;
+
+            html += `
+            <tr>
+              <td>
+                <i class="fas fa-calendar-day" style="color: #b30000; margin-right: 8px;"></i>
+                ${item.tanggal || '--'}
+              </td>
+              <td>${item.kegiatan || ''}</td>
+              <td>
+                <span class="badge">
+                  ${item.hasil || '--'}
+                </span>
+              </td>
+              <td>
+                <div class="action-buttons">
+                  <button onclick="editAgenda('${item.id}')" class="btn-edit">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button onclick="deleteAgenda('${item.id}')" class="btn-delete">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `;
+        });
+
+        tbody.innerHTML = html;
+    }
+
+    function updateStats(stats) {
+        const statTotal = document.getElementById('statTotal');
+        const statToday = document.getElementById('statToday');
+
+        if (statTotal && stats.totalBulanIni !== undefined) {
+            statTotal.textContent = stats.totalBulanIni;
+        }
+        if (statToday && stats.tanggalTerakhir) {
+            statToday.textContent = stats.tanggalTerakhir;
+        }
+    }
+
+    function loadUserProfile() {
+
+        try {
+            let profile = window.currentUser;
+            if (!profile) {
+                const saved = localStorage.getItem('userProfile');
+                if (saved) profile = JSON.parse(saved);
+            }
+
+            if (!profile || !profile.email) {
+                console.warn('Profil tidak tersedia');
+                return;
+            }
+
+            renderProfile(profile);
+
+            google.script.run
+                .withSuccessHandler(function (serverProfile) {
+
+                    if (!serverProfile) return;
+
+                    window.currentUser = serverProfile;
+                    const current = JSON.parse(localStorage.getItem('userProfile') || '{}');
+
+                    const merged = {
+                        ...serverProfile,
+                        loginAt: current.loginAt || Date.now()
+                    };
+
+                    localStorage.setItem('userProfile', JSON.stringify(merged));
+
+                    window.currentUser = merged;
+                    userProfile = merged;
+
+                    renderProfile(serverProfile);
+
+                })
+                .getProfilByEmail(profile.email);
+
+        } catch (err) {
+            console.error('loadUserProfile error:', err);
+        }
+    }
+
+    function renderProfile(profile) {
+
+        setText('profileName', profile.nama);
+        setText('profileJabatan', profile.jabatan);
+        setText('profileUnit', profile.subbag);
+        setText('profileNip', profile.nip);
+        setText('profileGol', profile.gol);
+        setText('profileSubbag', profile.subbag);
+        setText('profileEmail', profile.email);
+        setText('profileAtasan', profile.nama_atasan);
+
+        const statusEl = document.getElementById('profileStatus');
+        if (statusEl) {
+            statusEl.textContent = profile.status || 'Aktif';
+        }
+    }
+
+    function setText(id, value) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value || '-';
+    }
+
+    function openForm() {
+        document.getElementById('formModal').style.display = 'flex';
+        document.getElementById('fTanggal').value = new Date().toISOString().split('T')[0];
+    }
+
+    function closeForm() {
+        document.getElementById('formModal').style.display = 'none';
+        document.getElementById('agendaForm').reset();
+    }
+
+    function simpanAgenda() {
+        if (!userProfile) {
+            showAlert('Error', 'Silakan login terlebih dahulu', 'error');
+            return;
+        }
+
+        const tanggal = document.getElementById('fTanggal').value;
+        const kegiatan = document.getElementById('fKegiatan').value.trim();
+        const hasil = document.getElementById('fHasil').value;
+        const keterangan = document.getElementById('fKet').value.trim();
+
+        if (!tanggal || !kegiatan || !hasil) {
+            showAlert('Perhatian', 'Tanggal, kegiatan, dan output wajib diisi', 'warning');
+            return;
+        }
+
+        showLoading('Menyimpan data...');
+
+        google.script.run
+            .withSuccessHandler(function () {
+                loadAgenda();
+                hideLoading();
+                closeForm();
+                showAlert('Berhasil', 'Laporan berhasil disimpan', 'success');
+            })
+            .withFailureHandler(function (error) {
+                hideLoading();
+                showAlert('Error', error.toString(), 'error');
+            })
+            .tambahAgenda({
+                tanggal: tanggal,
+                kegiatan: kegiatan,
+                hasil: hasil,
+                keterangan: keterangan,
+                user: userProfile
+            });
+    }
+
+    function editAgenda(id) {
+        const item = currentAgendaList.find(i => i.id === id);
+        if (!item) return;
+
+        document.getElementById('eId').value = item.id;
+        document.getElementById('eTanggal').value = item.tanggalISO;
+        document.getElementById('eKegiatan').value = item.kegiatan;
+        document.getElementById('eHasil').value = item.hasil;
+        document.getElementById('eKet').value = item.keterangan || '';
+
+        document.getElementById('editModal').style.display = 'flex';
+    }
+
+
+    function closeEdit() {
+        document.getElementById('editModal').style.display = 'none';
+    }
+
+    function updateAgenda() {
+        if (!userProfile) {
+            showAlert('Error', 'Silakan login terlebih dahulu', 'error');
+            return;
+        }
+
+        const id = document.getElementById('eId').value;
+        const tanggal = document.getElementById('eTanggal').value;
+        const kegiatan = document.getElementById('eKegiatan').value.trim();
+        const hasil = document.getElementById('eHasil').value;
+        const keterangan = document.getElementById('eKet').value.trim();
+
+        if (!tanggal || !kegiatan || !hasil) {
+            showAlert('Perhatian', 'Tanggal, kegiatan, dan output wajib diisi', 'warning');
+            return;
+        }
+
+        showLoading('Memperbarui data...');
+
+        google.script.run
+            .withSuccessHandler(function () {
+                hideLoading();
+                closeEdit();
+                loadAgenda();
+                showAlert('Berhasil', 'Laporan berhasil diperbarui', 'success');
+            })
+            .withFailureHandler(function (error) {
+                hideLoading();
+                showAlert('Error', error.toString(), 'error');
+            })
+            .updateAgenda({
+                id: id,
+                tanggal: tanggal,
+                kegiatan: kegiatan,
+                hasil: hasil,
+                keterangan: keterangan,
+                user: userProfile
+            });
+    }
+
+    function deleteAgenda(id) {
+        if (!userProfile || !userProfile.email) {
+            showAlert('Error', 'Sesi login tidak valid', 'error');
+            return;
+        }
+
+        showConfirm('Hapus Laporan', 'Apakah Anda yakin ingin menghapus data ini?', function () {
+            showLoading('Menghapus data...');
+
+            google.script.run
+                .withSuccessHandler(function () {
+                    hideLoading();
+                    loadAgenda();
+                    showAlert('Berhasil', 'Data berhasil dihapus', 'success');
+                })
+                .withFailureHandler(function (error) {
+                    hideLoading();
+                    showAlert('Error', error.toString(), 'error');
+                })
+                .hapusAgendaById(id, userProfile.email);
+        });
+    }
+
+    function initMonitoringFilter() {
+        const bulan = document.getElementById('monitorBulan');
+        const tahun = document.getElementById('monitorTahun');
+        const subbag = document.getElementById('monitorSubbag');
+        const pegawai = document.getElementById('monitorPegawai');
+
+        const level = userProfile?.level || '';
+        const userSubbag = userProfile?.subbag || '';
+
+        // Role based subbag filter
+        if (level === 'KASUBBAG' && userSubbag) {
+            subbag.value = userSubbag;
+            subbag.disabled = true;
+        } else if (level === 'ADMIN' || level === 'SEKRETARIS' || level === 'KASUBBAG') {
+            subbag.disabled = false;
+        }
+
+        // Remove old listener if exists
+        subbag.removeEventListener('change', updatePegawaiFilter);
+        subbag.addEventListener('change', updatePegawaiFilter);
+
+        const bulanList = [
+            'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+        ];
+
+        bulan.innerHTML = '<option value="">Bulan</option>';
+        bulanList.forEach((b, i) => {
+            bulan.innerHTML += `<option value="${i + 1}">${b}</option>`;
+        });
+
+        const now = new Date();
+        tahun.innerHTML = '<option value="">Tahun</option>';
+        for (let y = now.getFullYear(); y >= 2025; y--) {
+            tahun.innerHTML += `<option value="${y}">${y}</option>`;
+        }
+
+        // Load pegawai list for filter
+        google.script.run
+            .withSuccessHandler(function (data) {
+                allPegawaiData = data || [];
+                updatePegawaiFilter();
+            })
+            .getListPegawaiForMonitoring();
+
+        renderMonitoringChart(0, 0);
+    }
+
+    function updatePegawaiFilter() {
+        const subbagValue = document.getElementById('monitorSubbag').value;
+        const pegawaiSelect = document.getElementById('monitorPegawai');
+
+        pegawaiSelect.innerHTML = '<option value="">Semua Pegawai</option>';
+
+        const filtered = subbagValue
+            ? allPegawaiData.filter(p => p.subbag === subbagValue)
+            : allPegawaiData;
+
+        filtered.forEach(p => {
+            pegawaiSelect.innerHTML += `<option value="${p.email}">${p.nama}</option>`;
+        });
+    }
+
+    function loadAgendaUser(userEmail, levelUser, bulan, tahun) {
+        if (!bulan || !tahun) {
+            showAlert('Perhatian', 'Silakan pilih bulan dan tahun', 'warning');
+            return;
+        }
+
+        showLoading('Memuat LKH pegawai...');
+
+        google.script.run.withSuccessHandler(res => {
+            hideLoading();
+
+            if (!res.success) {
+                showAlert('Error', res.message, 'error');
+                return;
+            }
+
+            document.getElementById('section-monitoring').style.display = 'none';
+            document.getElementById('agendaDetailSection').style.display = 'block';
+
+            renderAgendaUser(res);
+            renderAISummary(res.ai);
+
+        }).withFailureHandler(err => {
+            hideLoading();
+            showAlert('Error', err.message || 'Gagal memuat data', 'error');
+        }).getAgendaUser({userEmail, bulan, tahun, levelUser});
+    }
+
+    function renderAISummary(ai) {
+
+        if (!ai) return;
+        document.getElementById("aiRingkasan").innerText = ai.ringkasan || "-";
+        document.getElementById("aiEvaluasi").innerText = ai.evaluasi || "-";
+        const badge = document.getElementById("aiPenilaianBadge");
+        badge.innerText = ai.penilaian || "-";
+        badge.className = "ai-summary-badge";
+        const nilai = (ai.penilaian || "").toLowerCase();
+
+        if (nilai.includes("sangat")) {
+            badge.classList.add("badge-sangat-baik");
+        } else if (nilai.includes("baik")) {
+            badge.classList.add("badge-baik");
+        } else if (nilai.includes("cukup")) {
+            badge.classList.add("badge-cukup");
+        } else if (nilai.includes("kurang")) {
+            badge.classList.add("badge-kurang");
+        }
+    }
+
+
+    function renderAgendaUser(res) {
+        const body = document.getElementById('detailAgendaBody');
+        const section = document.getElementById('agendaDetailSection');
+        const summary = document.getElementById('agendaSummary');
+
+        const user = res.data?.[0];
+
+        if (!user) {
+            body.innerHTML = `
+        <tr>
+          <td colspan="5" class="text-center text-muted">
+            Data pegawai tidak ditemukan
+          </td>
+        </tr>`;
+            section.style.display = 'block';
+            return;
+        }
+
+        document.querySelector('#agendaDetailSection .page-header').innerHTML = `
+          <div>
+            <button class="btn-link" onclick="backToMonitoring()">← Kembali ke Monitoring</button>
+            <h1>LKH Pegawai</h1>
+            <p>
+              <strong>${user.nama}</strong>${user.subbag ? ` (${user.subbag})` : ''}<br>
+              Periode: ${res.periode}
+            </p>
+          </div>
+        `;
+
+        summary.innerHTML = `
+          <div>
+            Hari Wajib
+            <strong>${res.kinerja.hariWajib}</strong>
+          </div>
+          <div>
+            Terisi
+            <strong>${res.kinerja.hariTerisi}</strong>
+          </div>
+          <div>
+            Persentase
+            <strong>${res.kinerja.persentase}%</strong>
+          </div>
+          <div>
+            Potongan TPK
+            <strong>${res.kinerja.potonganTPK}%</strong>
+          </div>
+        `;
+
+        if (!user.agendaDetail || !user.agendaDetail.length) {
+            body.innerHTML = `
+            <tr>
+              <td colspan="5" class="text-center text-muted">
+                Tidak ada LKH pada periode ini
+              </td>
+            </tr>`;
+            section.style.display = 'block';
+            return;
+        }
+
+        body.innerHTML = user.agendaDetail.map(a => `
+              <tr>
+                <td>${a.tanggal}</td>
+                <td>${a.hari}</td>
+                <td>${a.kegiatan.length ? a.kegiatan.join('<br>') : '<span class="text-muted">-</span>'}</td>
+                <td>${a.hasil.length ? a.hasil.join('<br>') : '<span class="text-muted">-</span>'}</td>
+                <td>${a.keterangan.length ? a.keterangan.join('<br>') : '<span class="text-muted">-</span>'}</td>
+              </tr>
+        `).join('');
+
+        section.style.display = 'block';
+    }
+
+    function backToMonitoring() {
+        const detail = document.getElementById('agendaDetailSection');
+        const monitoring = document.getElementById('section-monitoring');
+
+        if (detail) detail.style.display = 'none';
+        if (monitoring) monitoring.style.display = 'block';
+    }
+
+
+    function loadMonitoring() {
+        const bulan = document.getElementById('monitorBulan').value;
+        const tahun = document.getElementById('monitorTahun').value;
+        const subbag = document.getElementById('monitorSubbag').value;
+        const pegawai = document.getElementById('monitorPegawai').value;
+
+        if (!bulan || !tahun) {
+            showAlert('Perhatian', 'Bulan dan tahun wajib dipilih', 'warning');
+            return;
+        }
+
+        showLoading('Memuat monitoring...');
+
+        google.script.run
+            .withSuccessHandler(res => {
+                hideLoading();
+                if (!res.success) {
+                    showAlert('Error', res.message, 'error');
+                    return;
+                }
+
+                renderMonitoring(res);
+            })
+            .withFailureHandler(err => {
+                hideLoading();
+                showAlert('Error', err.message, 'error');
+            })
+            .getMonitoringAgenda({
+                bulan,
+                tahun,
+                subbag,
+                emailPegawai: pegawai
+            });
+    }
+
+    function renderMonitoring(res) {
+
+        const tbody = document.getElementById('monitoringBody');
+
+        document.getElementById('monitorTotal').textContent = res.total;
+        document.getElementById('monDisetujui').textContent = res.summary.disetujui;
+        document.getElementById('monDiajukan').textContent = res.summary.diajukan;
+        document.getElementById('monBelum').textContent = res.summary.belum;
+
+        if (!res.data.length) {
+            tbody.innerHTML = `
+            <tr>
+              <td colspan="8"
+                  class="text-center text-gray-500 py-6">
+                Tidak ada data
+              </td>
+            </tr>`;
+
+            return;
+        }
+
+
+        let html = '';
+
+        res.data.forEach(r => {
+
+            const badgeStatus =
+                r.status === 'DISETUJUI' ? '<span class="badge badge-success text-white">Disetujui</span>'
+                    : r.status === 'DIAJUKAN' ? '<span class="badge badge-warning text-white">Diajukan</span>'
+                        : '<span class="badge badge-danger text-white">Draft</span>';
+
+            const showDetail = `
+            <button onclick="loadAgendaUser('${r.email}','${r.level}','${r.bulan}','${r.tahun}')" class="btn-download">
+                <i class="fas fa-search"></i>
+            </button>`;
+
+            const preview = `
+            <button onclick="window.open('${r.urlPengajuan}', '_blank')" class="btn-download">
+                <i class="fas fa-file-alt"></i>
+            </button> `;
+
+            const kinerjaBadge = r.persentaseKinerja >= 90 ? 'bg-green-600' : r.persentaseKinerja >= 70 ? 'bg-yellow-500' : 'bg-red-600';
+
+            html += `
+              <tr>
+                <td>${r.nama}</td>
+                <td>${r.subbag}</td>
+                <td class="text-center">
+                  ${r.agendaTerisi}
+                </td>
+                <td class="text-center">
+                  ${r.totalHariWajib}
+                </td>
+                <td class="text-center">
+                  <span class=" text-white text-xs px-2 py-0.5 rounded ${kinerjaBadge} ">
+                    ${r.persentaseKinerja}%
+                  </span>
+                </td>
+                <td class="text-center">
+                  ${badgeStatus}
+                </td>
+                <td class="">
+                  <div class=" inline-flex gap-2">
+                    ${showDetail}
+                    ${r.urlPengajuan ? preview : ''}
+                  </div>
+                </td>
+              </tr>
+              `;
+        });
+
+        tbody.innerHTML = html;
+
+        renderMonitoringChart(
+            res.summary.disetujui,
+            res.summary.belum
+        );
+    }
+
+    let monitorChart;
+
+    function renderMonitoringChart(sudah = 0, belum = 0) {
+
+        const canvas = document.getElementById('monitorChart');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (monitorChart) monitorChart.destroy();
+
+        const total = sudah + belum;
+        const percent = total ? Math.round((sudah / total) * 100) : 0;
+
+        monitorChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                datasets: [{
+                    data: total ? [sudah, belum] : [1],
+                    backgroundColor: total ? ['#16a34a', '#dc2626'] : ['#e5e7eb'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: false,
+                cutout: '70%',
+                plugins: {
+                    legend: {display: false},
+                    tooltip: {enabled: total > 0}
+                }
+            },
+            plugins: [{
+                id: 'centerText',
+                beforeDraw(chart) {
+                    const {ctx, width, height} = chart;
+
+                    ctx.save();
+                    ctx.font = 'bold 22px Inter, sans-serif';
+                    ctx.fillStyle = '#111827';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(percent + '%', width / 2, height / 2 - 6);
+                    ctx.font = '12px Inter, sans-serif';
+                    ctx.fillStyle = '#6b7280';
+                    ctx.fillText('Disetujui', width / 2, height / 2 + 14);
+                    ctx.restore();
+                }
+            }]
+        });
+    }
+
+    function checkUserSession() {
+
+        if (__IS_LOGGING_OUT__) return;
+
+        const raw = localStorage.getItem('userProfile');
+
+        if (!raw) {
+            redirectToLogin();
+            return;
+        }
+
+        let user;
+
+        try {
+            user = JSON.parse(raw);
+        } catch {
+            redirectToLogin();
+            return;
+        }
+
+        if (!user.email) {
+            redirectToLogin();
+            return;
+        }
+
+        if (!user.loginAt) {
+            user.loginAt = Date.now();
+            localStorage.setItem('userProfile', JSON.stringify(user));
+        }
+
+        const MAX_SESSION = 36 * 60 * 60 * 1000;
+
+        if (Date.now() - user.loginAt > MAX_SESSION) {
+            localStorage.removeItem('userProfile');
+            redirectToLogin();
+            return;
+        }
+
+        window.currentUser = user;
+        userProfile = user;
+        showDashboard();
+    }
+
+    function redirectToLogin() {
+        showPage('authPage');
+        switchAuthTab('login');
+    }
+
+    function logout() {
+        showConfirm(
+            'Logout',
+            'Apakah Anda yakin ingin logout?',
+            function () {
+                __IS_LOGGING_OUT__ = true;
+
+                localStorage.removeItem('userProfile');
+                sessionStorage.clear();
+                window.currentUser = null;
+                userProfile = null;
+
+                resetLoginForm();
+                redirectToLogin();
+
+                setTimeout(() => {
+                    __IS_LOGGING_OUT__ = false;
+                }, 1000);
+            }
+        );
+    }
+
+    function resetLoginForm() {
+        const email = document.getElementById('lEmail');
+        const pass = document.getElementById('lPass');
+        if (email) email.value = '';
+        if (pass) pass.value = '';
+    }
+
+    function loadLaporan() {
+        if (!userProfile || !userProfile.email) {
+            showAlert('Error', 'Silakan login terlebih dahulu', 'error');
+            return;
+        }
+
+        showLoading('Memuat daftar laporan...');
+
+        google.script.run
+            .withSuccessHandler(function (response) {
+                hideLoading();
+
+                if (response && response.success) {
+                    renderLaporanTable(response.laporan);
+                } else {
+                    showAlert('Info', response?.message || 'Tidak ada laporan ditemukan', 'info');
+                    renderLaporanTable([]);
+                }
+            })
+            .withFailureHandler(function () {
+                hideLoading();
+                showAlert('Error', 'Gagal memuat daftar laporan', 'error');
+                renderLaporanTable([]);
+            })
+            .getListLaporan({
+                user: {
+                    email: userProfile.email,
+                    nama: userProfile.nama
+                }
+            });
+    }
+
+    function renderLaporanTable(laporanList) {
+        let container = document.getElementById('riwayatLaporan');
+        if (!container) {
+            container = createLaporanContainer();
+        }
+
+        if (!laporanList || laporanList.length === 0) {
+            container.innerHTML = createEmptyState();
+            return;
+        }
+
+        container.innerHTML = createLaporanHTML(laporanList);
+    }
+
+    function createLaporanContainer() {
+        const laporanSection = document.getElementById('section-laporan');
+        if (!laporanSection) {
+            return null;
+        }
+
+        const container = document.createElement('div');
+        container.id = 'riwayatLaporan';
+        container.className = 'laporan-container';
+
+        let reportHistoryCard = laporanSection.querySelector('.report-history-card');
+        if (!reportHistoryCard) {
+            reportHistoryCard = document.createElement('div');
+            reportHistoryCard.className = 'report-history-card';
+
+            const title = document.createElement('h3');
+            title.className = 'section-title';
+            title.innerHTML = '<i class="fas fa-history"></i> Riwayat Laporan';
+
+            reportHistoryCard.appendChild(title);
+            laporanSection.querySelector('.reports-container').appendChild(reportHistoryCard);
+        }
+
+        reportHistoryCard.appendChild(container);
+        return container;
+    }
+
+    function createEmptyState() {
+        return `
+      <div class="empty-state">
+        <i class="fas fa-file-alt"></i>
+        <h3>Belum Ada Laporan</h3>
+        <p>Belum ada pengajuan LHK</p>
+      </div>
+    `;
+    }
+
+    function getStatusColor(status) {
+        const map = {
+            "DIAJUKAN": "bg-amber-100 text-amber-700",
+            "DISETUJUI": "bg-emerald-100 text-emerald-700",
+            "DITOLAK": "bg-red-100 text-red-700"
+        };
+        return map[status] || "bg-slate-100 text-slate-600";
+    }
+
+    function createLaporanHTML(laporanList) {
+
+        let html = `
+            <div class="table-wrapper">
+              <table class="laporan-table">
+                <thead>
+                  <tr>
+                    <th>Periode</th>
+                    <th>Total Hari</th>
+                    <th>Total LKH</th>
+                    <th>Status</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+          `;
+
+                laporanList.forEach((laporan) => {
+                    const statusClass = getStatusColor(laporan.status);
+
+                    let timeline = ` <span class="text-xs text-slate-400"> Diajukan: ${laporan.tanggal || '-'} </span> `;
+
+                    if (laporan.tanggalProses) {
+                        timeline += ` <span class="text-xs text-slate-400"> Diproses: ${laporan.tanggalProses} </span> `;
+                    }
+
+                    if (laporan.status === "DISETUJUI" && laporan.tanggalSetuju) {
+                        timeline += ` <span class="text-xs text-emerald-600"> Disetujui: ${laporan.tanggalSetuju} </span> `;
+                    }
+
+                    if (laporan.status === "DITOLAK" && laporan.tanggalSetuju) {
+                        timeline += ` <span class="text-xs text-red-600"> Ditolak: ${laporan.tanggalSetuju} </span> `;
+                    }
+
+                    html += `
+                      <tr class="hover:bg-slate-50 transition">
+
+                        <td class="py-3">
+                          <div class="flex flex-col gap-0.5">
+                            <span class="font-semibold text-slate-800">${laporan.periode}</span>
+                            ${timeline}
+                            ${laporan.verifikator ? `
+                              <span class="text-xs text-slate-400">
+                                Oleh: ${laporan.verifikator}
+                              </span>` : ``}
+                          </div>
+                        </td>
+
+                        <td class="py-3 text-sm font-semibold text-slate-700">
+                          ${laporan.totalHari} hari
+                        </td>
+
+                        <td class="py-3 text-sm font-semibold text-slate-700">
+                          ${laporan.totalAgenda} Laporan
+                        </td>
+
+                        <td class="py-3">
+                          <span class="px-3 py-1 rounded-full text-xs font-semibold ${statusClass}">
+                            ${laporan.status}
+                          </span>
+                        </td>
+
+                        <td class="py-3">
+                          <div class="flex items-center gap-2">
+
+                            <a href="${laporan.fileUrl}" target="_blank"
+                              class="flex items-center justify-center w-9 h-9 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition"
+                              title="Preview">
+                              <i class="fas fa-eye text-sm"></i>
+                            </a>
+
+                            <a href="${laporan.fileUrl}"
+                              class="flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition"
+                              title="Download">
+                              <i class="fas fa-download text-sm"></i>
+                            </a>
+
+                            ${laporan.status === "DITOLAK" ? `
+                              <button onclick="ajukanUlang('${laporan.periode}')"
+                                class="flex items-center justify-center w-9 h-9 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition"
+                                title="Ajukan Ulang">
+                                <i class="fas fa-rotate-right text-sm"></i>
+                              </button>
+                            ` : ``}
+
+                          </div>
+                        </td>
+                      </tr>
+                    `;
+
+                    if (laporan.status === "DITOLAK" && laporan.catatan) {
+                                html += `
+                        <tr>
+                          <td colspan="5"
+                            class="bg-red-50 text-red-700 text-sm px-4 py-3 border-l-4 border-red-400">
+
+                            <div class="flex gap-2 items-start">
+                              <i class="fas fa-comment-alt mt-1"></i>
+                              <div>
+                                <span class="font-semibold">Catatan Atasan:</span><br>
+                                ${laporan.catatan}
+                              </div>
+                            </div>
+
+                          </td>
+                        </tr>
+                      `;
+                    }
+                });
+
+                html += `
+                </tbody>
+              </table>
+            </div>
+          `;
+
+        return html;
+    }
+
+    function ajukanUlang(periode) {
+
+        showConfirmLhk(
+            "Ajukan Ulang LHK",
+            "Laporan akan diajukan ulang setelah diperbaiki. Lanjutkan?",
+            "bg-amber-600 hover:bg-amber-700",
+            () => {
+                openCetakAgenda();
+
+                document.getElementById("periodeCetak").value = periode;
+                document.getElementById("tCetak").value =
+                    new Date().toISOString().split("T")[0];
+            }
+        );
+    }
+
+    function previewAgenda() {
+
+        const periode = document.getElementById('periodeCetak').value;
+        const tanggalCetak = document.getElementById('tCetak').value;
+
+        if (!periode || !tanggalCetak) {
+            showAlert('Perhatian', 'Lengkapi data terlebih dahulu', 'warning');
+            return;
+        }
+
+        showLoading('Membuat preview...');
+        google.script.run
+            .withSuccessHandler(res => {
+                if (res.success) {
+                    window.open(res.url, '_blank');
+                    hideLoading();
+                }
+            })
+            .cetakAgendaUser({
+                email: userProfile.email,
+                periode: periode,
+                tglCetak: tanggalCetak,
+                preview: true
+            });
+
+    }
+
+    function openCetakAgenda() {
+        generatePeriodeSelect();
+        document.getElementById('modalCetakAgenda').style.display = 'flex';
+        document.getElementById('tCetak').value = new Date().toISOString().split('T')[0];
+    }
+
+    function closeCetakAgenda() {
+        document.getElementById('modalCetakAgenda').style.display = 'none';
+    }
+
+    function submitCetakAgenda() {
+
+        const periode = document.getElementById('periodeCetak').value;
+        const tanggalCetak = document.getElementById('tCetak').value;
+        const btn = document.getElementById('btnCetakAgenda');
+
+        if (!periode) {
+            showAlert('Perhatian', 'Silakan pilih periode laporan', 'warning');
+            return;
+        }
+
+        if (!tanggalCetak) {
+            showAlert('Perhatian', 'Silakan pilih tanggal pengajuan', 'warning');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengajukan...';
+
+        showLoading('Memproses pengajuan LHK...');
+
+        google.script.run
+            .withSuccessHandler(function (res) {
+
+                hideLoading();
+
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Ajukan LHK';
+
+                if (res.success) {
+
+                    closeCetakAgenda();
+                    loadLaporan();
+
+                    showAlert(
+                        'Berhasil',
+                        'LHK berhasil diajukan.',
+                        'success'
+                    );
+
+                } else {
+                    showAlert('Gagal', res.message || 'Terjadi kesalahan', 'error');
+                }
+
+            })
+            .withFailureHandler(function (err) {
+                hideLoading();
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane"></i> Ajukan LHK';
+                console.log('Error :', err);
+                showAlert('Error', 'Gagal memproses pengajuan', 'error');
+            })
+            .cetakAgendaUser({
+                email: userProfile.email,
+                periode: periode,
+                tglCetak: tanggalCetak
+            });
+    }
+
+
+    function generatePeriodeSelect() {
+        const select = document.getElementById('periodeCetak');
+        select.innerHTML = '<option value="">-- Pilih Periode --</option>';
+
+        const bulan = [
+            'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+        ];
+
+        const now = new Date();
+
+        let startMonth = 11;
+        let startYear = now.getFullYear() - 1;
+
+        let endMonth = now.getMonth();
+        let endYear = now.getFullYear();
+
+        if (now.getDate() < 21) {
+            endMonth--;
+            if (endMonth < 0) {
+                endMonth = 11;
+                endYear--;
+            }
+        }
+
+        let m = startMonth;
+        let y = startYear;
+
+        while (
+            y < endYear || (y === endYear && m <= endMonth)) {
+            const nextMonth = (m + 1) % 12;
+            const nextYear = m === 11 ? y + 1 : y;
+            const label = `21 ${bulan[m]} ${y} - 20 ${bulan[nextMonth]} ${nextYear}`;
+
+            select.insertAdjacentHTML('beforeend', `<option value="${label}">${label}</option>`);
+
+            m++;
+            if (m > 11) {
+                m = 0;
+                y++;
+            }
+        }
+    }
+
+
+    document.getElementById('forgotPassword').addEventListener('click', function (e) {
+        e.preventDefault();
+
+        Swal.fire({
+            title: 'Lupa Password',
+            input: 'email',
+            inputLabel: 'Masukkan email terdaftar',
+            inputPlaceholder: 'email@kpu.go.id',
+            showCancelButton: true,
+            confirmButtonText: 'Kirim Link',
+            confirmButtonColor: '#b30000'
+        }).then(result => {
+            if (!result.isConfirmed) return;
+
+            showLoading('Mengirim link reset...');
+
+            google.script.run
+                .withSuccessHandler(res => {
+                    hideLoading();
+                    if (res.success) {
+                        showAlert(
+                            'Berhasil',
+                            'Link reset password telah dikirim ke email Anda',
+                            'success'
+                        );
+                    } else {
+                        showAlert('Gagal', res.message, 'error');
+                    }
+                })
+                .withFailureHandler(err => {
+                    hideLoading();
+                    showAlert('Error', err.message, 'error');
+                })
+                .requestResetPassword(result.value);
+        });
+    });
+
+    function loadVerifikasi() {
+
+        showLoading("Memuat data pengajuan...");
+
+        google.script.run
+            .withSuccessHandler(function (res) {
+                hideLoading();
+                if (res.success) {
+                    renderVerifikasiTable(res.data);
+                    updateSidebarBadge(res.notify);
+                } else {
+                    renderVerifikasiTable([]);
+                }
+            })
+            .withFailureHandler(function (err) {
+                hideLoading();
+                showAlert("Error", "Gagal memuat data", "error");
+                console.error("Error loadVerifikasi:", err);
+            })
+            .getPengajuanUntukAtasan(userProfile.email);
+    }
+
+    function renderVerifikasiTable(list) {
+
+        if (!list || list.length === 0) {
+            document.getElementById("tableVerifikasi").innerHTML = `
+              <div class="text-center py-10 text-slate-500">
+                <i class="fas fa-inbox text-3xl mb-2"></i>
+                <p>Tidak ada pengajuan</p>
+              </div>
+            `;
+            return;
+        }
+
+        let html = `
+          <div class="overflow-x-auto">
+            <table class="min-w-full border border-slate-200 rounded-lg overflow-hidden">
+              <thead class="bg-slate-100 text-slate-700 text-sm">
+                <tr>
+                  <th class="px-4 py-3 text-left">Nama</th>
+                  <th class="px-4 py-3 text-left">Periode</th>
+                  <th class="px-4 py-3 text-center">Hari</th>
+                  <th class="px-4 py-3 text-center">Status</th>
+                  <th class="px-4 py-3 text-left">Tanggal</th>
+                  <th class="px-4 py-3 text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody class="text-sm">
+          `;
+
+        list.forEach(row => {
+
+            let actionButtons = `
+              <a href="${row.fileUrl}" target="_blank"
+                class="px-3 py-1.5 text-xs font-semibold rounded-md bg-blue-600 text-white hover:bg-blue-700">
+                <i class="fas fa-eye"></i>
+              </a>
+            `;
+
+            if (row.status === "DIAJUKAN") {
+                actionButtons += `
+                  <button onclick="confirmSetujui('${row.id}')"
+                    class="px-3 py-1.5 text-xs font-semibold rounded-md bg-emerald-600 text-white hover:bg-emerald-700">
+                    <i class="fas fa-check"></i>
+                  </button>
+
+                  <button onclick="confirmTolak('${row.id}','${row.emailAtasan}')"
+                    class="px-3 py-1.5 text-xs font-semibold rounded-md bg-red-600 text-white hover:bg-red-700">
+                    <i class="fas fa-times"></i>
+                  </button>
+                `;
+            } else {
+                actionButtons += `
+                  <span class="text-xs text-slate-400 italic px-2">
+                    selesai
+                  </span>
+                `;
+            }
+
+            html += `
+              <tr class="border-t hover:bg-slate-50">
+                <td class="px-4 py-3 font-semibold text-slate-800">${row.nama}</td>
+                <td class="px-4 py-3">${row.periode}</td>
+                <td class="px-4 py-3 text-center">${row.totalHari}</td>
+                <td class="px-4 py-3 text-center">
+                  ${getStatusBadge(row.status)}
+                </td>
+                <td class="px-4 py-3">${row.status === "DIAJUKAN" ? row.tanggal : row.tanggalSetuju}</td>
+                <td class="px-4 py-3">
+                  <div class="flex justify-center gap-2 items-center">
+                    ${actionButtons}
+                  </div>
+                </td>
+              </tr>
+            `;
+        });
+
+
+        html += `</tbody></table></div>`;
+
+        document.getElementById("tableVerifikasi").innerHTML = html;
+    }
+
+    function getStatusBadge(status) {
+
+        if (status === "DIAJUKAN") {
+            return `<span class="px-2 py-1 text-xs font-semibold rounded bg-yellow-100 text-yellow-700">Diajukan</span>`;
+        }
+
+        if (status === "DISETUJUI") {
+            return `<span class="px-2 py-1 text-xs font-semibold rounded bg-emerald-100 text-emerald-700">Disetujui</span>`;
+        }
+
+        if (status === "DITOLAK") {
+            return `<span class="px-2 py-1 text-xs font-semibold rounded bg-red-100 text-red-700">Ditolak</span>`;
+        }
+
+        return status;
+    }
+
+    function showConfirmLhk(title, message, color, callback) {
+
+        document.getElementById("confirmTitle").innerText = title;
+        document.getElementById("confirmMessage").innerText = message;
+
+        const btn = document.getElementById("confirmOkBtn");
+        btn.className = `px-4 py-2 rounded text-white text-sm font-semibold ${color}`;
+        btn.onclick = () => {
+            closeConfirm();
+            callback();
+        };
+
+        document.getElementById("confirmModal").classList.remove("hidden");
+        document.getElementById("confirmModal").classList.add("flex");
+    }
+
+    function closeConfirm() {
+        document.getElementById("confirmModal").classList.add("hidden");
+    }
+
+    function confirmSetujui(id) {
+        showConfirmLhk(
+            "Setujui LHK",
+            "Apakah Anda yakin ingin menyetujui laporan ini?",
+            "bg-emerald-600 hover:bg-emerald-700",
+            () => setujuiLHK(id)
+        );
+    }
+
+    let isProcessing = false;
+
+    function setujuiLHK(id) {
+
+        if (isProcessing) return;
+        isProcessing = true;
+
+        showLoading("Memproses persetujuan...");
+
+        google.script.run
+            .withSuccessHandler(function (res) {
+                if (res && res.success) {
+                    loadVerifikasi();
+                    showAlert("Berhasil", "LHK berhasil disetujui", "success");
+                } else {
+                    hideLoading();
+                    showAlert("Gagal", res?.message || "Tidak dapat memproses data", "error");
+                }
+                isProcessing = false;
+            })
+            .withFailureHandler(function (err) {
+                isProcessing = false;
+                hideLoading();
+                showAlert("Error", "Terjadi kesalahan sistem", "error");
+                console.error('Error setujuiLHK:', err);
+            })
+            .setujuiPengajuan(id, userProfile.email);
+    }
+
+
+    function confirmTolak(id, emailAtasan) {
+        showConfirmLhk(
+            "Tolak LHK",
+            "Apakah Anda yakin ingin menolak laporan ini?",
+            "bg-red-600 hover:bg-red-700",
+            () => tolakLHK(id, emailAtasan)
+        );
+    }
+
+    let currentRejectId = null;
+
+    function tolakLHK(id, emailAtasan) {
+
+        currentRejectId = id;
+
+        const catatanEl = document.getElementById("catatanTolak");
+        const emailEl = document.getElementById("emailAtasanTolak");
+        const modal = document.getElementById("modalTolak");
+
+        if (catatanEl) catatanEl.value = "";
+        if (emailEl) emailEl.value = emailAtasan || "";
+
+        if (modal) {
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+        }
+    }
+
+    function closeModalTolak() {
+        document.getElementById("modalTolak").classList.add("hidden");
+    }
+
+    function submitTolak() {
+
+        if (!currentRejectId) {
+            showAlert("Error", "ID pengajuan tidak ditemukan", "error");
+            return;
+        }
+
+        const catatanEl = document.getElementById("catatanTolak");
+        const emailEl = document.getElementById("emailAtasanTolak");
+
+        const catatan = catatanEl ? catatanEl.value.trim() : "";
+        const emailAtasan = emailEl ? emailEl.value.trim() : "";
+
+        if (!catatan) {
+            showAlert("Validasi", "Catatan wajib diisi sebelum menolak laporan", "warning");
+            return;
+        }
+
+        showLoading("Memproses penolakan...");
+
+        google.script.run
+            .withSuccessHandler(function (res) {
+                hideLoading();
+
+                if (!res || res.success === false) {
+                    showAlert("Gagal", res?.message || "Penolakan gagal diproses", "error");
+                    return;
+                }
+
+                closeModalTolak();
+                loadVerifikasi();
+
+                showAlert("Berhasil", "Pengajuan berhasil ditolak", "success");
+            })
+            .withFailureHandler(function (err) {
+                hideLoading();
+                showAlert("Error", "Terjadi kesalahan sistem", "error");
+                console.error(err);
+            })
+            .tolakPengajuan(currentRejectId, catatan, emailAtasan);
+    }
+
+    function updateSidebarBadge(notify) {
+        const badgeVerifikasi = document.getElementById("badge-verifikasi");
+        if (notify.verifikasiCount > 0) {
+            badgeVerifikasi.style.display = "flex";
+            badgeVerifikasi.innerText = notify.verifikasiCount;
+        } else {
+            badgeVerifikasi.style.display = "none";
+        }
+    }
+</script>
+
+</body>
+
+</html>

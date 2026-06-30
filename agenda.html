@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <base target="_top">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-OFFICE | AGENDA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config={theme:{extend:{}}}</script>
+    <?!= getStyles('agenda'); ?>
+</head>
+<body>
+<div id="loading"><div class="loading-spinner"></div><p class="loading-text">Memuat Modul Agenda...</p></div>
+
+<button id="sidebarToggle" class="sidebar-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+
+<div id="app">
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-content">
+            <div class="sidebar-header">
+                <div class="logo"><div class="logo-icon"><i class="fas fa-diagram-project"></i></div><div class="logo-text">AGENDA <span>KPU SIAK</span></div></div>
+            </div>
+            <nav class="sidebar-nav">
+                <button class="nav-item active" onclick="switchSection('dashboard',this)"><i class="fas fa-chart-pie"></i><span>Dashboard</span></button>
+                <button class="nav-item" onclick="switchSection('daftar',this)"><i class="fas fa-list"></i><span>Daftar Agenda</span></button>
+                <button class="nav-item" onclick="openWizard()"><i class="fas fa-plus-circle"></i><span>Buat Agenda</span></button>
+                <a href="https://script.google.com/macros/s/AKfycbxejATwEFa6KmgBqjxFGiA2L_mEJGG0-CaHGsaIyxedRz5_vGA-QiAIhSE-mYwXFY_E/exec?page=agenda" target="_top" class="nav-item"><i class="fas fa-calendar-alt"></i><span>E-LKH</span></a>
+                <a href="#" class="nav-item" onclick="logout();return false;"><i class="fas fa-arrow-right-from-bracket"></i><span>Logout</span></a>
+            </nav>
+        </div>
+        <div class="sidebar-footer">
+            <div class="footer-main">
+                <div class="institution-brand"><div class="brand-icon"><i class="fas fa-university"></i></div><div class="brand-info"><div class="brand-name">KPU Kabupaten Siak</div><div class="brand-subtitle">Agenda & Tindak Lanjut</div></div></div>
+                <div class="system-info"><div class="info-item"><div class="status-dot active"></div><span class="app-version">v2.0</span></div></div>
+            </div>
+            <div class="footer-copyright">&copy; 2026 KPU Kabupaten Siak</div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+
+        <!-- ============ DASHBOARD ============ -->
+        <section id="section-dashboard" class="content-section" style="display:block;">
+            <div class="hero-section">
+                <h1>Agenda & Tindak Lanjut</h1>
+                <p>Pusat monitoring seluruh aktivitas dan pekerjaan pegawai</p>
+            </div>
+            <div class="stats-grid" id="dashboardStats">
+                <div class="stat-card"><div class="stat-icon" style="background:#e0e7ff;color:#4338ca;"><i class="fas fa-clipboard-list"></i></div><div class="stat-info"><h3 id="statTotal">0</h3><p>Total Agenda</p></div></div>
+                <div class="stat-card"><div class="stat-icon" style="background:#dbeafe;color:#2563eb;"><i class="fas fa-spinner"></i></div><div class="stat-info"><h3 id="statBerjalan">0</h3><p>Sedang Berjalan</p></div></div>
+                <div class="stat-card"><div class="stat-icon" style="background:#d1fae5;color:#059669;"><i class="fas fa-check-circle"></i></div><div class="stat-info"><h3 id="statSelesai">0</h3><p>Selesai</p></div></div>
+                <div class="stat-card"><div class="stat-icon" style="background:#fee2e2;color:#dc2626;"><i class="fas fa-exclamation-triangle"></i></div><div class="stat-info"><h3 id="statOverdue">0</h3><p>Terlambat</p></div></div>
+            </div>
+            <div class="filter-bar"><div class="filter-group" style="display:flex;gap:10px;flex-wrap:wrap;">
+                <select id="filterStatus" class="filter-select" onchange="loadList('dashboard')"><option value="">Semua Status</option><option value="RENCANA">Belum Mulai</option><option value="BERJALAN">Sedang Dikerjakan</option><option value="SELESAI">Selesai</option></select>
+                <select id="filterSubbag" class="filter-select" onchange="loadList('dashboard')"><option value="">Semua Subbagian</option></select>
+                <button class="btn-primary" onclick="openWizard()"><i class="fas fa-plus"></i> Agenda Baru</button>
+            </div><div class="filter-info"><span id="countView">0</span> agenda</div></div>
+            <div class="table-container"><table><thead><tr><th>Judul</th><th>Sumber</th><th>PIC</th><th>Prioritas</th><th>Status</th><th>Progress</th><th>Tenggat</th><th>Aksi</th></tr></thead><tbody id="agendaTableBody"></tbody></table></div>
+        </section>
+
+        <!-- ============ DAFTAR ============ -->
+        <section id="section-daftar" class="content-section" style="display:none;">
+            <div class="page-header"><h1>Daftar Agenda</h1><p>Seluruh agenda dan tindak lanjut</p></div>
+            <div class="filter-bar"><div class="filter-group" style="display:flex;gap:10px;flex-wrap:wrap;">
+                <select id="filterStatus2" class="filter-select" onchange="loadList('daftar')"><option value="">Semua Status</option><option value="RENCANA">Belum Mulai</option><option value="BERJALAN">Sedang Dikerjakan</option><option value="SELESAI">Selesai</option></select>
+                <select id="filterSubbag2" class="filter-select" onchange="loadList('daftar')"><option value="">Semua Subbagian</option></select>
+                <button class="btn-primary" onclick="openWizard()"><i class="fas fa-plus"></i> Agenda Baru</button>
+            </div></div>
+            <div class="table-container"><table><thead><tr><th>Judul</th><th>Sumber</th><th>PIC</th><th>Prioritas</th><th>Status</th><th>Progress</th><th>Tenggat</th><th>Aksi</th></tr></thead><tbody id="agendaTableBody2"></tbody></table></div>
+        </section>
+
+        <!-- ============ DETAIL ============ -->
+        <section id="section-detail" class="content-section" style="display:none;">
+            <div class="page-header">
+                <div>
+                    <button onclick="backToList()" style="background:none;border:none;color:#b30000;font-weight:600;cursor:pointer;margin-bottom:8px;"><i class="fas fa-arrow-left"></i> Kembali</button>
+                    <h1 id="detailJudul">-</h1>
+                    <p id="detailNomor" style="color:#94a3b8;font-size:13px;">-</p>
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <button class="btn-secondary" onclick="openEditAgenda(currentDetailId)"><i class="fas fa-edit"></i> Edit</button>
+                    <button class="btn-primary" onclick="openCreateWorkflow()"><i class="fas fa-plus"></i> Workflow</button>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <div class="info-grid">
+                    <div class="info-item"><span class="label">Status</span><span id="detailStatus" class="value">-</span></div>
+                    <div class="info-item"><span class="label">Prioritas</span><span id="detailPrioritas" class="value">-</span></div>
+                    <div class="info-item"><span class="label">Pembuat</span><span id="detailPembuat" class="value">-</span></div>
+                    <div class="info-item"><span class="label">Subbagian</span><span id="detailSubbag" class="value">-</span></div>
+                    <div class="info-item"><span class="label">Sumber</span><span id="detailSumber" class="value">-</span></div>
+                    <div class="info-item"><span class="label">Jenis</span><span id="detailJenis" class="value">-</span></div>
+                    <div class="info-item"><span class="label">Tanggal Mulai</span><span id="detailTglMulai" class="value">-</span></div>
+                    <div class="info-item"><span class="label">Tenggat</span><span id="detailTenggat" class="value">-</span></div>
+                </div>
+                <div style="margin-top:16px;"><span class="label">Deskripsi</span><p id="detailDeskripsi" style="margin-top:4px;color:#475569;font-size:14px;line-height:1.6;">-</p></div>
+                <div style="margin-top:16px;"><span class="label">Dasar Agenda</span><p id="detailDasar" style="margin-top:4px;color:#475569;font-size:14px;">-</p></div>
+                <div style="margin-top:16px;"><span class="label">Output yang Diharapkan</span><p id="detailOutput" style="margin-top:4px;color:#475569;font-size:14px;">-</p></div>
+            </div>
+
+            <!-- ASSIGNMENT -->
+            <div class="detail-section">
+                <h3><i class="fas fa-users"></i> Penugasan</h3>
+                <div id="assignmentContainer"><div class="empty-state"><i class="fas fa-user-plus"></i><h3>Tidak Ada Penugasan</h3></div></div>
+            </div>
+
+            <!-- WORKFLOW + PROGRESS -->
+            <div class="detail-section">
+                <h3><i class="fas fa-diagram-project"></i> Workflow & Progress</h3>
+                <div id="workflowContainer"><div class="empty-state"><i class="fas fa-layer-group"></i><h3>Belum Ada Workflow</h3><p>Tambahkan workflow untuk agenda ini</p></div></div>
+            </div>
+
+            <!-- INTEGRASI LKH -->
+            <div class="detail-section">
+                <h3><i class="fas fa-file-alt"></i> Integrasi LKH</h3>
+                <p style="font-size:13px;color:#64748b;margin-bottom:12px;">Progress yang sudah selesai dapat dijadikan Laporan Kinerja Harian (LKH).</p>
+                <div id="lkhIntegrationContainer"><p style="font-size:13px;color:#94a3b8;">Memuat data...</p></div>
+            </div>
+
+            <!-- ACTIVITY LOG -->
+            <div class="detail-section">
+                <h3><i class="fas fa-history"></i> Riwayat Aktivitas</h3>
+                <div id="activityLogContainer"><div class="empty-state"><i class="fas fa-clock"></i><h3>Belum Ada Aktivitas</h3></div></div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<!-- ========== WIZARD MODAL (3 Langkah) ========== -->
+<div id="modalWizard" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:720px;max-height:90vh;overflow-y:auto;">
+        <div class="modal-header">
+            <h2><b><span id="wizardTitle">Buat Agenda Baru</span></b></h2>
+            <button class="close-btn" onclick="closeWizard()"><i class="fas fa-times"></i></button>
+        </div>
+        <input type="hidden" id="wizardEditId">
+
+        <div class="wizard-steps">
+            <div class="wizard-step active" id="ws1"><div class="step-circle">1</div><div class="step-label">Informasi</div><div class="step-desc">Judul & detail</div></div>
+            <div class="wizard-step" id="ws2"><div class="step-circle">2</div><div class="step-label">Penugasan</div><div class="step-desc">PIC & anggota</div></div>
+            <div class="wizard-step" id="ws3"><div class="step-circle">3</div><div class="step-label">Perencanaan</div><div class="step-desc">Target & jadwal</div></div>
+        </div>
+
+        <!-- STEP 1 -->
+        <div class="wizard-body" id="wizardStep1">
+            <div class="form-group"><label>Judul Agenda <span style="color:#dc2626;">*</span></label><input type="text" id="fJudul" class="form-control" placeholder="Judul agenda" required></div>
+            <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;">
+                <div class="form-group"><label>Sumber</label><select id="fSumber" class="form-control"><option value="PEGAWAI">Pegawai</option><option value="RAPAT">Rapat</option><option value="NOTULEN">Notulen</option><option value="PIMPINAN">Pimpinan</option></select></div>
+                <div class="form-group"><label>Jenis</label><select id="fJenis" class="form-control"><option value="UMUM">Umum</option><option value="COKTAS">Coktas</option><option value="PELNO">Pelno</option><option value="RAKOR">Rakor</option><option value="BIMTEK">Bimtek</option><option value="SOSIALISASI">Sosialisasi</option><option value="PLENO">Pleno</option></select></div>
+            </div>
+            <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;">
+                <div class="form-group"><label>Prioritas</label><select id="fPrioritas" class="form-control"><option value="RENDAH">Rendah</option><option value="SEDANG" selected>Sedang</option><option value="TINGGI">Tinggi</option><option value="MENDESAK">Mendesak</option></select></div>
+                <div class="form-group"><label>Subbag Penanggung Jawab</label><select id="fSubbag" class="form-control"><option value="">-</option></select></div>
+            </div>
+            <div class="form-group" style="margin-top:16px;"><label>Deskripsi Singkat</label><textarea id="fDeskripsi" class="form-control" rows="3" placeholder="Deskripsi agenda"></textarea></div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="wizard-body" id="wizardStep2" style="display:none;">
+            <div class="form-group"><label>Target Penugasan</label></div>
+            <div class="assignment-options" id="assignmentOptions">
+                <div class="assignment-option selected" onclick="selectAssignment('SELF',event)">
+                    <i class="fas fa-user"></i>
+                    <div class="title">Saya Sendiri</div>
+                    <div class="desc">Hanya ditugaskan ke saya</div>
+                </div>
+                <div class="assignment-option" onclick="selectAssignment('SPECIFIC',event)">
+                    <i class="fas fa-users"></i>
+                    <div class="title">Pegawai Tertentu</div>
+                    <div class="desc">Pilih pegawai secara manual</div>
+                </div>
+                <div class="assignment-option" onclick="selectAssignment('SUBBAG',event)">
+                    <i class="fas fa-building"></i>
+                    <div class="title">Seluruh Pegawai Subbag</div>
+                    <div class="desc">Otomatis sesuai subbag</div>
+                </div>
+                <div class="assignment-option" onclick="selectAssignment('ALL',event)">
+                    <i class="fas fa-globe"></i>
+                    <div class="title">Seluruh Pegawai KPU</div>
+                    <div class="desc">Semua pegawai aktif</div>
+                </div>
+            </div>
+            <input type="hidden" id="fAssignmentType" value="SELF">
+
+            <div class="form-group" style="margin-top:16px;"><label>PIC <span style="color:#dc2626;">*</span></label><select id="fPIC" class="form-control"><option value="">Pilih PIC</option></select></div>
+
+            <div id="pegawaiSpecificContainer" style="display:none;margin-top:16px;">
+                <div class="form-group"><label>Pilih Pegawai</label>
+                    <select id="fAnggota" class="form-control" multiple style="height:120px;"></select>
+                    <small class="text-muted">Tekan Ctrl/Cmd untuk memilih lebih dari satu</small>
+                </div>
+            </div>
+
+            <div id="subbagInfo" style="display:none;margin-top:16px;padding:12px;background:#f0fdf4;border-radius:12px;font-size:13px;color:#059669;">
+                <i class="fas fa-info-circle"></i> Semua pegawai aktif di subbag <strong id="subbagInfoText">-</strong> akan ditugaskan secara otomatis.
+            </div>
+            <div id="allInfo" style="display:none;margin-top:16px;padding:12px;background:#f0fdf4;border-radius:12px;font-size:13px;color:#059669;">
+                <i class="fas fa-info-circle"></i> Seluruh pegawai aktif akan ditugaskan secara otomatis.
+            </div>
+        </div>
+
+        <!-- STEP 3 -->
+        <div class="wizard-body" id="wizardStep3" style="display:none;">
+            <div class="form-group"><label>Output yang Diharapkan</label>
+                <textarea id="fTargetOutput" class="form-control" rows="2" placeholder="Output yang diharapkan dari agenda ini"></textarea>
+            </div>
+            <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;">
+                <div class="form-group"><label>Tanggal Mulai</label><input type="date" id="fTglMulai" class="form-control"></div>
+                <div class="form-group"><label>Target Selesai</label><input type="date" id="fTglSelesai" class="form-control"></div>
+            </div>
+            <div class="form-group" style="margin-top:16px;"><label>Dasar Agenda</label>
+                <select id="fDasarAgenda" class="form-control">
+                    <option value="">Pilih dasar agenda</option>
+                    <option value="HASIL_RAPAT_PLENO">Hasil Rapat Pleno</option>
+                    <option value="DISPOSISI_SEKRETARIS">Disposisi Sekretaris</option>
+                    <option value="INSTRUKSI_KETUA">Instruksi Ketua</option>
+                    <option value="AGENDA_PRIBADI">Agenda Pribadi</option>
+                    <option value="MONITORING">Monitoring</option>
+                    <option value="LAINNYA">Lainnya</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin-top:16px;"><label>Catatan</label>
+                <textarea id="fCatatan" class="form-control" rows="2" placeholder="Catatan tambahan"></textarea>
+            </div>
+        </div>
+
+        <div class="wizard-footer">
+            <div>
+                <button class="btn-secondary" id="wizardPrevBtn" onclick="wizardPrev()" style="display:none;"><i class="fas fa-arrow-left"></i> Sebelumnya</button>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button class="btn-secondary" onclick="closeWizard()">Batal</button>
+                <button class="btn-primary" id="wizardNextBtn" onclick="wizardNext()">Lanjut <i class="fas fa-arrow-right"></i></button>
+                <button class="btn-primary" id="wizardSaveBtn" onclick="saveAgendaWizard()" style="display:none;"><i class="fas fa-save"></i> Simpan Agenda</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== WORKFLOW MODAL ========== -->
+<div id="modalWorkflow" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:520px;">
+        <div class="modal-header"><h2 id="modalWorkflowTitle"><b>Tambah Workflow</b></h2><button class="close-btn" onclick="closeModalWorkflow()"><i class="fas fa-times"></i></button></div>
+        <input type="hidden" id="workflowId"><input type="hidden" id="workflowAgendaId">
+        <div class="form-group"><label>Nama Tahapan <span style="color:#dc2626;">*</span></label><input type="text" id="fNamaWorkflow" class="form-control" placeholder="Nama tahapan / workflow"></div>
+        <div class="form-group" style="margin-top:16px;"><label>PIC Tahapan</label><select id="fWorkflowPIC" class="form-control"><option value="">Pilih PIC</option></select></div>
+        <div class="form-group" style="margin-top:16px;"><label>Target</label><input type="text" id="fWorkflowTarget" class="form-control" placeholder="Target tahapan"></div>
+        <div class="form-group" style="margin-top:16px;"><label>Keterangan</label><textarea id="fWorkflowKet" class="form-control" rows="2" placeholder="Keterangan tambahan"></textarea></div>
+        <button onclick="saveWorkflow()" class="btn-primary full-width" style="margin-top:24px;width:100%;"><i class="fas fa-save"></i> Simpan Tahapan</button>
+    </div>
+</div>
+
+<!-- ========== PROGRESS MODAL ========== -->
+<div id="modalProgress" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:520px;">
+        <div class="modal-header"><h2 id="modalProgressTitle"><b>Tambah Progress</b></h2><button class="close-btn" onclick="closeModalProgress()"><i class="fas fa-times"></i></button></div>
+        <input type="hidden" id="progressId"><input type="hidden" id="progressWorkflowId">
+        <div id="progressWorkflowDisplay" style="padding:12px;background:#f8fafc;border-radius:12px;margin-bottom:16px;">
+            <span style="font-size:12px;color:#64748b;">Workflow</span>
+            <div style="font-weight:600;font-size:15px;color:#1e293b;margin-top:2px;" id="progressWorkflowName">-</div>
+        </div>
+        <div class="form-group"><label>Status</label><select id="fProgressStatus" class="form-control"><option value="RENCANA">Belum Mulai</option><option value="BERJALAN">Sedang Dikerjakan</option><option value="SELESAI">Selesai</option></select></div>
+        <div class="form-group" style="margin-top:16px;"><label>PIC</label><select id="fProgressPIC" class="form-control"><option value="">Pilih PIC</option></select></div>
+        <div class="form-group" style="margin-top:16px;"><label>Hasil Pekerjaan</label><input type="text" id="fHasilPekerjaan" class="form-control" placeholder="Contoh: Draft nota dinas telah selesai disusun dan siap diparaf."></div>
+        <div class="form-group" style="margin-top:16px;"><label>Catatan <span style="color:#94a3b8;font-weight:400;">(opsional)</span></label><textarea id="fProgressCatatan" class="form-control" rows="2" placeholder="Kendala atau informasi tambahan (opsional)"></textarea></div>
+        <button onclick="saveProgress()" class="btn-primary full-width" style="margin-top:24px;width:100%;"><i class="fas fa-save"></i> Simpan Progress</button>
+    </div>
+</div>
+
+<!-- ========== EVIDENCE MODAL ========== -->
+<div id="modalEvidence" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:480px;">
+        <div class="modal-header"><h2><b>Tambah Evidence</b></h2><button class="close-btn" onclick="closeModalEvidence()"><i class="fas fa-times"></i></button></div>
+        <input type="hidden" id="evidenceProgressId">
+        <div class="form-group"><label>Nama File <span style="color:#dc2626;">*</span></label><input type="text" id="fNamaFile" class="form-control" placeholder="Nama dokumen/file"></div>
+        <div class="form-group" style="margin-top:16px;"><label>Link / URL</label><input type="url" id="fLink" class="form-control" placeholder="https://drive.google.com/..."></div>
+        <div class="form-group" style="margin-top:16px;"><label>Keterangan</label><textarea id="fEvidenceKet" class="form-control" rows="2" placeholder="Keterangan evidence"></textarea></div>
+        <button onclick="saveEvidence()" class="btn-primary full-width" style="margin-top:24px;width:100%;"><i class="fas fa-upload"></i> Simpan Evidence</button>
+    </div>
+</div>
+
+<!-- ========== LKH MODAL ========== -->
+<div id="modalLKH" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:600px;max-height:80vh;overflow-y:auto;">
+        <div class="modal-header"><h2><b>Jadikan LKH</b></h2><button class="close-btn" onclick="closeModalLKH()"><i class="fas fa-times"></i></button></div>
+        <p style="font-size:13px;color:#64748b;margin-bottom:16px;">Pilih progress yang sudah selesai untuk dijadikan Laporan Kinerja Harian (LKH). Progress akan dikirim ke modul LKH tanpa perlu mengetik ulang.</p>
+        <div id="lkhProgressList"><p style="color:#94a3b8;font-size:13px;">Memuat data...</p></div>
+        <div class="wizard-footer" style="margin-top:20px;">
+            <button class="btn-secondary" onclick="closeModalLKH()">Tutup</button>
+            <button class="btn-primary" onclick="submitLKH()"><i class="fas fa-file-alt"></i> Jadikan LKH</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const SESSION_KEY = 'userProfile';
+let currentUser = null, currentDetailId = null, currentAgendaList = [];
+let pegawaiList = [], subbagList = [], wizardStep = 1;
+let lkhSelectedProgress = [];
+
+document.addEventListener('DOMContentLoaded', () => { checkSession(); if (currentUser) initApp(); });
+
+function checkSession() {
+  const raw = localStorage.getItem(SESSION_KEY);
+  if (!raw) { redirectToLogin(); return; }
+  try { currentUser = JSON.parse(raw); if (!currentUser.email) redirectToLogin(); } catch(e) { redirectToLogin(); }
+}
+
+function redirectToLogin() {
+  window.top.location.href = 'https://script.google.com/macros/s/AKfycbxejATwEFa6KmgBqjxFGiA2L_mEJGG0-CaHGsaIyxedRz5_vGA-QiAIhSE-mYwXFY_E/exec';
+}
+
+function logout() { localStorage.removeItem(SESSION_KEY); redirectToLogin(); }
+function showLoading(m) { const el=document.getElementById('loading'); el.querySelector('.loading-text').textContent=m||'Memuat...'; el.style.display='flex'; }
+function hideLoading() { document.getElementById('loading').style.display='none'; }
+
+function initApp() { hideLoading(); loadPegawai(); loadList('dashboard'); loadDashboardStats(); }
+
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+
+function switchSection(id, btn) {
+  document.querySelectorAll('.content-section').forEach(s=>s.style.display='none');
+  document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const t=document.getElementById('section-'+id);
+  if (t) t.style.display='block';
+  if (id==='dashboard') { loadDashboardStats(); loadList('dashboard'); }
+  if (id==='daftar') loadList('daftar');
+}
+
+// =============================================
+// PEGAWAI
+// =============================================
+function loadPegawai() {
+  showLoading('Memuat data pegawai...');
+  google.script.run.withSuccessHandler(list => {
+    pegawaiList = list || [];
+    subbagList = [...new Set(list.map(p=>p.subbag).filter(Boolean))];
+    populateDropdowns(); hideLoading();
+  }).withFailureHandler(() => hideLoading()).getPegawaiDropdown();
+}
+
+function populateDropdowns() {
+  const picIds = ['fPIC','fWorkflowPIC','fProgressPIC'];
+  picIds.forEach(id => {
+    const s=document.getElementById(id); if (!s) return;
+    s.innerHTML='<option value="">Pilih PIC</option>';
+    pegawaiList.forEach(p => s.innerHTML+=`<option value="${p.email}">${p.nama} ${p.jabatan?'- '+p.jabatan:''}</option>`);
+  });
+  const anggota=document.getElementById('fAnggota');
+  if (anggota) { anggota.innerHTML=''; pegawaiList.forEach(p => anggota.innerHTML+=`<option value="${p.email}">${p.nama} (${p.subbag||'-'})</option>`); }
+  const subIds=['filterSubbag','filterSubbag2','fSubbag'];
+  subIds.forEach(id => {
+    const s=document.getElementById(id); if (!s) return;
+    s.innerHTML='<option value="">'+(id==='fSubbag'?'-':'Semua Subbagian')+'</option>';
+    subbagList.forEach(sb => s.innerHTML+=`<option value="${sb}">${sb}</option>`);
+  });
+}
+
+// =============================================
+// DASHBOARD
+// =============================================
+function loadDashboardStats() {
+  google.script.run.withSuccessHandler(r => {
+    if (r.success&&r.stats) {
+      document.getElementById('statTotal').textContent=r.stats.total||0;
+      document.getElementById('statBerjalan').textContent=r.stats.berjalan||0;
+      document.getElementById('statSelesai').textContent=r.stats.selesai||0;
+      document.getElementById('statOverdue').textContent=r.stats.overdue||0;
+    }
+  }).withFailureHandler(() => {}).getAgendaDashboardStats(currentUser.email, currentUser.level);
+}
+
+// =============================================
+// LIST AGENDA
+// =============================================
+function loadList(source) {
+  showLoading('Memuat agenda...');
+  const prefix = source==='daftar' ? '2' : '';
+  const status = document.getElementById('filterStatus'+prefix).value;
+  const subbag = document.getElementById('filterSubbag'+prefix).value;
+  const tbodyId = source==='daftar' ? 'agendaTableBody2' : 'agendaTableBody';
+
+  google.script.run.withSuccessHandler(r => {
+    hideLoading();
+    currentAgendaList = (r.success && r.data) ? r.data : [];
+    renderTable(currentAgendaList, tbodyId);
+    if (source!=='daftar') document.getElementById('countView').textContent = currentAgendaList.length;
+    if (r.stats) {
+      document.getElementById('statTotal').textContent=r.stats.total||0;
+      document.getElementById('statBerjalan').textContent=r.stats.berjalan||0;
+      document.getElementById('statSelesai').textContent=r.stats.selesai||0;
+      document.getElementById('statOverdue').textContent=r.stats.overdue||0;
+    }
+  }).withFailureHandler(() => { hideLoading(); renderTable([], tbodyId); })
+  .getListAgenda({ userEmail:currentUser.email, role:currentUser.level, status, subbag });
+}
+
+function renderTable(list, tbodyId) {
+  const tbody = document.getElementById(tbodyId); if (!tbody) return;
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><i class="fas fa-inbox"></i><h3>Belum Ada Agenda</h3><p>Silakan buat agenda baru</p></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(a => {
+    const pc = getPrioritasClass(a.prioritas);
+    const sb = getStatusBadge(a);
+    const pct = a.progressPersentase||0;
+    const pcls = pct>=100?'selesai':pct>=50?'tinggi':pct>0?'sedang':'rendah';
+    const src = (a.sumber||'pegawai').toLowerCase();
+    return `<tr>
+      <td><div class="agenda-title-cell">${esc(a.judul)}</div><div class="agenda-subtitle-cell"><span class="sumber-badge ${src}">${a.sumber||'PEGAWAI'}</span> ${a.nomorAgenda?'&middot; '+a.nomorAgenda:''}</div></td>
+      <td><span class="sumber-badge ${src}" style="font-size:11px;">${a.sumber||'-'}</span></td>
+      <td>${esc(a.picNama||a.createdByNama||'-')}</td>
+      <td><span class="badge ${pc}">${a.prioritas||'-'}</span></td>
+      <td>${sb}</td>
+      <td style="min-width:120px;"><div style="display:flex;align-items:center;gap:8px;"><div class="progress-bar-container" style="flex:1;"><div class="progress-bar-fill ${pcls}" style="width:${pct}%"></div></div><span style="font-size:12px;font-weight:700;color:#64748b;white-space:nowrap;">${pct}%</span></div></td>
+      <td style="font-size:13px;color:${a.isOverdue?'#dc2626':'#64748b'};font-weight:${a.isOverdue?'700':'500'};">${a.tanggalSelesai||'-'}${a.isOverdue?' <i class="fas fa-exclamation-circle"></i>':''}</td>
+      <td><div class="agenda-actions">
+        <button class="btn-agenda-view" onclick="viewDetail('${a.id}')" title="Detail"><i class="fas fa-eye"></i></button>
+        <button class="btn-agenda-edit" onclick="openEditAgenda('${a.id}')" title="Edit"><i class="fas fa-edit"></i></button>
+        <button class="btn-agenda-delete" onclick="confirmDelete('${a.id}')" title="Hapus"><i class="fas fa-trash"></i></button>
+      </div></td></tr>`;
+  }).join('');
+}
+
+function esc(t) { if (!t) return ''; const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
+
+function getPrioritasClass(p) { return {RENDAH:'badge-prioritas-rendah',SEDANG:'badge-prioritas-sedang',TINGGI:'badge-prioritas-tinggi',MENDESAK:'badge-prioritas-mendesak'}[p]||'badge-prioritas-sedang'; }
+
+function getStatusBadge(a) {
+  if (a.isOverdue) return '<span class="badge badge-status-terlambat">Terlambat</span>';
+  const m={RENCANA:'badge-status-rencana',BERJALAN:'badge-status-berjalan',SELESAI:'badge-status-selesai'};
+  const labelMap={RENCANA:'Belum Mulai',BERJALAN:'Sedang Dikerjakan',SELESAI:'Selesai'};
+  return `<span class="badge ${m[a.status]||'badge-status-rencana'}">${labelMap[a.status]||a.status||'Belum Mulai'}</span>`;
+}
+
+// =============================================
+// WIZARD — 3 LANGKAH
+// =============================================
+function openWizard() {
+  wizardStep = 1; lkhSelectedProgress = [];
+  document.getElementById('wizardEditId').value = '';
+  document.getElementById('wizardTitle').textContent = 'Buat Agenda Baru';
+  // Reset form
+  ['fJudul','fTargetOutput','fDeskripsi','fCatatan'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('fSumber').value='PEGAWAI';
+  document.getElementById('fJenis').value='UMUM';
+  document.getElementById('fPrioritas').value='SEDANG';
+  document.getElementById('fDasarAgenda').value='';
+  document.getElementById('fTglMulai').value='';
+  document.getElementById('fTglSelesai').value='';
+  document.getElementById('fPIC').value=currentUser.email;
+  selectAssignment('SELF');
+  showStep(1);
+  document.getElementById('modalWizard').style.display='flex';
+}
+
+function closeWizard() { document.getElementById('modalWizard').style.display='none'; }
+
+function showStep(n) {
+  wizardStep = n;
+  [1,2,3].forEach(i => {
+    const s=document.getElementById('ws'+i);
+    s.classList.toggle('active', i===n);
+    s.classList.toggle('completed', i<n);
+    document.getElementById('wizardStep'+i).style.display = i===n ? 'block' : 'none';
+  });
+  document.getElementById('wizardPrevBtn').style.display = n>1 ? 'inline-flex' : 'none';
+  document.getElementById('wizardNextBtn').style.display = n<3 ? 'inline-flex' : 'none';
+  document.getElementById('wizardSaveBtn').style.display = n===3 ? 'inline-flex' : 'none';
+}
+
+function wizardPrev() { if (wizardStep>1) showStep(wizardStep-1); }
+
+function wizardNext() {
+  if (wizardStep===1) {
+    const judul = document.getElementById('fJudul').value.trim();
+    if (!judul) { Swal.fire('Validasi','Judul agenda wajib diisi','warning'); return; }
+  }
+  if (wizardStep===2) {
+    const pic = document.getElementById('fPIC').value;
+    if (!pic) { Swal.fire('Validasi','PIC wajib dipilih','warning'); return; }
+  }
+  if (wizardStep<3) showStep(wizardStep+1);
+}
+
+function selectAssignment(type, evt) {
+  document.getElementById('fAssignmentType').value = type;
+  var opts = document.querySelectorAll('.assignment-option');
+  for (var i = 0; i < opts.length; i++) opts[i].classList.remove('selected');
+  if (evt) {
+    evt.target.closest('.assignment-option').classList.add('selected');
+  } else {
+    var map = {SELF:0,SPECIFIC:1,SUBBAG:2,ALL:3};
+    var idx = map[type];
+    if (idx !== undefined && opts[idx]) opts[idx].classList.add('selected');
+  }
+  document.getElementById('pegawaiSpecificContainer').style.display = type==='SPECIFIC' ? 'block' : 'none';
+  document.getElementById('subbagInfo').style.display = type==='SUBBAG' ? 'block' : 'none';
+  document.getElementById('allInfo').style.display = type==='ALL' ? 'block' : 'none';
+
+  if (type==='SUBBAG') {
+    const sb = document.getElementById('fSubbag').value;
+    document.getElementById('subbagInfoText').textContent = sb || '(pilih subbag)';
+  }
+}
+
+var sbEl = document.getElementById('fSubbag'); if (sbEl) sbEl.addEventListener('change', function() {
+  if (document.getElementById('fAssignmentType').value==='SUBBAG') {
+    document.getElementById('subbagInfoText').textContent = this.value || '(pilih subbag)';
+  }
+});
+
+function saveAgendaWizard() {
+  const editId = document.getElementById('wizardEditId').value;
+  const judul = document.getElementById('fJudul').value.trim();
+  const picEmail = document.getElementById('fPIC').value;
+  if (!judul) { Swal.fire('Validasi','Judul wajib diisi','warning'); return; }
+  if (!picEmail) { Swal.fire('Validasi','PIC wajib dipilih','warning'); return; }
+
+  const anggotaEmail = [];
+  const anggotaSel = document.getElementById('fAnggota');
+  if (anggotaSel) { for (let o of anggotaSel.options) { if (o.selected) anggotaEmail.push(o.value); } }
+
+  const payload = {
+    judul, picEmail,
+    sumber: document.getElementById('fSumber').value,
+    jenis: document.getElementById('fJenis').value,
+    prioritas: document.getElementById('fPrioritas').value,
+    subbagian: document.getElementById('fSubbag').value,
+    deskripsi: document.getElementById('fDeskripsi').value.trim(),
+    targetOutput: document.getElementById('fTargetOutput').value.trim(),
+    dasarAgenda: document.getElementById('fDasarAgenda').value,
+    tanggalMulai: document.getElementById('fTglMulai').value,
+    tanggalSelesai: document.getElementById('fTglSelesai').value,
+    assignmentType: document.getElementById('fAssignmentType').value,
+    anggotaEmail: anggotaEmail,
+    createdByEmail: currentUser.email,
+    userEmail: currentUser.email
+  };
+
+  showLoading('Menyimpan...');
+  if (editId) {
+    payload.id = editId;
+    google.script.run.withSuccessHandler(r => { hideLoading(); if (r.success) { closeWizard(); refreshAll(); Swal.fire('Berhasil','Agenda diperbarui','success'); } else Swal.fire('Gagal',r.message,'error'); })
+    .withFailureHandler(e => { hideLoading(); Swal.fire('Error',e.message,'error'); }).agendaUpdateAgenda(payload);
+  } else {
+    google.script.run.withSuccessHandler(r => { hideLoading(); if (r.success) { closeWizard(); refreshAll(); Swal.fire('Berhasil','Agenda dibuat. Silakan tambahkan workflow.','success'); viewDetail(r.id); } else Swal.fire('Gagal',r.message,'error'); })
+    .withFailureHandler(e => { hideLoading(); Swal.fire('Error',e.message,'error'); }).createAgenda(payload);
+  }
+}
+
+function openEditAgenda(id) { const a = currentAgendaList.find(x=>x.id===id); if (!a) return;
+  document.getElementById('wizardEditId').value = id;
+  document.getElementById('wizardTitle').textContent = 'Edit Agenda';
+  document.getElementById('fJudul').value = a.judul||'';
+  document.getElementById('fSumber').value = a.sumber||'PEGAWAI';
+  document.getElementById('fJenis').value = a.jenis||'UMUM';
+  document.getElementById('fPrioritas').value = a.prioritas||'SEDANG';
+  document.getElementById('fSubbag').value = a.subbagian||'';
+  document.getElementById('fDeskripsi').value = a.deskripsi||'';
+  document.getElementById('fTargetOutput').value = a.targetOutput||'';
+  document.getElementById('fTglMulai').value = a.tanggalMulai||'';
+  document.getElementById('fTglSelesai').value = a.tanggalSelesai||'';
+  document.getElementById('fPIC').value = a.picEmail||'';
+  selectAssignment('SELF');
+  showStep(1);
+  document.getElementById('modalWizard').style.display='flex';
+}
+
+function confirmDelete(id) {
+  Swal.fire({ title:'Hapus Agenda?', text:'Data tidak dapat dikembalikan', icon:'warning', showCancelButton:true, confirmButtonColor:'#dc2626', confirmButtonText:'Ya, Hapus', cancelButtonText:'Batal' })
+  .then(r => { if (r.isConfirmed) { showLoading('Menghapus...');
+    google.script.run.withSuccessHandler(r2 => { hideLoading(); if (r2.success) { refreshAll(); Swal.fire('Berhasil','Agenda dihapus','success'); } else Swal.fire('Gagal',r2.message,'error'); })
+    .withFailureHandler(e => { hideLoading(); Swal.fire('Error',e.message,'error'); }).deleteAgenda(id, currentUser.email);
+  }});
+}
+
+function refreshAll() { loadDashboardStats(); loadList('dashboard'); loadList('daftar'); }
+
+// =============================================
+// DETAIL AGENDA
+// =============================================
+function viewDetail(id) {
+  showLoading('Memuat detail...');
+  currentDetailId = id;
+  google.script.run.withSuccessHandler(r => {
+    hideLoading();
+    if (!r.success) { Swal.fire('Error',r.message,'error'); return; }
+    document.querySelectorAll('.content-section').forEach(s=>s.style.display='none');
+    document.getElementById('section-detail').style.display='block';
+    renderDetail(r);
+  }).withFailureHandler(e => { hideLoading(); Swal.fire('Error',e.message,'error'); }).getDetailAgenda(id);
+}
+
+function renderDetail(r) {
+  const a = r.agenda;
+  document.getElementById('detailJudul').textContent = a.judul||'-';
+  document.getElementById('detailNomor').textContent = a.nomorAgenda ? 'No. '+a.nomorAgenda : '';
+  document.getElementById('detailStatus').innerHTML = getStatusBadge(a);
+  document.getElementById('detailPrioritas').innerHTML = `<span class="badge ${getPrioritasClass(a.prioritas)}">${a.prioritas||'-'}</span>`;
+  document.getElementById('detailPembuat').textContent = a.createdByNama||'-';
+  document.getElementById('detailSubbag').textContent = a.subbagian||'-';
+  document.getElementById('detailSumber').textContent = a.sumber||'-';
+  document.getElementById('detailJenis').textContent = a.jenis||'-';
+  document.getElementById('detailTglMulai').textContent = a.tanggalMulai||'-';
+  document.getElementById('detailTenggat').textContent = a.tanggalSelesai||'-';
+  document.getElementById('detailDeskripsi').textContent = a.deskripsi||'-';
+  document.getElementById('detailDasar').textContent = a.dasarAgenda||'-';
+  document.getElementById('detailOutput').textContent = a.targetOutput||'-';
+  window._currentWorkflows = r.workflows || [];
+  renderAssignments(r.assignments||[]);
+  renderWorkflows(r.workflows||[]);
+  renderActivityLog(r.activityLog||[]);
+  loadLKHIntegration();
+}
+
+function backToList() {
+  document.getElementById('section-detail').style.display='none';
+  document.getElementById('section-dashboard').style.display='block';
+  refreshAll();
+}
+
+// =============================================
+// ASSIGNMENT
+// =============================================
+function renderAssignments(list) {
+  const c = document.getElementById('assignmentContainer');
+  if (!list.length) { c.innerHTML='<div class="empty-state"><i class="fas fa-user-plus"></i><h3>Tidak Ada Penugasan</h3></div>'; return; }
+  c.innerHTML = list.map(as => {
+    const isPIC = as.role==='PIC';
+    return `<span class="assignment-chip ${isPIC?'pic':''}"><span class="avatar">${(as.nama||'?').charAt(0).toUpperCase()}</span> ${esc(as.nama)} ${as.jabatan?'- '+esc(as.jabatan):''} ${isPIC?'<span style="font-size:10px;font-weight:700;color:#991b1b;">PIC</span>':''}</span>`;
+  }).join('');
+}
+
+// =============================================
+// WORKFLOW
+// =============================================
+function renderWorkflows(workflows) {
+  const c = document.getElementById('workflowContainer');
+  if (!workflows.length) {
+    c.innerHTML = '<div class="empty-state"><i class="fas fa-layer-group"></i><h3>Belum Ada Workflow</h3><p>Tambahkan tahapan workflow untuk agenda ini</p></div>';
+    return;
+  }
+  let html = '<div class="timeline">';
+  workflows.forEach((wf, idx) => {
+    const isComplete = wf.status==='SELESAI';
+    const isActive = wf.status==='BERJALAN';
+    const dc = isComplete ? 'completed' : (isActive ? 'active' : '');
+    const wc = isComplete ? 'completed' : (isActive ? 'active' : '');
+    const canUp = idx > 0;
+    const canDown = idx < workflows.length-1;
+
+    html += `<div class="timeline-item">
+      <div class="timeline-dot ${dc}">${isComplete?'✓':(idx+1)}</div>
+      <div class="workflow-card ${wc}">
+        <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;">
+          <div><strong>${esc(wf.namaWorkflow)}</strong> <span style="margin-left:8px;font-size:11px;color:#94a3b8;">PIC: ${esc(wf.picNama||'-')}</span></div>
+          <div style="display:flex;gap:4px;flex-shrink:0;">
+            ${canUp?`<button class="btn-secondary" onclick="reorderWf('${currentDetailId}','${wf.id}',${idx})" style="padding:2px 6px;font-size:10px;" title="Naik"><i class="fas fa-chevron-up"></i></button>`:''}
+            ${canDown?`<button class="btn-secondary" onclick="reorderWf('${currentDetailId}','${wf.id}',${idx+2})" style="padding:2px 6px;font-size:10px;" title="Turun"><i class="fas fa-chevron-down"></i></button>`:''}
+            <button class="btn-secondary" onclick="openCreateProgress('${wf.id}')" style="padding:2px 6px;font-size:10px;" title="Tambah Progress"><i class="fas fa-plus"></i></button>
+            <button class="btn-secondary" onclick="openEditWorkflow('${wf.id}')" style="padding:2px 6px;font-size:10px;" title="Edit"><i class="fas fa-edit"></i></button>
+            <button class="btn-secondary" onclick="confirmDeleteWf('${wf.id}')" style="padding:2px 6px;font-size:10px;color:#dc2626;" title="Hapus"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>
+        <div style="font-size:12px;color:#64748b;margin-bottom:8px;">${wf.target?'Target: '+esc(wf.target):''} ${wf.keterangan?'&middot; '+esc(wf.keterangan):''}</div>
+        <span class="badge ${isComplete?'badge-status-selesai':'badge-status-berjalan'}">${wf.status||'RENCANA'}</span>`;
+
+    // PROGRESS
+    if (wf.progressList && wf.progressList.length) {
+      html += `<div style="margin-top:12px;padding-left:12px;border-left:2px solid #e5e7eb;">`;
+      wf.progressList.forEach(prog => {
+        const pc = prog.status==='SELESAI';
+        html += `<div class="progress-item ${pc?'completed':''}">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div><strong style="font-size:13px;">${esc(prog.namaProgress)}</strong> <span style="font-size:11px;color:#94a3b8;">PIC: ${esc(prog.picNama||'-')}</span></div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:12px;font-weight:700;color:${pc?'#059669':'#64748b'};">${prog.persentase||0}%</span>
+              <div class="progress-bar-container" style="width:50px;"><div class="progress-bar-fill ${pc?'selesai':'sedang'}" style="width:${prog.persentase||0}%"></div></div>
+              <button class="btn-secondary" onclick="openEditProgress('${prog.id}')" style="padding:2px 6px;font-size:10px;"><i class="fas fa-edit"></i></button>
+              <button class="btn-secondary" onclick="openCreateEvidence('${prog.id}')" style="padding:2px 6px;font-size:10px;"><i class="fas fa-paperclip"></i></button>
+            </div>
+          </div>
+          ${prog.catatan?`<div style="font-size:11px;color:#64748b;margin-top:4px;">${esc(prog.catatan)}</div>`:''}
+          ${prog.realisasi?`<div style="font-size:11px;color:#059669;margin-top:2px;">Hasil Pekerjaan: ${esc(prog.realisasi)}</div>`:''}
+          ${prog.evidenceList&&prog.evidenceList.length?`<div style="margin-top:6px;">${prog.evidenceList.map(ev => `<div class="evidence-item" style="margin-bottom:4px;"><i class="fas fa-file-alt" style="color:#3b82f6;"></i> ${ev.link?`<a href="${ev.link}" target="_blank">${esc(ev.namaFile)}</a>`:`<span>${esc(ev.namaFile)}</span>`} <span style="color:#94a3b8;font-size:10px;">${esc(ev.uploadByNama||'')}</span> <button onclick="confirmDeleteEv('${ev.id}')" style="margin-left:auto;background:none;border:none;color:#dc2626;cursor:pointer;font-size:10px;"><i class="fas fa-trash"></i></button></div>`).join('')}</div>`:''}
+        </div>`;
+      });
+      html += `</div>`;
+    }
+    html += `</div></div>`;
+  });
+  html += '</div>';
+  c.innerHTML = html;
+}
+
+// =============================================
+// WORKFLOW CRUD
+// =============================================
+function openCreateWorkflow() {
+  if (!currentDetailId) return;
+  document.getElementById('modalWorkflowTitle').textContent='Tambah Tahapan';
+  document.getElementById('workflowId').value='';
+  document.getElementById('workflowAgendaId').value=currentDetailId;
+  document.getElementById('fNamaWorkflow').value='';
+  document.getElementById('fWorkflowTarget').value='';
+  document.getElementById('fWorkflowKet').value='';
+  document.getElementById('fWorkflowPIC').value='';
+  document.getElementById('modalWorkflow').style.display='flex';
+}
+
+function closeModalWorkflow() { document.getElementById('modalWorkflow').style.display='none'; }
+
+function openEditWorkflow(id) {
+  const wf = (window._currentWorkflows||[]).find(w=>w.id===id);
+  if (!wf) return;
+  document.getElementById('modalWorkflowTitle').textContent='Edit Tahapan';
+  document.getElementById('workflowId').value=wf.id;
+  document.getElementById('workflowAgendaId').value=wf.agendaId;
+  document.getElementById('fNamaWorkflow').value=wf.namaWorkflow||'';
+  document.getElementById('fWorkflowTarget').value=wf.target||'';
+  document.getElementById('fWorkflowKet').value=wf.keterangan||'';
+  document.getElementById('fWorkflowPIC').value=wf.picEmail||'';
+  document.getElementById('modalWorkflow').style.display='flex';
+}
+
+function saveWorkflow() {
+  const id=document.getElementById('workflowId').value;
+  const agendaId=document.getElementById('workflowAgendaId').value;
+  const nama=document.getElementById('fNamaWorkflow').value.trim();
+  if (!nama) { Swal.fire('Validasi','Nama tahapan wajib diisi','warning'); return; }
+  const payload={agendaId,namaWorkflow:nama,target:document.getElementById('fWorkflowTarget').value.trim(),picEmail:document.getElementById('fWorkflowPIC').value,keterangan:document.getElementById('fWorkflowKet').value.trim(),userEmail:currentUser.email};
+  showLoading('Menyimpan...');
+  const cb = (r) => { hideLoading(); if (r.success) { closeModalWorkflow(); viewDetail(agendaId); Swal.fire('Berhasil',id?'Tahapan diperbarui':'Tahapan ditambahkan','success'); } else Swal.fire('Gagal',r.message,'error'); };
+  const eb = (e) => { hideLoading(); Swal.fire('Error',e.message,'error'); };
+  if (id) { payload.id=id; google.script.run.withSuccessHandler(cb).withFailureHandler(eb).updateWorkflow(payload); }
+  else google.script.run.withSuccessHandler(cb).withFailureHandler(eb).createWorkflow(payload);
+}
+
+function confirmDeleteWf(id) {
+  Swal.fire({title:'Hapus Tahapan?',icon:'warning',showCancelButton:true,confirmButtonColor:'#dc2626',confirmButtonText:'Ya',cancelButtonText:'Batal'})
+  .then(r=>{if(r.isConfirmed){showLoading();google.script.run.withSuccessHandler(r2=>{hideLoading();if(r2.success){viewDetail(currentDetailId);Swal.fire('Berhasil','Tahapan dihapus','success');}else Swal.fire('Gagal',r2.message,'error');}).withFailureHandler(e=>{hideLoading();Swal.fire('Error',e.message,'error');}).deleteWorkflow(id,currentUser.email);}});
+}
+
+function reorderWf(agendaId, wfId, newUrutan) {
+  showLoading();
+  google.script.run.withSuccessHandler(r => { hideLoading(); if (r.success) viewDetail(agendaId); else Swal.fire('Gagal',r.message,'error'); })
+  .withFailureHandler(e => { hideLoading(); Swal.fire('Error',e.message,'error'); }).reorderWorkflow(agendaId, wfId, newUrutan);
+}
+
+// =============================================
+// PROGRESS CRUD
+// =============================================
+function openCreateProgress(workflowId) {
+  var wf = null;
+  var wfs = window._currentWorkflows || [];
+  for (var i = 0; i < wfs.length; i++) { if (wfs[i].id === workflowId) { wf = wfs[i]; break; } }
+  document.getElementById('modalProgressTitle').textContent='Tambah Progress';
+  document.getElementById('progressId').value='';
+  document.getElementById('progressWorkflowId').value=workflowId;
+  document.getElementById('progressWorkflowName').textContent=wf ? wf.namaWorkflow : '-';
+  document.getElementById('fHasilPekerjaan').value='';
+  document.getElementById('fProgressCatatan').value='';
+  document.getElementById('fProgressStatus').value='RENCANA';
+  document.getElementById('fProgressPIC').value=currentUser.email;
+  document.getElementById('modalProgress').style.display='flex';
+}
+
+function closeModalProgress() { document.getElementById('modalProgress').style.display='none'; }
+
+function openEditProgress(id) {
+  var prog = null;
+  var wfName = '';
+  var wfs = window._currentWorkflows || [];
+  for (var i = 0; i < wfs.length; i++) {
+    var plist = wfs[i].progressList || [];
+    for (var j = 0; j < plist.length; j++) {
+      if (plist[j].id === id) { prog = plist[j]; wfName = wfs[i].namaWorkflow || ''; break; }
+    }
+    if (prog) break;
+  }
+  if (!prog) return;
+  document.getElementById('modalProgressTitle').textContent='Edit Progress';
+  document.getElementById('progressId').value=prog.id;
+  document.getElementById('progressWorkflowId').value=prog.workflowId;
+  document.getElementById('progressWorkflowName').textContent=wfName||'-';
+  document.getElementById('fProgressStatus').value=prog.status||'RENCANA';
+  document.getElementById('fHasilPekerjaan').value=prog.realisasi||'';
+  document.getElementById('fProgressCatatan').value=prog.catatan||'';
+  document.getElementById('fProgressPIC').value=prog.picEmail||currentUser.email;
+  document.getElementById('modalProgress').style.display='flex';
+}
+
+function saveProgress() {
+  var id=document.getElementById('progressId').value;
+  var wfId=document.getElementById('progressWorkflowId').value;
+  var status=document.getElementById('fProgressStatus').value;
+  var hasil=document.getElementById('fHasilPekerjaan').value.trim();
+  var persentase=status==='SELESAI'?100:(status==='BERJALAN'?50:0);
+  if (status==='SELESAI' && !hasil) { Swal.fire('Validasi','Hasil pekerjaan wajib diisi jika status Selesai','warning'); return; }
+  var wfs=window._currentWorkflows||[];
+  var wf=null;
+  for (var i=0;i<wfs.length;i++){if(wfs[i].id===wfId){wf=wfs[i];break;}}
+  var namaProgress=wf?wf.namaWorkflow:'';
+  var payload={workflowId:wfId,namaProgress:namaProgress,status:status,persentase:persentase,realisasi:hasil,picEmail:document.getElementById('fProgressPIC').value,catatan:document.getElementById('fProgressCatatan').value.trim(),userEmail:currentUser.email};
+  showLoading('Menyimpan...');
+  const cb = (r) => { hideLoading(); if (r.success) { closeModalProgress(); viewDetail(currentDetailId); Swal.fire('Berhasil',id?'Progress diperbarui':'Progress ditambahkan','success'); } else Swal.fire('Gagal',r.message,'error'); };
+  const eb = (e) => { hideLoading(); Swal.fire('Error',e.message,'error'); };
+  if (id) { payload.id=id; google.script.run.withSuccessHandler(cb).withFailureHandler(eb).updateProgress(payload); }
+  else google.script.run.withSuccessHandler(cb).withFailureHandler(eb).createProgress(payload);
+}
+
+// =============================================
+// EVIDENCE CRUD
+// =============================================
+function openCreateEvidence(progressId) {
+  document.getElementById('evidenceProgressId').value=progressId;
+  document.getElementById('fNamaFile').value='';
+  document.getElementById('fLink').value='';
+  document.getElementById('fEvidenceKet').value='';
+  document.getElementById('modalEvidence').style.display='flex';
+}
+
+function closeModalEvidence() { document.getElementById('modalEvidence').style.display='none'; }
+
+function saveEvidence() {
+  const progressId=document.getElementById('evidenceProgressId').value;
+  const namaFile=document.getElementById('fNamaFile').value.trim();
+  if (!namaFile) { Swal.fire('Validasi','Nama file wajib diisi','warning'); return; }
+  showLoading('Menyimpan...');
+  google.script.run.withSuccessHandler(r=>{hideLoading();if(r.success){closeModalEvidence();viewDetail(currentDetailId);Swal.fire('Berhasil','Evidence ditambahkan','success');}else Swal.fire('Gagal',r.message,'error');})
+  .withFailureHandler(e=>{hideLoading();Swal.fire('Error',e.message,'error');}).createEvidence({progressId,namaFile,link:document.getElementById('fLink').value.trim(),keterangan:document.getElementById('fEvidenceKet').value.trim(),uploadByEmail:currentUser.email});
+}
+
+function confirmDeleteEv(id) {
+  Swal.fire({title:'Hapus Evidence?',icon:'warning',showCancelButton:true,confirmButtonColor:'#dc2626',confirmButtonText:'Ya',cancelButtonText:'Batal'})
+  .then(r=>{if(r.isConfirmed){showLoading();google.script.run.withSuccessHandler(r2=>{hideLoading();if(r2.success){viewDetail(currentDetailId);Swal.fire('Berhasil','Evidence dihapus','success');}else Swal.fire('Gagal',r2.message,'error');}).withFailureHandler(e=>{hideLoading();Swal.fire('Error',e.message,'error');}).deleteEvidence(id,currentUser.email);}});
+}
+
+// =============================================
+// ACTIVITY LOG
+// =============================================
+function renderActivityLog(logs) {
+  const c=document.getElementById('activityLogContainer');
+  if (!logs||!logs.length) { c.innerHTML='<div class="empty-state"><i class="fas fa-clock"></i><h3>Belum Ada Aktivitas</h3></div>'; return; }
+  c.innerHTML = logs.map(l => `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:13px;">
+    <i class="fas fa-circle" style="font-size:6px;color:#b30000;"></i>
+    <strong>${esc(l.userNama)}</strong> <span style="color:#64748b;">${esc(l.aktivitas)}</span>
+    <span style="margin-left:auto;color:#94a3b8;font-size:11px;">${l.waktu}</span></div>`).join('');
+}
+
+// =============================================
+// INTEGRASI LKH
+// =============================================
+function loadLKHIntegration() {
+  const c = document.getElementById('lkhIntegrationContainer');
+  if (!currentDetailId) { c.innerHTML='<p style="font-size:13px;color:#94a3b8;">Detail agenda belum dimuat.</p>'; return; }
+
+  google.script.run.withSuccessHandler(r => {
+    if (!r.success || !r.data || !r.data.length) {
+      c.innerHTML = '<p style="font-size:13px;color:#94a3b8;">Belum ada progress selesai yang bisa dijadikan LKH.</p>';
+      return;
+    }
+    c.innerHTML = `<div style="font-size:13px;color:#059669;margin-bottom:8px;"><i class="fas fa-check-circle"></i> ${r.data.length} progress selesai tersedia untuk LKH:</div>
+      <button class="btn-primary" onclick="openModalLKH()" style="font-size:13px;"><i class="fas fa-file-alt"></i> Pilih & Jadikan LKH</button>`;
+    window._lkhData = r.data;
+  }).withFailureHandler(() => {
+    c.innerHTML = '<p style="font-size:13px;color:#94a3b8;">Gagal memuat data LKH.</p>';
+  }).getProgressSelesaiForLKH(currentUser.email);
+}
+
+function openModalLKH() {
+  const data = window._lkhData || [];
+  lkhSelectedProgress = [];
+  const c = document.getElementById('lkhProgressList');
+  if (!data.length) { c.innerHTML='<p style="color:#94a3b8;">Tidak ada progress selesai.</p>'; document.getElementById('modalLKH').style.display='flex'; return; }
+
+  c.innerHTML = data.map((p, i) => `
+    <label style="display:flex;align-items:start;gap:12px;padding:12px;border:1px solid #e5e7eb;border-radius:12px;margin-bottom:8px;cursor:pointer;">
+      <input type="checkbox" class="lkh-checkbox" data-index="${i}" onchange="toggleLKHSelect(${i})" style="margin-top:3px;width:18px;height:18px;accent-color:#b30000;">
+      <div>
+        <strong style="font-size:14px;">${esc(p.progressNama)}</strong>
+        <div style="font-size:12px;color:#64748b;margin-top:4px;">
+          Agenda: ${esc(p.agendaJudul)} &middot; Workflow: ${esc(p.workflowNama)}
+        </div>
+        <div style="font-size:12px;color:#059669;">Hasil Pekerjaan: ${esc(p.realisasi)}</div>
+      </div>
+    </label>`).join('');
+  document.getElementById('modalLKH').style.display='flex';
+}
+
+function toggleLKHSelect(i) {
+  const idx = lkhSelectedProgress.indexOf(i);
+  if (idx===-1) lkhSelectedProgress.push(i); else lkhSelectedProgress.splice(idx,1);
+}
+
+function closeModalLKH() { document.getElementById('modalLKH').style.display='none'; }
+
+function submitLKH() {
+  if (!lkhSelectedProgress.length) { Swal.fire('Pilih Progress','Pilih minimal satu progress untuk dijadikan LKH','warning'); return; }
+  const data = window._lkhData || [];
+  const selected = lkhSelectedProgress.map(i => data[i]).filter(Boolean);
+  if (!selected.length) return;
+
+  // Build LKH entries
+  const lkhEntries = selected.map(p => ({
+    tanggal: p.tanggalSelesai ? p.tanggalSelesai.substring(0,10) : new Date().toISOString().split('T')[0],
+    kegiatan: p.progressNama + ' - ' + p.workflowNama + ' (' + p.agendaJudul + ')',
+    hasil: p.realisasi || 'Selesai',
+    keterangan: 'Dari modul Agenda & Tindak Lanjut'
+  }));
+
+  // Kirim ke LKH (gunakan fungsi yang sudah ada di Code.gs)
+  let successCount = 0;
+  showLoading('Mengirim ke LKH...');
+
+  // We call the existing Code.gs tambahAgenda for each entry
+  const sendNext = (idx) => {
+    if (idx >= lkhEntries.length) {
+      hideLoading();
+      closeModalLKH();
+      Swal.fire('Berhasil',`${successCount} LKH berhasil dibuat dari progress agenda.`,`success`);
+      return;
+    }
+    const entry = lkhEntries[idx];
+    google.script.run.withSuccessHandler(() => { successCount++; sendNext(idx+1); })
+    .withFailureHandler(() => { sendNext(idx+1); })
+    .tambahAgenda({
+      tanggal: entry.tanggal,
+      kegiatan: entry.kegiatan,
+      hasil: entry.hasil,
+      keterangan: entry.keterangan,
+      user: { email: currentUser.email, nama: currentUser.nama }
+    });
+  };
+  sendNext(0);
+}
+</script>
+</body>
+</html>
