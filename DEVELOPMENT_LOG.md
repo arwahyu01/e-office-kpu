@@ -62,6 +62,8 @@
 - **Fix**: Added `window._currentWorkflows = r.workflows` in `renderDetail()` — `openEditWorkflow` and `openEditProgress` were querying `window._currentWorkflows` which was never populated, causing edit modals to fail
 - **Fix**: Added `evt` parameter to `selectAssignment(type, evt)` with fallback — implicit `event` object reliance caused errors when calling programmatically (e.g. from `openWizard()`/`openEditAgenda()`)
 - **Fix**: Updated `onclick` handlers in assignment options to pass `event` explicitly
+- **Fix**: Label "PIC" di detail info grid diganti "Pembuat" — karena nilai yang ditampilkan adalah `createdByNama`, bukan PIC sesungguhnya
+- **Fix**: `index.html` — ditambahkan semantic landmarks `<main>`, `<aside>`, perbaikan tag HTML
 
 ### v2.0 — 29 Jun 2026 (Redesign)
 - **Database**: Tambah MASTER_ASSIGNMENT, hapus ANGGOTA_EMAIL dari MASTER_AGENDA
@@ -76,8 +78,13 @@
 ### v1.0 — 29 Jun 2026
 - Initial module structure
 
+### v2.1.2 — 30 Jun 2026 (Infra & Dokumentasi)
+- **Git**: Inisialisasi repo, push ke `github.com/arwahyu01/e-office-kpu.git`
+- **README.md**: Dokumentasi proyek (fitur, struktur, teknologi, deployment)
+- **`.gitignore`**: File ignores untuk OS dan log
+
 ### Planned
-- v2.1 — Notifikasi email assignment
+- v2.2 — Notifikasi email assignment
 - v2.2 — Template Coktas/Pelno/Rakor/Bimtek/Sosialisasi/Pleno
 - v2.3 — Approval workflow
 - v2.4 — Komentar
