@@ -5,7 +5,7 @@
     <base target="_top">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>E-LKH | KPU SIAK</title>
+    <title>E-OFFICE | KPU SIAK</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
           rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -50,8 +50,8 @@
                 </div>
                 <h2
                         style="font-size: clamp(1.5rem, 6vw, 1.75rem); font-weight: 800; color: #1e293b; margin-bottom: 8px;">
-                    E-LKH <span style="color: #b30000;">KPU</span></h2>
-                <p style="color: #64748b; font-size: clamp(13px, 3vw, 14px);">Sistem Laporan Kinerja Harian</p>
+                    E-OFFICE <span style="color: #b30000;">KPU</span></h2>
+                <p style="color: #64748b; font-size: clamp(13px, 3vw, 14px);">Sistem Informasi E-Office Terpadu</p>
                 <p style="color: #64748b; font-size: clamp(13px, 3vw, 14px);">Komisi Pemilihan Umum Kabupaten Siak
                 </p>
             </div>
@@ -200,47 +200,82 @@
             <div class="sidebar-header">
                 <div class="logo">
                     <div class="logo-icon">
-                        <i class="fas fa-calendar-check"></i>
+                        <i class="fas fa-building"></i>
                     </div>
-                    <div class="logo-text">E-LKH <span>KPU</span></div>
+                    <div class="logo-text">E-OFFICE <span>KPU SIAK</span></div>
                 </div>
             </div>
 
             <nav class="sidebar-nav">
-                <button class="nav-item active" onclick="switchMenu('dashboard',this)" data-tooltip="Dashboard">
-                    <i class="fas fa-chart-line"></i> <span class="hide-on-mobile">Dashboard</span>
+                <!-- Beranda -->
+                <button class="nav-item active" onclick="switchMenu('beranda',this)" data-tooltip="Beranda">
+                    <i class="fas fa-home"></i> <span>Beranda</span>
                 </button>
+
+                <div class="nav-divider"></div>
+
+                <!-- e-LKH Group -->
+                <button class="nav-group" onclick="toggleGroup('group-elkh')">
+                    <i class="fas fa-file-alt"></i>
+                    <span>e-LKH</span>
+                    <i class="fas fa-chevron-down nav-group-arrow"></i>
+                </button>
+                <div id="group-elkh" class="nav-group-items">
+                    <button class="nav-item nav-sub" onclick="switchMenu('dashboard',this)" data-tooltip="Dashboard">
+                        <i class="fas fa-chart-line"></i> <span>Dashboard</span>
+                    </button>
+                    <button class="nav-item nav-sub" onclick="switchMenu('laporan',this)" data-tooltip="Laporan">
+                        <i class="fas fa-file-alt"></i> <span>Laporan</span>
+                    </button>
+                    <button class="nav-item nav-sub" onclick="switchMenu('verifikasi',this)" data-tooltip="Verifikasi">
+                        <i class="fas fa-check-double"></i>
+                        <span>Verifikasi</span>
+                        <span class="nav-badge" id="badge-verifikasi" style="display:none;">0</span>
+                    </button>
+                    <button id="menuMonitoring" class="nav-item nav-sub" style="display:none;"
+                            onclick="switchMenu('monitoring',this)" data-tooltip="Monitoring">
+                        <i class="fas fa-chart-simple"></i> <span>Monitoring</span>
+                    </button>
+                </div>
+
+                <div class="nav-divider"></div>
+
+                <!-- Absensi Group -->
+                <button class="nav-group" onclick="toggleGroup('group-absensi')">
+                    <i class="fas fa-fingerprint"></i>
+                    <span>Absensi</span>
+                    <i class="fas fa-chevron-down nav-group-arrow"></i>
+                </button>
+                <div id="group-absensi" class="nav-group-items">
+                    <a href="https://script.google.com/macros/s/AKfycbxejATwEFa6KmgBqjxFGiA2L_mEJGG0-CaHGsaIyxedRz5_vGA-QiAIhSE-mYwXFY_E/exec?page=absensi"
+                       target="_top" class="nav-item nav-sub">
+                        <i class="fas fa-fingerprint"></i><span>Absensi WFA</span>
+                    </a>
+                    <a href="https://script.google.com/macros/s/AKfycbxejATwEFa6KmgBqjxFGiA2L_mEJGG0-CaHGsaIyxedRz5_vGA-QiAIhSE-mYwXFY_E/exec?page=presensi"
+                       target="_top" class="nav-item nav-sub">
+                        <i class="fas fa-clock"></i><span>Monitoring Presensi</span>
+                    </a>
+                </div>
+
+                <div class="nav-divider"></div>
+
+                <!-- Profil -->
                 <button class="nav-item" onclick="switchMenu('profil',this)" data-tooltip="Profil">
-                    <i class="fas fa-id-card"></i> <span class="hide-on-mobile">Profil</span>
+                    <i class="fas fa-id-card"></i> <span>Profil</span>
                 </button>
-                <button class="nav-item" onclick="switchMenu('laporan',this)" data-tooltip="Laporan">
-                    <i class="fas fa-file-alt"></i> <span class="hide-on-mobile">Laporan</span>
-                </button>
+
+                <!-- Agenda -->
                 <a href="https://script.google.com/macros/s/AKfycbxejATwEFa6KmgBqjxFGiA2L_mEJGG0-CaHGsaIyxedRz5_vGA-QiAIhSE-mYwXFY_E/exec?page=agenda-tindak-lanjut"
                    target="_top" class="nav-item">
-                    <i class="fas fa-diagram-project"></i><span class="hide-on-mobile">Agenda</span>
+                    <i class="fas fa-diagram-project"></i><span>Agenda</span>
                 </a>
-                <button class="nav-item" onclick="switchMenu('verifikasi',this)" data-tooltip="Verifikasi">
-                    <i class="fas fa-check-double"></i>
-                    <span class="hide-on-mobile">Verifikasi</span>
-                    <span class="nav-badge" id="badge-verifikasi" style="display:none;">0</span>
-                </button>
-                <button id="menuMonitoring" class="nav-item" style="display:none;"
-                        onclick="switchMenu('monitoring',this)" data-tooltip="Monitoring">
-                    <i class="fas fa-chart-simple"></i> <span class="hide-on-mobile">Monitoring</span>
-                </button>
-                <a href="https://script.google.com/macros/s/AKfycbxejATwEFa6KmgBqjxFGiA2L_mEJGG0-CaHGsaIyxedRz5_vGA-QiAIhSE-mYwXFY_E/exec?page=absensi"
-                   target="_top" class="nav-item">
-                    <i class="fas fa-fingerprint"></i><span class="hide-on-mobile">Absensi WFA</span>
-                </a>
-                <a href="https://script.google.com/macros/s/AKfycbxejATwEFa6KmgBqjxFGiA2L_mEJGG0-CaHGsaIyxedRz5_vGA-QiAIhSE-mYwXFY_E/exec?page=presensi"
-                   target="_top" class="nav-item">
-                    <i class="fas fa-clock"></i>
-                    <span class="hide-on-mobile">Monitoring Presensi</span>
-                </a>
+
+                <div class="nav-divider"></div>
+
+                <!-- Logout -->
                 <a href="#" class="nav-item" onclick="logout(); return false;" data-tooltip="Keluar">
                     <i class="fas fa-arrow-right-from-bracket"></i>
-                    <span class="hide-on-mobile">Logout</span>
+                    <span>Logout</span>
                 </a>
             </nav>
         </div>
@@ -253,7 +288,7 @@
                     </div>
                     <div class="brand-info">
                         <div class="brand-name">KPU Kabupaten Siak</div>
-                        <div class="brand-subtitle">Laporan Tertata, Kinerja Terjaga</div>
+                        <div class="brand-subtitle">Sistem Informasi E-Office Terpadu</div>
                     </div>
                 </div>
 
@@ -276,8 +311,68 @@
 
     <!-- Main Content -->
     <main class="main-content">
+        <!-- Beranda Section -->
+        <div id="section-beranda" class="content-section" style="display: none;">
+            <div class="beranda-welcome">
+                <div class="beranda-greeting">
+                    <h1>Selamat Datang, <span id="berandaNama">Pegawai</span></h1>
+                    <p id="berandaJabatan">E-OFFICE KPU Kabupaten Siak</p>
+                </div>
+                <div class="beranda-quote-card">
+                    <i class="fas fa-quote-left beranda-quote-icon"></i>
+                    <p id="berandaQuote" class="beranda-quote-text">"Produktivitas adalah kunci keberhasilan tim."</p>
+                </div>
+            </div>
+
+            <div class="beranda-quick-actions">
+                <button class="beranda-card" onclick="switchMenu('dashboard')">
+                    <div class="beranda-card-icon" style="background:#fdeaea;color:#b30000;">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <div class="beranda-card-info">
+                        <h3>LKH</h3>
+                        <p>Laporan Kinerja Harian</p>
+                    </div>
+                    <i class="fas fa-chevron-right beranda-card-arrow"></i>
+                </button>
+
+                <button class="beranda-card" onclick="bukaAgenda()">
+                    <div class="beranda-card-icon" style="background:#e0f2fe;color:#0284c7;">
+                        <i class="fas fa-diagram-project"></i>
+                    </div>
+                    <div class="beranda-card-info">
+                        <h3>Agenda</h3>
+                        <p>Agenda & Tindak Lanjut</p>
+                    </div>
+                    <i class="fas fa-chevron-right beranda-card-arrow"></i>
+                </button>
+
+                <button class="beranda-card" onclick="bukaAbsensi()">
+                    <div class="beranda-card-icon" style="background:#f0fdf4;color:#16a34a;">
+                        <i class="fas fa-fingerprint"></i>
+                    </div>
+                    <div class="beranda-card-info">
+                        <h3>Absensi WFA</h3>
+                        <p>Presensi Work From Anywhere</p>
+                    </div>
+                    <i class="fas fa-chevron-right beranda-card-arrow"></i>
+                </button>
+
+                <button class="beranda-card" onclick="switchMenu('profil')">
+                    <div class="beranda-card-icon" style="background:#fef3f2;color:#dc2626;">
+                        <i class="fas fa-id-card"></i>
+                    </div>
+                    <div class="beranda-card-info">
+                        <h3>Profil</h3>
+                        <p>Data & Informasi Akun</p>
+                    </div>
+                    <i class="fas fa-chevron-right beranda-card-arrow"></i>
+                </button>
+            </div>
+        </div>
+
         <!-- Dashboard Section -->
-        <div id="section-dashboard" class="content-section" style="display: block;">
+        <div id="section-dashboard" class="content-section" style="display: none;">
             <div class="hero-section">
                 <h1>Laporan Kerja</h1>
                 <p>Kelola dan pantau aktivitas harian Anda dengan mudah dan efisien</p>
@@ -895,14 +990,26 @@
     }
 
     function showDashboard() {
-        const page = window.__INIT_PAGE__;
-        if (page) {
-            activateMenu(page);
-        }
         showPage('dashboard');
         sidebarAccess();
-        initDashboard();
+        const page = window.__INIT_PAGE__;
+        if (page && page !== 'dashboard') {
+            switchMenu(page);
+        } else {
+            switchMenu('beranda');
+        }
+        loadDailyQuote();
         loadVerifikasi();
+    }
+
+    const APP_URL = 'https://script.google.com/macros/s/AKfycbxejATwEFa6KmgBqjxFGiA2L_mEJGG0-CaHGsaIyxedRz5_vGA-QiAIhSE-mYwXFY_E/exec';
+
+    function bukaAgenda() {
+        window.open(APP_URL + '?page=agenda-tindak-lanjut', '_top');
+    }
+
+    function bukaAbsensi() {
+        window.open(APP_URL + '?page=absensi', '_top');
     }
 
     document.getElementById('eKegiatan').addEventListener('keydown', function (e) {
@@ -1064,10 +1171,14 @@
         }
 
         switch (menuId) {
+            case 'beranda':
+                populateBeranda();
+                break;
             case 'profil':
                 loadUserProfile();
                 break;
             case 'dashboard':
+                initFilterOptions();
                 loadAgenda();
                 break;
             case 'laporan':
@@ -1082,12 +1193,31 @@
         }
     }
 
+    function toggleGroup(groupId) {
+        const group = document.getElementById(groupId);
+        if (!group) return;
+        group.classList.toggle('collapsed');
+        const header = group.previousElementSibling;
+        if (header && header.classList.contains('nav-group')) {
+            header.classList.toggle('open');
+        }
+    }
+
+    function populateBeranda() {
+        const profile = window.currentUser || JSON.parse(localStorage.getItem('userProfile') || '{}');
+        const namaEl = document.getElementById('berandaNama');
+        const jabatanEl = document.getElementById('berandaJabatan');
+        if (namaEl) namaEl.textContent = profile.nama || 'Pegawai';
+        if (jabatanEl) jabatanEl.textContent = profile.jabatan || 'E-OFFICE KPU Kabupaten Siak';
+    }
+
     const QUOTE_URL = 'https://raw.githubusercontent.com/arwahyu01/kata-kata-motivasi/main/words';
     function loadDailyQuote() {
         const quoteEl = document.querySelector('.stat-card.quote h3');
         const labelEl = document.querySelector('.stat-card.quote p');
+        const berandaQuoteEl = document.getElementById('berandaQuote');
 
-        if (!quoteEl) return;
+        if (!quoteEl && !berandaQuoteEl) return;
 
         fetch(QUOTE_URL)
             .then(res => {
@@ -1100,7 +1230,8 @@
                 const randomIndex = Math.floor(Math.random() * data.words.length);
                 const item = data.words[randomIndex];
 
-                quoteEl.textContent = `"${item.kutipan}"`;
+                if (quoteEl) quoteEl.textContent = `"${item.kutipan}"`;
+                if (berandaQuoteEl) berandaQuoteEl.textContent = `"${item.kutipan}"`;
 
                 if (labelEl) {
                     labelEl.textContent = item.sumber
@@ -1110,7 +1241,8 @@
             })
             .catch(err => {
                 console.warn('Quote fallback:', err);
-                quoteEl.textContent = '"Produktivitas adalah kunci keberhasilan tim."';
+                if (quoteEl) quoteEl.textContent = '"Produktivitas adalah kunci keberhasilan tim."';
+                if (berandaQuoteEl) berandaQuoteEl.textContent = '"Produktivitas adalah kunci keberhasilan tim."';
                 if (labelEl) labelEl.textContent = 'Quote Hari Ini';
             });
     }
