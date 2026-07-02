@@ -1,4 +1,4 @@
-# DEVELOPMENT LOG — Modul Agenda & Tindak Lanjut
+# DEVELOPMENT LOG — E-OFFICE KPU SIAK
 
 ## Roadmap
 
@@ -10,7 +10,10 @@
 | 4 | Backend core + CRUD + Assignment | ✅ Selesai |
 | 5 | Frontend (agenda.html, style_agenda.html) | ✅ Selesai |
 | 6 | Integrasi LKH | ✅ Selesai |
-| 7 | Testing & validasi | ⏳ Pending |
+| 7 | Rebranding E-LKH → E-OFFICE + Sidebar Grup | ✅ Selesai |
+| 8 | Notulen Rapat (Fase 1: Backend + Form Dasar) | ✅ Selesai |
+| 9 | Notulen Rapat (Fase 2: 4-Step Wizard + DB Standalone) | ✅ Selesai |
+| 10 | Testing & validasi | ⏳ Pending |
 
 ---
 
@@ -27,12 +30,53 @@
 - [x] Routing di Code.gs
 - [x] Sidebar di index.html
 - [x] Simplifikasi form progress (hapus persentase, target, nama, realiasi→hasil)
+- [x] Rebranding E-LKH → E-OFFICE (semua HTML + CSS)
+- [x] Restruktur sidebar: group e-LKH, Absensi collapsible; Beranda + Notulen prioritas
+- [x] Beranda landing page: greeting + 5 quick action cards
+- [x] Backend notulen.gs: simpan, list, detail, upload undangan, hapus
+- [x] Notulen 4-step wizard: Info → Jalannya Rapat → Poin & TL → Review
+- [x] Auto-save draft ke localStorage + resume
+- [x] Database Notulen terpisah: NOTULEN + JALANNYA_RAPAT + POIN_RAPAT
 - [ ] Testing CRUD end-to-end
 - [ ] UAT
 
 ---
 
 ## Change Log
+
+### v2.4.0 — 2 Jul 2026 (Notulen 4-Step Wizard + DB Standalone)
+- **[New] DB Notulen Terpisah**: Spreadsheet `1hC8lzsHoukbQIfv-JNmZzx3u5pBoU7uY7bmktgU2_uA` dengan 3 sheet:
+  - `NOTULEN` — ID, TANGGAL, JENIS, JUDUL, PIMPINAN, NOTULIS, JALANNYA_COUNT, POIN_COUNT, CREATED_AT, DRIVE_URL, UNDANGAN_LINK, STATUS
+  - `JALANNYA_RAPAT` — ID, NOTULEN_ID, PEMBICARA, POKOK_BAHASAN, URUTAN
+  - `POIN_RAPAT` — ID, NOTULEN_ID, ISI, TINDAK_LANJUT, ASSIGN_SUBBAG, AGENDA_ID, URUTAN
+- **[New] 4-Step Wizard**: Info Rapat → Jalannya Rapat → Poin & TL → Review
+  - Step 1: Tanggal, jenis, judul, pimpinan, notulis, link undangan
+  - Step 2: Kronologis pembicara + pokok bahasan (dinamis, tambah/hapus)
+  - Step 3: Poin rapat + tindak lanjut (BUAT_AGENDA / UPDATE_PROGRES / CATATAN_SAJA / TANPA_TL)
+  - Step 4: Preview review + tombol "Simpan ke Database"
+- **[New] Auto-Save Draft**: Semua input tersimpan ke localStorage key `notulen_draft`; bisa dilanjutkan meskipun halaman di-refresh
+- **[New] Draft Banner**: List view menampilkan draft aktif dengan tombol Lanjutkan / Hapus
+- **[New] Detail Modal**: Menampilkan info rapat + jalannya rapat (kronologis) + poin rapat
+- **[New] Backend `notulen.gs`**: 7 endpoint — `getListNotulen`, `getDetailNotulen`, `simpanNotulen`, `uploadUndanganNotulen`, `hapusNotulen`, `updateProgressFromNotulen`, `getListAgendaForNotulen`
+- **[Hapus] Export PDF**: Dihapus total dari frontend & backend (user akan buat auto-generate PDF nanti)
+- **[Move] Sheet**: Notulen dipindah dari spreadsheet E-LKH (`1JivPdetUS5...`) ke spreadsheet terpisah agar mudah dikelola
+
+### v2.3.0 — 1 Jul 2026 (Rebrand & Sidebar Restruktur)
+- **[Ubah] Rebranding**: E-LKH → E-OFFICE di semua file (index.html, agenda.html, presensi.html, absensi.html, verify.html, style.html)
+- **[Ubah] Sidebar**: Beranda + Notulen di atas sendiri; e-LKH & Absensi jadi collapsible group (nav-group/nav-sub); Profil, Agenda, Logout tetap single item
+- **[New] Beranda**: Landing page dengan greeting user + 5 quick action cards (LKH, Notulen, Agenda, Laporan, Profil)
+- **[New] Section Notulen**: Menu + form notulen dengan poin dinamis + tindak lanjut (BUAT_AGENDA, UPDATE_PROGRES, CATATAN_SAJA, TANPA_TL)
+- **[New] Backend notulen.gs**: Simpan ke sheet NOTULEN + backup .txt ke Drive + generate Agenda dari poin BUAT_AGENDA
+- **[Fix] Mobile sidebar toggle**: Tombol hamburger fixed dengan gradient merah
+
+### v2.2.0 — 1 Jul 2026 (Menu Structure Analysis)
+- **[Analisis]**: Mempelajari struktur index.html SPA yang menggunakan sistem section + switchMenu()
+- **[Analisis]**: Sidebar existing: Dashboard, e-LKH, Presensi, Absensi, Agenda, Profil, Logout
+- **[Keputusan]**: Notulen ditempatkan di sidebar utama karena paling sering dipakai
+- **[Keputusan]**: e-LKH dikelompokkan (Dashboard, Laporan, Verifikasi, Monitoring) di bawah group "e-LKH"
+- **[Keputusan]**: Absensi dikelompokkan (Presensi, Absensi) di bawah group "Absensi"
+- **[Keputusan]**: Hybrid model notulen → agenda: notulis input poin, sistem generate agenda otomatis untuk BUAT_AGENDA
+- **[Keputusan]**: Evidence fleksibel: upload file ATAU link
 
 ### v2.1.1 — 30 Jun 2026 (Simplifikasi Form Progress)
 - **[Hapus] Persentase (%)**: Dihitung otomatis dari Status (Belum Mulai=0%, Sedang Dikerjakan=50%, Selesai=100%)
@@ -84,26 +128,63 @@
 - **`.gitignore`**: File ignores untuk OS dan log
 
 ### Planned
-- v2.2 — Notifikasi email assignment
-- v2.2 — Template Coktas/Pelno/Rakor/Bimtek/Sosialisasi/Pleno
-- v2.3 — Approval workflow
-- v2.4 — Komentar
+- v2.5 — Auto-generate PDF Notulen
+- v2.5 — Notifikasi email assignment
+- v2.6 — Template Coktas/Pelno/Rakor/Bimtek/Sosialisasi/Pleno
+- v3.0 — Approval workflow
+- v3.1 — Komentar
+
+---
+
+## Notulen Data Model
+
+### Spreadsheet: `1hC8lzsHoukbQIfv-JNmZzx3u5pBoU7uY7bmktgU2_uA`
+
+**NOTULEN**
+| ID | TANGGAL | JENIS | JUDUL | PIMPINAN | NOTULIS | JALANNYA_COUNT | POIN_COUNT | CREATED_AT | DRIVE_URL | UNDANGAN_LINK | STATUS |
+
+**JALANNYA_RAPAT**
+| ID | NOTULEN_ID | PEMBICARA | POKOK_BAHASAN | URUTAN |
+
+**POIN_RAPAT**
+| ID | NOTULEN_ID | ISI | TINDAK_LANJUT | ASSIGN_SUBBAG | AGENDA_ID | URUTAN |
+
+### Tindak Lanjut Options
+- `TANPA_TL` — tanpa tindak lanjut
+- `BUAT_AGENDA` — generate agenda baru otomatis via `createAgenda()` di `backend_agenda.gs`
+- `UPDATE_PROGRES` — update catatan progres agenda existing
+- `CATATAN_SAJA` — hanya catatan, tanpa aksi sistem
+
+### Automatisasi
+- Poin dengan `BUAT_AGENDA` → `createAgenda()` di spreadsheet `1-xohP9CXPUIOL8Ar8L_L3xTOfs_S6fMkUj098nmyE10`
+- Poin dengan `UPDATE_PROGRES` → append catatan ke `MASTER_PROGRESS`
+- Backup .txt ke Drive: `E-OFFICE/NOTULEN/{TAHUN}/{BULAN}/`
+
+---
+
+## Key Architecture Decisions
+- **Notulen DB terpisah** dari spreadsheet E-LKH dan Agenda → easier management, independent scaling
+- **Hybrid notulen → agenda**: notulis input poin + pilih tindak lanjut → sistem generate/update otomatis
+- **4-step wizard** dengan auto-save localStorage: user bisa mulai, simpan draft, lanjut kapan saja
+- **Jalannya Rapat sebagai array bebas**: tidak ada struktur fixed — notulis bebas input kronologis
+- **Tidak ada upload/export PDF**: akan diganti auto-generate PDF di fase berikutnya
+- **Folder Drive**: `E-OFFICE/NOTULEN/{TAHUN}/{BULAN}/` untuk backup .txt notulen
 
 ---
 
 ## Known Issues
 - `AGENDA_MASTER_SHEET_ID` variable name in `backend_agenda.gs` is misleading (points to E-LKH spreadsheet, not an agenda master sheet) — cosmetic only
 - Hardcoded deployment URL in `agenda.html` sidebar E-LKH link — must be updated on redeploy
+- `notulen_draft` localStorage key tidak dibedakan per user — jika multi-user di device sama, draft bisa tertimpa
 
 ---
 
-## Next Task
-1. ✅ Deploy ke GAS environment
-2. ✅ Bug fixes applied (v2.0.1)
-3. Test CRUD end-to-end:
-   - Wizard flow (all 3 steps, all 4 assignment types)
-   - Assignment engine populates MASTER_ASSIGNMENT correctly
-   - Workflow creation, reordering, and auto-status updates
-   - Progress with evidence upload
-   - LKH integration — complete progress → open LKH modal → check "Jadikan LKH" → submit → verify entry in LKH module
-4. UAT dengan user
+## Critical Context for Next Session
+- **Notulen spreadsheet**: `1hC8lzsHoukbQIfv-JNmZzx3u5pBoU7uY7bmktgU2_uA`
+- **Agenda tindak lanjut spreadsheet**: `1-xohP9CXPUIOL8Ar8L_L3xTOfs_S6fMkUj098nmyE10`
+- **Master pegawai spreadsheet**: `1JivPdetUS5lu5ZjJveqwhpKhwU5r0QiRb4GtJGXxDtA`
+- **URL base external**: `https://script.google.com/macros/s/AKfycbxejATwEFa6KmgBqjxFGiA2L_mEJGG0-CaHGsaIyxedRz5_vGA-QiAIhSE-mYwXFY_E/exec`
+- **All notulen JS functions** are in `index.html` (lines ~1452-1950 area)
+- **All notulen backend** is in `notulen.gs` (standalone, self-contained)
+- **CSS for step wizard & notulen badges** is in `style.html`
+- **Menu navigation** uses `switchMenu()` SPA pattern in `index.html`
