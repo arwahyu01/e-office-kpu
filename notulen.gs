@@ -6,11 +6,14 @@ const NOTULEN_SPREADSHEET_ID = "1hC8lzsHoukbQIfv-JNmZzx3u5pBoU7uY7bmktgU2_uA";
 const NOTULEN_SHEET_NAME = 'NOTULEN';
 const JALANNYA_SHEET_NAME = 'JALANNYA_RAPAT';
 const POIN_RAPAT_SHEET_NAME = 'POIN_RAPAT';
+const NOTULA_LOG_SHEET_NAME = 'NOTULA_LOG';
+
+const NOTULA_TEMPLATE_ID = "1tYuwrnIv2eroTqMhaK61XfvXH5ZcfXUWB673tSv6mm8";
 
 const NOTULEN_HEADERS = [
   'ID', 'TANGGAL', 'JENIS', 'JUDUL', 'PIMPINAN',
   'NOTULIS', 'JALANNYA_COUNT', 'POIN_COUNT', 'CREATED_AT',
-  'DRIVE_URL', 'UNDANGAN_LINK', 'STATUS'
+  'DRIVE_URL', 'UNDANGAN_LINK', 'STATUS', 'PESERTA_JSON'
 ];
 const JALANNYA_HEADERS = [
   'ID', 'NOTULEN_ID', 'PEMBICARA', 'POKOK_BAHASAN', 'URUTAN'
@@ -18,6 +21,30 @@ const JALANNYA_HEADERS = [
 const POIN_RAPAT_HEADERS = [
   'ID', 'NOTULEN_ID', 'ISI', 'TINDAK_LANJUT', 'ASSIGN_SUBBAG', 'AGENDA_ID', 'URUTAN'
 ];
+const NOTULA_LOG_HEADERS = [
+  'ID', 'NOTULEN_ID', 'AI_JSON', 'DOC_URL', 'PDF_URL', 'STATUS', 'CREATED_AT'
+];
+
+const NOTULA_SYSTEM_PROMPT = `Anda adalah notulis profesional Sekretariat KPU Kabupaten Siak.
+Buat notula rapat yang lengkap, formal, dan sesuai kaidah tata naskah pemerintahan Indonesia.
+Gunakan bahasa Indonesia baku, kalimat efektif, dan struktur yang rapi.
+
+Output HANYA JSON valid tanpa markdown, tanpa kutip tambahan, tanpa teks lain.
+
+JSON keys (wajib semua):
+- judul: judul rapat
+- hari: nama hari dalam Bahasa Indonesia (Senin, Selasa, ...)
+- tanggal: tanggal dalam format "DD Bulan YYYY" (contoh: "03 Juli 2026")
+- tempat: tempat rapat (default "Ruang Rapat KPU Kabupaten Siak" jika tidak tersedia)
+- peserta: narasi daftar peserta
+- pembuka: narasi pembukaan rapat
+- agenda: narasi agenda rapat
+- isi_rapat: narasi lengkap pembahasan rapat (detail, profesional)
+- penutup_rapat: narasi penutup rapat
+- jam_selesai: perkiraan waktu selesai (format "HH.WIB" atau "HH:HH WIB")
+- kesimpulan: kesimpulan dan keputusan rapat
+- atasan_langsung: "KETUA KPU KABUPATEN SIAK"
+- notula: FULL TEXT notula lengkap yang menggabungkan semua field di atas dalam format narasi formal dan siap cetak`;
 
 function getSS() { return SpreadsheetApp.openById(NOTULEN_SPREADSHEET_ID); }
 
@@ -39,6 +66,7 @@ function initAllSheets() {
   getOrInitSheet(sheetNotulen, NOTULEN_SHEET_NAME, NOTULEN_HEADERS);
   getOrInitSheet(sheetNotulen, JALANNYA_SHEET_NAME, JALANNYA_HEADERS);
   getOrInitSheet(sheetNotulen, POIN_RAPAT_SHEET_NAME, POIN_RAPAT_HEADERS);
+  getOrInitSheet(sheetNotulen, NOTULA_LOG_SHEET_NAME, NOTULA_LOG_HEADERS);
 }
 
 function _fmtDate(d) {
@@ -71,6 +99,8 @@ function getListNotulen(params) {
     for (var i = 1; i < rows.length; i++) {
       var row = rows[i];
       if (!row[0]) continue;
+      var pesertaList = [];
+      try { if (row[12]) pesertaList = JSON.parse(row[12]); } catch (e) {}
       result.push({
         id: row[0],
         tanggal: _fmtDate(row[1]),
@@ -83,7 +113,8 @@ function getListNotulen(params) {
         createdAt: _fmtDate(row[8]),
         driveUrl: row[9],
         undanganLink: row[10],
-        status: row[11] || 'tersimpan'
+        status: row[11] || 'tersimpan',
+        pesertaList: pesertaList
       });
     }
     result.reverse();
@@ -107,12 +138,15 @@ function getDetailNotulen(params) {
     var notulen = null;
     for (var i = 1; i < rows.length; i++) {
       if (rows[i][0] === params.id) {
+        var pesertaList = [];
+        try { if (rows[i][12]) pesertaList = JSON.parse(rows[i][12]); } catch (e) {}
         notulen = {
           id: rows[i][0], tanggal: _fmtDate(rows[i][1]), jenis: rows[i][2],
           judul: rows[i][3], pimpinan: rows[i][4], notulis: rows[i][5],
           jalannyaCount: rows[i][6], poinCount: rows[i][7],
           createdAt: _fmtDate(rows[i][8]), driveUrl: rows[i][9],
-          undanganLink: rows[i][10], status: rows[i][11] || 'tersimpan'
+          undanganLink: rows[i][10], status: rows[i][11] || 'tersimpan',
+          pesertaList: pesertaList
         };
         break;
       }
@@ -185,7 +219,8 @@ function simpanNotulen(data) {
       id, data.tanggal, data.jenis, data.judul,
       data.pimpinan || '', data.notulis || '',
       jalannyaList.length, poinList.length, now,
-      driveUrl, data.undangan || '', 'tersimpan'
+      driveUrl, data.undangan || '', 'tersimpan',
+      data.pesertaJson || ''
     ]);
 
     if (jalannyaList.length) {
@@ -270,6 +305,7 @@ function updateNotulen(data) {
     notulenSheet.getRange(rowIndex, 7).setValue(jalannyaList.length);
     notulenSheet.getRange(rowIndex, 8).setValue(poinList.length);
     notulenSheet.getRange(rowIndex, 12).setValue('tersimpan');
+    notulenSheet.getRange(rowIndex, 13).setValue(data.pesertaJson || '');
 
     // Re-generate file notulen di Drive
     try {
@@ -622,4 +658,151 @@ function getListAgendaForNotulen() {
   } catch (err) {
     return { success: false, message: err.message };
   }
+}
+
+// =============================================
+// GET DATA PEGAWAI (for peserta dropdown)
+// =============================================
+function getDataPegawai() {
+  try {
+    return getAllPegawai().map(function(p) {
+      return { nama: p.nama, jabatan: p.jabatan, email: p.email };
+    }).sort(function(a, b) { return a.nama.localeCompare(b.nama); });
+  } catch (err) {
+    return [];
+  }
+}
+
+// =============================================
+// AI NOTULA GENERATION + PDF EXPORT
+// =============================================
+
+function generateNotulaAI(notulenId) {
+  try {
+    var detail = getDetailNotulen({ id: notulenId });
+    if (!detail.success) return { success: false, message: 'Notulen tidak ditemukan' };
+    var n = detail.data;
+
+    var messages = buildNotulaPrompt(n);
+    var raw = callOllama(messages);
+    var cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
+
+    var start = cleaned.indexOf('{');
+    var end = cleaned.lastIndexOf('}');
+    if (start === -1 || end === -1) {
+      return { success: false, message: 'AI tidak mengembalikan JSON', raw: cleaned.substring(0, 500) };
+    }
+    var aiResult = JSON.parse(cleaned.substring(start, end + 1));
+
+    var folderId = getOrCreateNotulenFolder(n.tanggal);
+
+    var docId = _createNotulaDocument(aiResult, folderId, notulenId);
+    var docUrl = 'https://docs.google.com/document/d/' + docId + '/edit';
+
+    var pdfUrl = _exportNotulaPDF(docId, folderId, notulenId);
+
+    _saveNotulaLog(notulenId, aiResult, docUrl, pdfUrl);
+
+    return {
+      success: true,
+      message: 'Notula berhasil dibuat dan di-export ke PDF',
+      docUrl: docUrl,
+      pdfUrl: pdfUrl
+    };
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+
+function buildNotulaPrompt(notulenData) {
+  var context = 'JUDUL RAPAT: ' + (notulenData.judul || '-') + '\n';
+  context += 'TANGGAL: ' + (notulenData.tanggal || '-') + '\n';
+  context += 'JENIS: ' + (notulenData.jenis || '-') + '\n';
+  context += 'PIMPINAN RAPAT: ' + (notulenData.pimpinan || '-') + '\n';
+  context += 'NOTULIS: ' + (notulenData.notulis || '-') + '\n';
+
+  if (notulenData.pesertaList && notulenData.pesertaList.length) {
+    context += '\n-- PESERTA RAPAT --\n';
+    notulenData.pesertaList.forEach(function (p, i) {
+      context += (i + 1) + '. ' + p.nama + ' — ' + (p.jabatan || '-') + '\n';
+    });
+  }
+
+  if (notulenData.jalannyaList && notulenData.jalannyaList.length) {
+    context += '\n-- JALANNYA RAPAT --\n';
+    notulenData.jalannyaList.forEach(function (j, i) {
+      context += (i + 1) + '. ' + (j.pembicara || '-') + ': ' + (j.pokokBahasan || '') + '\n';
+    });
+  }
+
+  if (notulenData.poinList && notulenData.poinList.length) {
+    context += '\n-- POIN / KEPUTUSAN RAPAT --\n';
+    notulenData.poinList.forEach(function (p, i) {
+      context += (i + 1) + '. ' + (p.isi || '') + '\n   Tindak Lanjut: ' + (p.tindakLanjut || '-') + '\n   Assign: ' + (p.assignSubbag || '-') + '\n';
+    });
+  }
+
+  return [
+    { role: 'system', content: NOTULA_SYSTEM_PROMPT },
+    { role: 'user', content: 'Berdasarkan data rapat berikut, buat notula resmi:\n\n' + context }
+  ];
+}
+
+function _createNotulaDocument(aiResult, folderId, notulenId) {
+  var shortId = notulenId.substring(0, 8);
+  var docName = 'notula_' + shortId;
+
+  var templateFile = DriveApp.getFileById(NOTULA_TEMPLATE_ID);
+  var copy = templateFile.makeCopy(docName, DriveApp.getFolderById(folderId));
+  var docId = copy.getId();
+
+  var doc = DocumentApp.openById(docId);
+  var body = doc.getBody();
+
+  var replacements = {
+    '{{JUDUL}}': aiResult.judul || '',
+    '{{HARI}}': aiResult.hari || '',
+    '{{TANGGAL}}': aiResult.tanggal || '',
+    '{{TEMPAT}}': aiResult.tempat || '',
+    '{{PESERTA}}': aiResult.peserta || '',
+    '{{PEMBUKA}}': aiResult.pembuka || '',
+    '{{AGENDA}}': aiResult.agenda || '',
+    '{{ISI_RAPAT}}': aiResult.isi_rapat || '',
+    '{{PENUTUP_RAPAT}}': aiResult.penutup_rapat || '',
+    '{{JAM_SELESAI}}': aiResult.jam_selesai || '',
+    '{{KESIMPULAN}}': aiResult.kesimpulan || '',
+    '{{ATASAN_LANGSUNG}}': aiResult.atasan_langsung || '',
+    '{{NOTULA}}': aiResult.notula || ''
+  };
+
+  for (var key in replacements) {
+    if (replacements.hasOwnProperty(key)) {
+      var val = replacements[key];
+      body.replaceText(key, val);
+    }
+  }
+
+  doc.saveAndClose();
+  return docId;
+}
+
+function _exportNotulaPDF(docId, folderId, notulenId) {
+  var shortId = notulenId.substring(0, 8);
+  var pdfName = 'notula_' + shortId + '.pdf';
+
+  var docFile = DriveApp.getFileById(docId);
+  var pdfBlob = docFile.getAs('application/pdf');
+  pdfBlob.setName(pdfName);
+
+  var pdfFile = DriveApp.getFolderById(folderId).createFile(pdfBlob);
+  return pdfFile.getUrl();
+}
+
+function _saveNotulaLog(notulenId, aiResult, docUrl, pdfUrl) {
+  var ss = getSS();
+  var sh = getOrInitSheet(ss, NOTULA_LOG_SHEET_NAME, NOTULA_LOG_HEADERS);
+  var id = Utilities.getUuid();
+  var now = new Date();
+  var aiJson = JSON.stringify(aiResult);
+  sh.appendRow([id, notulenId, aiJson, docUrl, pdfUrl, 'selesai', now]);
 }

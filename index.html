@@ -447,6 +447,14 @@
                                         placeholder="Link Google Drive undangan" oninput="simpanDraft()">
                                 </div>
                             </div>
+                            <div style="margin-top:18px;border-top:1px solid #e5e7eb;padding-top:18px;">
+                                <h4 style="font-size:14px;font-weight:700;margin:0 0 12px;"><i class="fas fa-users"></i> Peserta Rapat</h4>
+                                <div id="pesertaChipContainer" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;min-height:32px;"></div>
+                                <div style="display:flex;gap:8px;">
+                                    <input type="text" id="pesertaSearch" class="form-control" style="flex:1;" placeholder="Cari pegawai..." oninput="searchPeserta(this.value)" autocomplete="off">
+                                </div>
+                                <div id="pesertaDropdown" style="display:none;border:1px solid #e5e7eb;border-radius:10px;margin-top:4px;max-height:180px;overflow-y:auto;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,0.1);"></div>
+                            </div>
                         </div>
                         <div style="display:flex;justify-content:flex-end;margin-top:16px;">
                             <button class="btn-primary" onclick="nextStep()">Selanjutnya <i
@@ -1507,7 +1515,7 @@
         }
 
         function simpanDraft() {
-            var draft = getDraft() || { step: notulenCurrentStep, info: {}, jalannyaRapat: [], poinList: [] };
+            var draft = getDraft() || { step: notulenCurrentStep, info: {}, jalannyaRapat: [], poinList: [], pesertaList: [] };
             draft.step = notulenCurrentStep;
             draft.info = {
                 tanggal: document.getElementById('notulenTanggal').value,
@@ -1519,6 +1527,7 @@
             };
             draft.jalannyaRapat = ambilPembahasanDariDOM();
             draft.poinList = ambilPoinDariDOM();
+            draft.pesertaList = ambilPesertaDariDOM();
             saveDraftToLS(draft);
         }
 
@@ -1548,6 +1557,8 @@
                     tambahPoinFromData(p.isi, p.tindakLanjut, p.assignSubbag, p.agendaId);
                 });
             }
+
+            if (draft.pesertaList) resumePeserta(draft.pesertaList);
 
             aktifkanStep(notulenCurrentStep);
         }
@@ -1597,8 +1608,16 @@
         }
 
         function initNotulen() {
+            initPeserta();
             showNotulenView('list');
         }
+
+        document.addEventListener('click', function (e) {
+            var dd = document.getElementById('pesertaDropdown');
+            if (dd && !e.target.closest('#pesertaSearch') && !e.target.closest('#pesertaDropdown')) {
+                dd.style.display = 'none';
+            }
+        });
 
         function initFreshForm() {
             var profile = window.currentUser || JSON.parse(localStorage.getItem('userProfile') || '{}');
@@ -1684,6 +1703,15 @@
                 jalannyaHtml = '<p style="color:#94a3b8;">Tidak ada catatan jalannya rapat.</p>';
             }
 
+            var pesertaHtml = '';
+            if (draft.pesertaList && draft.pesertaList.length) {
+                pesertaHtml = '<tr><td style="padding:4px 8px;color:#64748b;vertical-align:top;">Peserta</td><td style="padding:4px 8px;">' +
+                    draft.pesertaList.map(function (p) {
+                        return '<span style="display:inline-block;background:#eef2ff;color:#4338ca;border-radius:14px;padding:2px 10px;font-size:12px;margin:2px;">' + (p.nama || '') + ' <span style="color:#64748b;">' + (p.jabatan || '') + '</span></span>';
+                    }).join(' ') +
+                    '</td></tr>';
+            }
+
             container.innerHTML = '' +
                 '<div style="background:#f9fafb;border-radius:12px;padding:16px;margin-bottom:16px;">' +
                 '<h4 style="font-size:14px;font-weight:700;margin:0 0 8px;"><i class="fas fa-info-circle"></i> Informasi Rapat</h4>' +
@@ -1693,6 +1721,7 @@
                 '<tr><td style="padding:4px 8px;color:#64748b;">Judul</td><td style="padding:4px 8px;font-weight:600;">' + (draft.info.judul || '-') + '</td></tr>' +
                 '<tr><td style="padding:4px 8px;color:#64748b;">Pimpinan</td><td style="padding:4px 8px;">' + (draft.info.pimpinan || '-') + '</td></tr>' +
                 '<tr><td style="padding:4px 8px;color:#64748b;">Notulis</td><td style="padding:4px 8px;">' + (draft.info.notulis || '-') + '</td></tr>' +
+                pesertaHtml +
                 (draft.info.undangan ? '<tr><td style="padding:4px 8px;color:#64748b;">Undangan</td><td style="padding:4px 8px;"><a href="' + draft.info.undangan + '" target="_blank">Lihat Link</a></td></tr>' : '') +
                 '</table>' +
                 '</div>' +
@@ -1706,6 +1735,84 @@
                 '</div>';
         }
 
+        // ======================
+        // PESERTA RAPAT
+        // ======================
+        var _pegawaiCache = [];
+        var _selectedPeserta = [];
+
+        function initPeserta() {
+            if (_pegawaiCache.length) return;
+            google.script.run
+                .withSuccessHandler(function (res) {
+                    if (res && Array.isArray(res)) _pegawaiCache = res;
+                })
+                .getDataPegawai();
+        }
+
+        function renderPesertaChips() {
+            var container = document.getElementById('pesertaChipContainer');
+            if (!_selectedPeserta.length) {
+                container.innerHTML = '<span style="font-size:13px;color:#94a3b8;">Belum ada peserta. Ketik nama untuk menambah.</span>';
+                return;
+            }
+            container.innerHTML = _selectedPeserta.map(function (p, i) {
+                return '<span style="display:inline-flex;align-items:center;gap:4px;background:#eef2ff;color:#4338ca;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:500;">' +
+                    (p.nama || '') + ' <span style="color:#64748b;font-weight:400;">' + (p.jabatan || '') + '</span>' +
+                    '<span onclick="removePeserta(' + i + ')" style="cursor:pointer;margin-left:2px;color:#94a3b8;font-size:14px;line-height:1;">&times;</span>' +
+                    '</span>';
+            }).join('');
+        }
+
+        function searchPeserta(val) {
+            var dropdown = document.getElementById('pesertaDropdown');
+            if (!val.trim()) { dropdown.style.display = 'none'; return; }
+            var q = val.toLowerCase().trim();
+            var filtered = _pegawaiCache.filter(function (p) {
+                return (p.nama || '').toLowerCase().includes(q) || (p.jabatan || '').toLowerCase().includes(q);
+            });
+            if (!filtered.length) { dropdown.style.display = 'none'; return; }
+            dropdown.style.display = 'block';
+            dropdown.innerHTML = filtered.map(function (p) {
+                var already = _selectedPeserta.some(function (s) { return s.email === p.email; });
+                if (already) return '';
+                return '<div onclick="addPeserta(\'' + p.email.replace(/'/g, "\\'") + '\')" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid #f1f5f9;font-size:13px;display:flex;justify-content:space-between;">' +
+                    '<span style="font-weight:500;">' + (p.nama || '') + '</span>' +
+                    '<span style="color:#64748b;">' + (p.jabatan || '') + '</span>' +
+                    '</div>';
+            }).join('');
+        }
+
+        function addPeserta(email) {
+            var p = _pegawaiCache.find(function (x) { return x.email === email; });
+            if (!p) return;
+            if (_selectedPeserta.some(function (s) { return s.email === email; })) return;
+            _selectedPeserta.push({ nama: p.nama, jabatan: p.jabatan, email: p.email });
+            renderPesertaChips();
+            document.getElementById('pesertaSearch').value = '';
+            document.getElementById('pesertaDropdown').style.display = 'none';
+            simpanDraft();
+        }
+
+        function removePeserta(idx) {
+            _selectedPeserta.splice(idx, 1);
+            renderPesertaChips();
+            simpanDraft();
+        }
+
+        function ambilPesertaDariDOM() {
+            return _selectedPeserta.slice();
+        }
+
+        function resumePeserta(list) {
+            if (list && Array.isArray(list)) _selectedPeserta = list;
+            renderPesertaChips();
+        }
+
+        function clearPeserta() {
+            _selectedPeserta = [];
+            renderPesertaChips();
+        }
         // ======================
         // JALANNYA RAPAT
         // ======================
@@ -1979,6 +2086,7 @@
             document.getElementById('notulenUndangan').value = '';
             var tgl = document.getElementById('notulenTanggal');
             if (tgl) tgl.value = new Date().toISOString().split('T')[0];
+            clearPeserta();
         }
 
         // ======================
@@ -2006,7 +2114,8 @@
                 undangan: draft.info.undangan || '',
                 userEmail: profile.email,
                 jalannyaList: draft.jalannyaRapat || [],
-                poinList: draft.poinList || []
+                poinList: draft.poinList || [],
+                pesertaJson: JSON.stringify(draft.pesertaList || [])
             };
 
             if (isEdit) payload.id = editingNotulenId;
@@ -2179,6 +2288,7 @@
                             '<span><i class="fas fa-user"></i> Pimpinan: <strong>' + (n.pimpinan || '-') + '</strong></span>' +
                             '<span><i class="fas fa-pen"></i> Notulis: <strong>' + (n.notulis || '-') + '</strong></span>' +
                             '</div>' +
+                            (n.pesertaList && n.pesertaList.length ? '<div style="margin-bottom:16px;"><span style="font-size:13px;color:#64748b;font-weight:600;"><i class="fas fa-users"></i> Peserta (' + n.pesertaList.length + '):</span> ' + n.pesertaList.map(function(p) { return '<span style="display:inline-block;background:#eef2ff;color:#4338ca;border-radius:14px;padding:2px 10px;font-size:12px;margin:3px 2px;">' + (p.nama || '') + ' <span style="color:#64748b;">' + (p.jabatan || '') + '</span></span>'; }).join('') + '</div>' : '') +
                             (n.undanganLink ? '<div style="margin-bottom:16px;"><a href="' + n.undanganLink + '" target="_blank" class="btn-primary" style="text-decoration:none;font-size:13px;"><i class="fas fa-paperclip"></i> Lihat Undangan</a></div>' : '') +
                             '<hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0;">' +
                             '<h3 style="font-size:15px;font-weight:700;margin:0 0 12px;"><i class="fas fa-comments"></i> Jalannya Rapat</h3>' +
@@ -2191,6 +2301,7 @@
                             '<button class="btn-secondary" onclick="closeModalDetailNotulen()"><i class="fas fa-times"></i> Tutup</button>' +
                             '<button class="btn-primary" onclick="closeModalDetailNotulen();editNotulen(\'' + n.id + '\')"><i class="fas fa-edit"></i> Edit</button>' +
                             '<button class="btn-secondary" onclick="closeModalDetailNotulen();showUndanganUpload(\'' + n.id + '\')"><i class="fas fa-paperclip"></i> Upload Undangan</button>' +
+                            '<button class="btn-primary" style="background:#7c3aed;border-color:#7c3aed;" onclick="generateNotula(\'' + n.id + '\')"><i class="fas fa-robot"></i> Generate Notula AI</button>' +
                             '</div>' +
                             '</div>';
                     } else {
@@ -2205,6 +2316,50 @@
 
         function closeModalDetailNotulen() {
             document.getElementById('modalDetailNotulen').style.display = 'none';
+        }
+
+        function generateNotula(id) {
+            Swal.fire({
+                title: 'Generate Notula AI',
+                text: 'AI akan membuat notula rapat dan mengekspor ke PDF. Lanjutkan?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#7c3aed',
+                confirmButtonText: 'Ya, Generate!',
+                cancelButtonText: 'Batal'
+            }).then(function (result) {
+                if (!result.isConfirmed) return;
+                showLoading('AI sedang menulis notula... (membutuhkan beberapa detik)');
+                google.script.run
+                    .withSuccessHandler(function (res) {
+                        hideLoading();
+                        if (!res) { Swal.fire('Error', 'Tidak ada respons.', 'error'); return; }
+                        if (res.success) {
+                            var linksHtml = '' +
+                                '<div style="text-align:left;margin-top:12px;">' +
+                                '<p><i class="fas fa-check-circle" style="color:#22c55e;"></i> ' + res.message + '</p>' +
+                                '<div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">' +
+                                '<a href="' + res.docUrl + '" target="_blank" class="btn-primary" style="text-decoration:none;text-align:center;font-size:14px;"><i class="fas fa-file-word"></i> Buka Google Docs</a>' +
+                                '<a href="' + res.pdfUrl + '" target="_blank" class="btn-secondary" style="text-decoration:none;text-align:center;font-size:14px;"><i class="fas fa-file-pdf"></i> Download PDF</a>' +
+                                '</div>' +
+                                '</div>';
+                            Swal.fire({
+                                title: 'Notula Berhasil!',
+                                html: linksHtml,
+                                icon: 'success',
+                                confirmButtonText: 'Tutup'
+                            });
+                            closeModalDetailNotulen();
+                        } else {
+                            Swal.fire('Gagal', res.message || 'Terjadi kesalahan', 'error');
+                        }
+                    })
+                    .withFailureHandler(function (err) {
+                        hideLoading();
+                        Swal.fire('Error Koneksi', err.message || 'Tidak dapat terhubung ke server', 'error');
+                    })
+                    .generateNotulaAI(id);
+            });
         }
 
         function showUndanganUpload(id) {
@@ -2289,7 +2444,8 @@
                         }),
                         poinList: (n.poinList || []).map(function (p) {
                             return { isi: p.isi, tindakLanjut: p.tindakLanjut, assignSubbag: p.assignSubbag, agendaId: p.agendaId };
-                        })
+                        }),
+                        pesertaList: n.pesertaList || []
                     };
                     saveDraftToLS(draft);
 

@@ -15,7 +15,9 @@
 | 9 | Notulen Rapat (Fase 2: 4-Step Wizard + DB Standalone) | ✅ Selesai |
 | 10 | Notulen Rapat (Fase 3: Edit + File Upload + Folder per Tanggal) | ✅ Selesai |
 | 11 | Agenda: enrich jenis + smart dasar agenda + auto LKH cerdas | ✅ Selesai |
-| 12 | Testing & validasi | ⏳ Pending |
+| 12 | AI Notula + PDF Export | ✅ Selesai |
+| 13 | Peserta Rapat (dropdown MASTER_PEGAWAI + chips) | ✅ Selesai |
+| 14 | Testing & validasi | ⏳ Pending |
 
 ---
 
@@ -49,6 +51,8 @@
 - [x] Enrich DASAR_AGENDA: 8 opsi dengan conditional fields (pilih notulen existing / link dokumen)
 - [x] Smart autoSaveLKH: HASIL otomatis Dokumen/Laporan, KEGIATAN format `[Jenis] Judul — Workflow — Progress`, KETERANGAN auto-generate
 - [x] DASAR_FILE_URL column baru di MASTER_AGENDA untuk menyimpan link dokumen pendukung
+- [x] AI Notula + PDF Export: generate notula via Ollama, template Google Docs, export PDF
+- [x] Peserta Rapat: dropdown dari MASTER_PEGAWAI, chips nama+jabatan, simpan di PESERTA_JSON
 - [ ] Testing CRUD end-to-end
 - [ ] UAT
 
@@ -66,6 +70,30 @@
 - **[Fix] Validasi tambahan**: Jenis kegiatan + Dasar Agenda wajib diisi saat simpan agenda
 - **[Fix] Manual submitLKH**: Update format KEGIATAN/HASIL/KETERANGAN mengikuti pola smart autoSaveLKH
 - **[Fix] Notulen → BUAT_AGENDA**: PIC agenda otomatis diisi Kepala Subbag (berdasarkan ASSIGN_SUBBAG) via `getKepalaSubbagEmail()`, fallback ke user notulen jika tidak ditemukan
+
+### v2.7.0 — 3 Jul 2026 (AI Notula + PDF Export via Google Docs Template)
+- **[New] `generateNotulaAI(notulenId)`**: Orchestrator — ambil detail notulen, panggil AI Ollama, parse JSON, buat Google Doc, export PDF, simpan log
+- **[New] `buildNotulaPrompt(notulenData)`**: Bangun prompt konteks dari data notulen (judul, tanggal, jenis, pimpinan, notulis, jalannya rapat, poin rapat) + system prompt notula KPU
+- **[New] `_createNotulaDocument()`**: Copy template Google Docs (`NOTULA_KPU_SIAK`, ID `1tYuwrnIv2eroTqMhaK61XfvXH5ZcfXUWB673tSv6mm8`), replace placeholders `{{JUDUL}}`, `{{HARI}}`, `{{TANGGAL}}`, `{{TEMPAT}}`, `{{PESERTA}}`, `{{PEMBUKA}}`, `{{AGENDA}}`, `{{ISI_RAPAT}}`, `{{PENUTUP_RAPAT}}`, `{{JAM_SELESAI}}`, `{{KESIMPULAN}}`, `{{ATASAN_LANGSUNG}}`, `{{NOTULA}}`
+- **[New] `_exportNotulaPDF()`**: Konversi Google Doc → PDF via `getAs('application/pdf')`, simpan di folder Drive notulen dengan prefix `notula_`
+- **[New] `_saveNotulaLog()`**: Simpan hasil AI (JSON lengkap) + URL Doc + URL PDF ke sheet `NOTULA_LOG` (ID, NOTULEN_ID, AI_JSON, DOC_URL, PDF_URL, STATUS, CREATED_AT)
+- **[New] Sheet `NOTULA_LOG`**: Kolom: ID, NOTULEN_ID, AI_JSON, DOC_URL, PDF_URL, STATUS, CREATED_AT
+- **[New] Template Notula**: Google Docs template `NOTULA_KPU_SIAK` dengan 13 placeholder — template tidak pernah diedit langsung, selalu `makeCopy()` terlebih dahulu
+- **[New] AI System Prompt**: Bahasa Indonesia baku, gaya pemerintahan, output JSON only — 13 keys (judul, hari, tanggal, tempat, peserta, pembuka, agenda, isi_rapat, penutup_rapat, jam_selesai, kesimpulan, atasan_langsung, notula)
+- **[New] Tombol "Generate Notula AI" di Detail Modal**: Button ungu dengan ikon robot di modal detail notulen — konfirmasi via SweetAlert2, loading state, hasil tampilkan 2 link (Google Docs + PDF)
+- **[Fix] `initAllSheets()`**: Inisialisasi sheet NOTULA_LOG jika belum ada
+- **[New] Pengecekan JSON AI dengan `start/end indexOf('{}')`**: Sama seperti pattern di Code.gs — tangani markdown ```json cleanup
+
+### v2.8.0 — 3 Jul 2026 (Peserta Rapat via MASTER_PEGAWAI)
+- **[New] Kolom `PESERTA_JSON`**: Kolom baru di NOTULEN (col 13) — menyimpan JSON array peserta `[{nama, jabatan, email}]`
+- **[New] `getDataPegawai()`**: Backend helper — ambil semua pegawai aktif dari MASTER_PEGAWAI, return `{nama, jabatan, email}` sorted
+- **[New] Frontend Peserta Rapat di Step 1**: Search input + dropdown hasil filter + chips (nama+jabatan) dengan tombol X untuk hapus — data dari MASTER_PEGAWAI
+- **[New] Integrasi AI**: Daftar peserta disertakan dalam konteks prompt AI notula — AI tahu siapa saja yang hadir
+- **[Ubah] NOTULEN → 13 kolom**: ID, TANGGAL, JENIS, JUDUL, PIMPINAN, NOTULIS, JALANNYA_COUNT, POIN_COUNT, CREATED_AT, DRIVE_URL, UNDANGAN_LINK, STATUS, **PESERTA_JSON**
+- **[Fix] `simpanNotulen` / `updateNotulen`**: Simpan PESERTA_JSON ke sheet
+- **[Fix] `getListNotulen` / `getDetailNotulen`**: Parse PESERTA_JSON, kirim `pesertaList` ke frontend
+- **[Fix] Edit Notulen**: Pre-fill pesertaList dari data existing
+- **[Fix] Review & Detail Modal**: Tampilkan peserta sebagai chips warna ungu
 
 ### v2.5.0 — 3 Jul 2026 (Notulen Edit + Upload File + Folder per Tanggal)
 - **[New] Edit Notulen (`updateNotulen`)**: Fungsi backend untuk mengupdate notulen existing — update row di sheet NOTULEN, hapus-reinsert JALANNYA & POIN, re-generate file .txt di Drive, dan menjalankan TL actions (BUAT_AGENDA / UPDATE_PROGRES)
@@ -159,12 +187,11 @@
 - **`.gitignore`**: File ignores untuk OS dan log
 
 ### Planned
-- v2.7 — Auto-generate PDF Notulen
-- v2.7 — Notifikasi email assignment
-- v2.8 — Template notulen (Coktas/Pleno/Rakor/Bimtek/Sosialisasi)
-- v2.9 — Agenda: folder per subbag + upload evidence ke Drive
+- v2.9 — Notifikasi email assignment / reminder rapat
+- v2.10 — Template notulen multiple (Coktas/Pleno/Rakor/Bimtek/Sosialisasi)
+- v2.11 — Agenda: folder per subbag + upload evidence ke Drive
 - v3.0 — Approval workflow
-- v3.1 — Komentar
+- v3.1 — Komentar / diskusi per agenda
 
 ---
 
@@ -214,13 +241,16 @@
 ### Spreadsheet: `1hC8lzsHoukbQIfv-JNmZzx3u5pBoU7uY7bmktgU2_uA`
 
 **NOTULEN**
-| ID | TANGGAL | JENIS | JUDUL | PIMPINAN | NOTULIS | JALANNYA_COUNT | POIN_COUNT | CREATED_AT | DRIVE_URL | UNDANGAN_LINK | STATUS |
+| ID | TANGGAL | JENIS | JUDUL | PIMPINAN | NOTULIS | JALANNYA_COUNT | POIN_COUNT | CREATED_AT | DRIVE_URL | UNDANGAN_LINK | STATUS | PESERTA_JSON |
 
 **JALANNYA_RAPAT**
 | ID | NOTULEN_ID | PEMBICARA | POKOK_BAHASAN | URUTAN |
 
 **POIN_RAPAT**
 | ID | NOTULEN_ID | ISI | TINDAK_LANJUT | ASSIGN_SUBBAG | AGENDA_ID | URUTAN |
+
+**NOTULA_LOG**
+| ID | NOTULEN_ID | AI_JSON | DOC_URL | PDF_URL | STATUS | CREATED_AT |
 
 ### Tindak Lanjut Options
 - `TANPA_TL` — tanpa tindak lanjut
@@ -240,7 +270,7 @@
 - **Hybrid notulen → agenda**: notulis input poin + pilih tindak lanjut → sistem generate/update otomatis
 - **4-step wizard** dengan auto-save localStorage: user bisa mulai, simpan draft, lanjut kapan saja
 - **Jalannya Rapat sebagai array bebas**: tidak ada struktur fixed — notulis bebas input kronologis
-- **Tidak ada upload/export PDF**: akan diganti auto-generate PDF di fase berikutnya
+- **AI Notula + PDF Export**: Notula dibuat via AI Ollama, dituangkan ke template Google Docs, lalu di-export ke PDF — template tidak pernah diedit langsung (selalu `makeCopy()`)
 - **Folder Drive**: `E-OFFICE/NOTULEN/{TAHUN}/{BULAN}/{TANGGAL}/` untuk backup .txt notulen + file undangan — struktur per tanggal karena 1 hari bisa >1 rapat
 - **Edit notulen**: Data JALANNYA_RAPAT & POIN_RAPAT di-delete lalu re-insert (bukan update per baris) — simpel, konsisten, hindari kompleksitas tracking perubahan
 - **Upload file undangan**: File disimpan di folder tanggal yang sama dengan notulen, nama prefix `undangan_` — memudahkan pencarian bot Telegram via `getFilesByName()`
@@ -261,7 +291,8 @@
 - **Master pegawai spreadsheet**: `1JivPdetUS5lu5ZjJveqwhpKhwU5r0QiRb4GtJGXxDtA`
 - **URL base external**: `https://script.google.com/macros/s/AKfycbxejATwEFa6KmgBqjxFGiA2L_mEJGG0-CaHGsaIyxedRz5_vGA-QiAIhSE-mYwXFY_E/exec`
 - **All notulen JS functions** are in `index.html` (lines ~1452-2245 area)
-- **All notulen backend** is in `notulen.gs` (standalone, self-contained, 600 lines)
-- **Notulen endpoints**: `getListNotulen`, `getDetailNotulen`, `simpanNotulen`, `updateNotulen`, `uploadUndanganFile`, `uploadUndanganLink`, `hapusNotulen`, `getListAgendaForNotulen`
+- **All notulen backend** is in `notulen.gs` (standalone, self-contained, ~800 lines)
+- **Notulen endpoints**: `getListNotulen`, `getDetailNotulen`, `simpanNotulen`, `updateNotulen`, `uploadUndanganFile`, `uploadUndanganLink`, `hapusNotulen`, `getListAgendaForNotulen`, `generateNotulaAI`, `getDataPegawai`
+- **NOTULEN sheet columns (13)**: ID, TANGGAL, JENIS, JUDUL, PIMPINAN, NOTULIS, JALANNYA_COUNT, POIN_COUNT, CREATED_AT, DRIVE_URL, UNDANGAN_LINK, STATUS, PESERTA_JSON
 - **CSS for step wizard & notulen badges** is in `style.html`
 - **Menu navigation** uses `switchMenu()` SPA pattern in `index.html`
