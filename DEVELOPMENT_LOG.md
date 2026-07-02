@@ -14,7 +14,8 @@
 | 8 | Notulen Rapat (Fase 1: Backend + Form Dasar) | ✅ Selesai |
 | 9 | Notulen Rapat (Fase 2: 4-Step Wizard + DB Standalone) | ✅ Selesai |
 | 10 | Notulen Rapat (Fase 3: Edit + File Upload + Folder per Tanggal) | ✅ Selesai |
-| 11 | Testing & validasi | ⏳ Pending |
+| 11 | Agenda: enrich jenis + smart dasar agenda + auto LKH cerdas | ✅ Selesai |
+| 12 | Testing & validasi | ⏳ Pending |
 
 ---
 
@@ -43,12 +44,28 @@
 - [x] Backend uploadUndanganFile: upload file asli ke folder tanggal
 - [x] Frontend Edit Notulen: tombol edit di detail modal, pre-fill form wizard
 - [x] Frontend Upload File Undangan: ganti input link jadi file upload + fallback link
+- [x] Simplify wizard: hapus field SUMBER, gabung ke DASAR_AGENDA
+- [x] Enrich JENIS kegiatan: 6 kategori dengan 20+ opsi (Tahapan Pemilu, Rapat, Pembinaan, Administrasi, Layanan, Lainnya)
+- [x] Enrich DASAR_AGENDA: 8 opsi dengan conditional fields (pilih notulen existing / link dokumen)
+- [x] Smart autoSaveLKH: HASIL otomatis Dokumen/Laporan, KEGIATAN format `[Jenis] Judul — Workflow — Progress`, KETERANGAN auto-generate
+- [x] DASAR_FILE_URL column baru di MASTER_AGENDA untuk menyimpan link dokumen pendukung
 - [ ] Testing CRUD end-to-end
 - [ ] UAT
 
 ---
 
 ## Change Log
+
+### v2.6.0 — 3 Jul 2026 (Agenda: Enrich Jenis + Smart Dasar + Auto-LKH Cerdas)
+- **[Ubah] Sumber dihapus dari wizard**: Field `SUMBER` tidak lagi dipilih manual — di-generate otomatis dari `DASAR_AGENDA` via `deriveSumberFromDasar()` (RAPAT / SURAT_TUGAS / PIMPINAN / RUTIN / LAINNYA)
+- **[New] Jenis kegiatan diperkaya**: Dari 7 opsi jadi 20+ opsi dalam 6 kategori (`<optgroup>`): Tahapan Pemilu, Rapat & Koordinasi, Pembinaan & Diseminasi, Administrasi & Pelaporan, Layanan & Protokol, Lainnya
+- **[New] Dasar Agenda 8 opsi**: Hasil Rapat Pleno, Hasil Rapat Internal Sekretariat, Rapat Internal Subbagian, Surat Perintah/Tugas, Disposisi Pimpinan, Instruksi Langsung, Kegiatan Rutin, Lainnya
+- **[New] Conditional fields Dasar Agenda**: Rapat → dropdown pilih notulen existing + link alternatif; Surat/Disposisi/Lainnya → link dokumen pendukung
+- **[New] `DASAR_FILE_URL` column**: Kolom baru di MASTER_AGENDA (col 17) untuk menyimpan link dokumen dasar (notulen/surat/instruksi)
+- **[New] Smart autoSaveLKH**: `jenisToHasilType()` menentukan HASIL = Dokumen/Laporan; `generateKeteranganLKH()` auto-generate deskripsi; `autoSaveLKH()` menulis `[Jenis] Judul — Workflow — Progress` sebagai KEGIATAN
+- **[Fix] Validasi tambahan**: Jenis kegiatan + Dasar Agenda wajib diisi saat simpan agenda
+- **[Fix] Manual submitLKH**: Update format KEGIATAN/HASIL/KETERANGAN mengikuti pola smart autoSaveLKH
+- **[Fix] Notulen → BUAT_AGENDA**: PIC agenda otomatis diisi Kepala Subbag (berdasarkan ASSIGN_SUBBAG) via `getKepalaSubbagEmail()`, fallback ke user notulen jika tidak ditemukan
 
 ### v2.5.0 — 3 Jul 2026 (Notulen Edit + Upload File + Folder per Tanggal)
 - **[New] Edit Notulen (`updateNotulen`)**: Fungsi backend untuk mengupdate notulen existing — update row di sheet NOTULEN, hapus-reinsert JALANNYA & POIN, re-generate file .txt di Drive, dan menjalankan TL actions (BUAT_AGENDA / UPDATE_PROGRES)
@@ -142,12 +159,53 @@
 - **`.gitignore`**: File ignores untuk OS dan log
 
 ### Planned
-- v2.6 — Auto-generate PDF Notulen
-- v2.6 — Notifikasi email assignment
-- v2.7 — Template Coktas/Pelno/Rakor/Bimtek/Sosialisasi/Pleno
-- v2.8 — Agenda: folder per subbag + upload evidence ke Drive
+- v2.7 — Auto-generate PDF Notulen
+- v2.7 — Notifikasi email assignment
+- v2.8 — Template notulen (Coktas/Pleno/Rakor/Bimtek/Sosialisasi)
+- v2.9 — Agenda: folder per subbag + upload evidence ke Drive
 - v3.0 — Approval workflow
 - v3.1 — Komentar
+
+---
+
+## Agenda Data Model
+
+### Spreadsheet: `1-xohP9CXPUIOL8Ar8L_L3xTOfs_S6fMkUj098nmyE10`
+
+**MASTER_AGENDA** (16+1 kolom)
+| ID | NOMOR_AGENDA | JUDUL | SUMBER | JENIS | SUBBAGIAN | PRIORITAS | STATUS | TARGET_OUTPUT | DESKRIPSI | DASAR_AGENDA | TANGGAL_MULAI | TANGGAL_SELESAI | CREATED_BY_EMAIL | CREATED_AT | UPDATED_AT | DASAR_FILE_URL |
+
+**MASTER_WORKFLOW**
+| ID | AGENDA_ID | URUTAN | NAMA_WORKFLOW | STATUS | TARGET | PIC_EMAIL | KETERANGAN | CREATED_AT | UPDATED_AT |
+
+**MASTER_PROGRESS**
+| ID | WORKFLOW_ID | URUTAN | NAMA_PROGRESS | STATUS | PERSENTASE | TARGET | REALISASI | PIC_EMAIL | CATATAN | CREATED_AT | UPDATED_AT | LKH_REFERENCE_ID |
+
+**MASTER_EVIDENCE**
+| ID | PROGRESS_ID | NAMA_FILE | LINK | KETERANGAN | UPLOAD_BY_EMAIL | UPLOAD_AT |
+
+**MASTER_ASSIGNMENT**
+| ID | AGENDA_ID | EMAIL_PEGAWAI | ROLE | STATUS | READ_AT | STARTED_AT | FINISHED_AT | CREATED_AT | UPDATED_AT |
+
+**MASTER_ACTIVITY_LOG**
+| ID | USER_EMAIL | AKTIVITAS | REFERENSI | WAKTU |
+
+### SUMBER → DASAR_AGENDA Mapping
+| Pilihan Dasar Agenda | SUMBER (otomatis) |
+|---|---|
+| HASIL_RAPAT_PLENO | RAPAT |
+| HASIL_RAPAT_INTERNAL_SEKRE | RAPAT |
+| RAPAT_INTERNAL_SUBBAG | RAPAT |
+| SURAT_PERINTAH_TUGAS | SURAT_TUGAS |
+| DISPOSISI_PIMPINAN | PIMPINAN |
+| INSTRUKSI_LANGSUNG | PIMPINAN |
+| KEGIATAN_RUTIN | RUTIN |
+| LAINNYA | LAINNYA |
+
+### Auto-LKH Smart Content
+- **KEGIATAN**: `[Jenis] Judul Agenda — NamaWorkflow — NamaProgress`
+- **HASIL**: Otomatis `Dokumen` (jenis berorientasi output fisik) atau `Laporan` (jenis berorientasi evaluasi/monitoring)
+- **KETERANGAN**: `"{realisasi}. Dokumen telah selesai dibuat."` atau `"{realisasi}. Laporan telah disusun dengan baik."`
 
 ---
 

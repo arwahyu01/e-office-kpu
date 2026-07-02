@@ -24,7 +24,8 @@ const AGENDA_HEADERS = {
   MASTER_AGENDA: [
     "ID","NOMOR_AGENDA","JUDUL","SUMBER","JENIS","SUBBAGIAN",
     "PRIORITAS","STATUS","TARGET_OUTPUT","DESKRIPSI","DASAR_AGENDA",
-    "TANGGAL_MULAI","TANGGAL_SELESAI","CREATED_BY_EMAIL","CREATED_AT","UPDATED_AT"
+    "TANGGAL_MULAI","TANGGAL_SELESAI","CREATED_BY_EMAIL","CREATED_AT","UPDATED_AT",
+    "DASAR_FILE_URL"
   ],
   MASTER_WORKFLOW: [
     "ID","AGENDA_ID","URUTAN","NAMA_WORKFLOW","STATUS",
@@ -84,6 +85,7 @@ function ensureAgendaSheets() {
     initAgendaDatabase();
     cache.put("AGENDA_DB_INIT_v2", "1", 21600);
   }
+  ensureAgendaColumn();
 }
 
 // =============================================
@@ -166,27 +168,73 @@ function clearAgendaCache() {
   CacheService.getScriptCache().remove("AGENDA_DB_INIT_v2");
 }
 
+function ensureAgendaColumn() {
+  const ss = getAgendaSpreadsheet();
+  Object.keys(AGENDA_SHEETS).forEach(key => {
+    const sh = ss.getSheetByName(AGENDA_SHEETS[key]);
+    if (!sh || sh.getLastRow() < 1) return;
+    const headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+    const targetHeaders = AGENDA_HEADERS[key];
+    if (!targetHeaders) return;
+    targetHeaders.forEach((h, idx) => {
+      if (idx >= headers.length) {
+        sh.getRange(1, idx + 1).setValue(h);
+      }
+    });
+  });
+}
+
 // =============================================
 // CRUD AGENDA — WIZARD STEP 1+3
 // =============================================
+function deriveSumberFromDasar(dasarAgenda) {
+  var map = {
+    'HASIL_RAPAT_PLENO': 'RAPAT',
+    'HASIL_RAPAT_INTERNAL_SEKRE': 'RAPAT',
+    'RAPAT_INTERNAL_SUBBAG': 'RAPAT',
+    'SURAT_PERINTAH_TUGAS': 'SURAT_TUGAS',
+    'DISPOSISI_PIMPINAN': 'PIMPINAN',
+    'INSTRUKSI_LANGSUNG': 'PIMPINAN',
+    'KEGIATAN_RUTIN': 'RUTIN',
+  };
+  return map[dasarAgenda] || 'LAINNYA';
+}
+
+function jenisToHasilType(jenis) {
+  var docTypes = ['COKLIT','COKTAS','PLENO','PLENO_TERBUKA','BIMTEK','SOSIALISASI','WORKSHOP','FGD','DISEMINASI','PENYUSUNAN','VERIFIKASI','FASILITASI','KEHUMASAN','PELAYANAN_PUBLIK','PROTOKOL','PERSIDANGAN','UMUM','LAINNYA','COK'];
+  var laporanTypes = ['REKAPITULASI','PELAPORAN','MONITORING','EVALUASI','RAKOR','RAPAT_INTERNAL','BRIEFING','RAPAT'];
+  if (laporanTypes.indexOf(jenis) !== -1) return 'Laporan';
+  return 'Dokumen';
+}
+
+function generateKeteranganLKH(hasilType, realisasi, progressNama, judulAgenda) {
+  if (!realisasi) return 'Kegiatan ' + progressNama + ' pada agenda ' + judulAgenda + ' telah terlaksana dengan baik.';
+  if (hasilType === 'Dokumen') return realisasi + ' Dokumen telah selesai dibuat.';
+  return realisasi + ' Laporan telah disusun dengan baik.';
+}
+
 function createAgenda(data) {
   try {
     ensureAgendaSheets();
     if (!data.judul) return { success: false, message: "Judul agenda wajib diisi", field: "judul" };
+    if (!data.jenis) return { success: false, message: "Jenis kegiatan wajib dipilih", field: "jenis" };
+    if (!data.dasarAgenda) return { success: false, message: "Dasar agenda wajib dipilih", field: "dasarAgenda" };
     if (!data.picEmail) return { success: false, message: "PIC wajib dipilih", field: "pic" };
 
     const ss = getAgendaSpreadsheet();
     const sh = ss.getSheetByName(AGENDA_SHEETS.MASTER_AGENDA);
     const id = Utilities.getUuid();
     const now = new Date();
+    var sumber = data.sumber || deriveSumberFromDasar(data.dasarAgenda || '');
 
     sh.appendRow([
-      id, generateNomorAgenda(), data.judul, data.sumber || "PEGAWAI",
+      id, generateNomorAgenda(), data.judul, sumber,
       data.jenis || "UMUM", data.subbagian || "",
       data.prioritas || "SEDANG", "RENCANA", data.targetOutput || "",
       data.deskripsi || "", data.dasarAgenda || "",
       data.tanggalMulai || "", data.tanggalSelesai || "",
-      data.createdByEmail || "", now, now
+      data.createdByEmail || "", now, now,
+      data.dasarFileUrl || ""
     ]);
 
     // Buat assignment
@@ -204,6 +252,7 @@ function agendaUpdateAgenda(data) {
   try {
     if (!data.id) return { success: false, message: "ID tidak valid" };
 
+    ensureAgendaSheets();
     const ss = getAgendaSpreadsheet();
     const sh = ss.getSheetByName(AGENDA_SHEETS.MASTER_AGENDA);
     const rows = sh.getDataRange().getValues();
@@ -212,7 +261,8 @@ function agendaUpdateAgenda(data) {
       if (rows[i][0] === data.id) {
         const r = i + 1;
         if (data.judul) sh.getRange(r, 3).setValue(data.judul);
-        if (data.sumber) sh.getRange(r, 4).setValue(data.sumber);
+        if (data.sumber !== undefined) sh.getRange(r, 4).setValue(data.sumber);
+        else if (data.dasarAgenda) sh.getRange(r, 4).setValue(deriveSumberFromDasar(data.dasarAgenda));
         if (data.jenis) sh.getRange(r, 5).setValue(data.jenis);
         if (data.subbagian !== undefined) sh.getRange(r, 6).setValue(data.subbagian);
         if (data.prioritas) sh.getRange(r, 7).setValue(data.prioritas);
@@ -222,7 +272,9 @@ function agendaUpdateAgenda(data) {
         if (data.dasarAgenda !== undefined) sh.getRange(r, 11).setValue(data.dasarAgenda);
         if (data.tanggalMulai) sh.getRange(r, 12).setValue(data.tanggalMulai);
         if (data.tanggalSelesai) sh.getRange(r, 13).setValue(data.tanggalSelesai);
+        if (data.dasarFileUrl !== undefined) sh.getRange(r, 17).setValue(data.dasarFileUrl);
         sh.getRange(r, 16).setValue(new Date());
+        SpreadsheetApp.flush();
 
         logAgendaActivity(data.userEmail || "", "UPDATE_AGENDA", data.id);
         clearAgendaCache();
@@ -390,6 +442,7 @@ function formatAgendaRow(row, pegawaiMap) {
     prioritas: row[6], status: row[7],
     targetOutput: row[8], deskripsi: row[9],
     dasarAgenda: row[10],
+    dasarFileUrl: row[16] || '',
     tanggalMulai: row[11] instanceof Date ? Utilities.formatDate(row[11], AGENDA_TIMEZONE, "yyyy-MM-dd") : String(row[11] || ""),
     tanggalSelesai: row[12] instanceof Date ? Utilities.formatDate(row[12], AGENDA_TIMEZONE, "yyyy-MM-dd") : String(row[12] || ""),
     createdByEmail: createdBy,
@@ -664,12 +717,12 @@ function autoSaveLKH(progressId, workflowId, picEmail, namaProgress, realisasi, 
       if (wfRows[w][0] === workflowId) { agendaId = wfRows[w][1]; wfNama = wfRows[w][3]; break; }
     }
 
-    var agendaJudul = "";
+    var agendaJudul = "", agendaJenis = "";
     if (agendaId) {
       var agSh = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.MASTER_AGENDA);
       var agRows = agSh.getDataRange().getValues();
       for (var a = 1; a < agRows.length; a++) {
-        if (agRows[a][0] === agendaId) { agendaJudul = agRows[a][2]; break; }
+        if (agRows[a][0] === agendaId) { agendaJudul = agRows[a][2]; agendaJenis = agRows[a][4]; break; }
       }
     }
 
@@ -684,26 +737,31 @@ function autoSaveLKH(progressId, workflowId, picEmail, namaProgress, realisasi, 
 
     var now = new Date();
     var tglStr = Utilities.formatDate(now, AGENDA_TIMEZONE, "yyyy-MM-dd");
-    var keterangan = (agendaJudul || "") + (wfNama ? " - " + wfNama : "");
+
+    // --- Smart content generation ---
+    var hasilType = jenisToHasilType(agendaJenis || '');
+    var kegiatanLkh = '[' + (agendaJenis || 'UMUM') + '] ' + (agendaJudul || '') + ' — ' + (wfNama || '') + ' — ' + namaProgress;
+    var keteranganLkh = generateKeteranganLKH(hasilType, realisasi, namaProgress, agendaJudul);
+    var hasilLkh = hasilType; // 'Dokumen' or 'Laporan'
 
     if (lkhRefId) {
-      // UPDATE existing LKH record (HASIL, KETERANGAN, TANGGAL)
+      // UPDATE existing LKH record
       if (sh.getLastRow() < 2) return;
       var lkhData = sh.getDataRange().getValues();
       for (var j = 1; j < lkhData.length; j++) {
         if (String(lkhData[j][0] || "").trim() === lkhRefId) {
           var row = j + 1;
-          sh.getRange(row, 5).setValue(tglStr);  // TANGGAL
-          sh.getRange(row, 6).setValue(namaProgress); // KEGIATAN
-          sh.getRange(row, 7).setValue(realisasi); // HASIL
-          sh.getRange(row, 8).setValue(keterangan); // KETERANGAN
+          sh.getRange(row, 5).setValue(tglStr);     // TANGGAL
+          sh.getRange(row, 6).setValue(kegiatanLkh); // KEGIATAN
+          sh.getRange(row, 7).setValue(hasilLkh);    // HASIL
+          sh.getRange(row, 8).setValue(keteranganLkh); // KETERANGAN
           break;
         }
       }
     } else {
       // INSERT new LKH record
       var lkhId = Utilities.getUuid();
-      sh.appendRow([lkhId, picEmail, nip, nama, tglStr, namaProgress, realisasi, keterangan, now, "AGENDA"]);
+      sh.appendRow([lkhId, picEmail, nip, nama, tglStr, kegiatanLkh, hasilLkh, keteranganLkh, now, "AGENDA"]);
 
       // Simpan LKH_REFERENCE_ID ke MASTER_PROGRESS
       if (progRowNum > 0) {
@@ -970,6 +1028,7 @@ function getProgressSelesaiForLKH(userEmail) {
             result.push({
               agendaId: agenda.id,
               agendaJudul: agenda.judul,
+              agendaJenis: agenda.jenis || '',
               workflowNama: wf.namaWorkflow,
               progressId: p.id,
               progressNama: p.namaProgress,

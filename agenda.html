@@ -150,9 +150,47 @@
         <!-- STEP 1 -->
         <div class="wizard-body" id="wizardStep1">
             <div class="form-group"><label>Judul Agenda <span style="color:#dc2626;">*</span></label><input type="text" id="fJudul" class="form-control" placeholder="Judul agenda" required></div>
-            <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;">
-                <div class="form-group"><label>Sumber</label><select id="fSumber" class="form-control"><option value="PEGAWAI">Pegawai</option><option value="RAPAT">Rapat</option><option value="NOTULEN">Notulen</option><option value="PIMPINAN">Pimpinan</option></select></div>
-                <div class="form-group"><label>Jenis</label><select id="fJenis" class="form-control"><option value="UMUM">Umum</option><option value="COKTAS">Coktas</option><option value="PELNO">Pelno</option><option value="RAKOR">Rakor</option><option value="BIMTEK">Bimtek</option><option value="SOSIALISASI">Sosialisasi</option><option value="PLENO">Pleno</option></select></div>
+            <div class="form-group" style="margin-top:16px;"><label>Jenis Kegiatan</label>
+                <select id="fJenis" class="form-control">
+                    <option value="">Pilih jenis kegiatan</option>
+                    <optgroup label="🗳️ Tahapan Pemilu">
+                        <option value="COKLIT">Coklit — Pencocokan & Penelitian</option>
+                        <option value="COKTAS">Coktas — Pengawasan</option>
+                        <option value="PLENO">Pleno</option>
+                        <option value="PLENO_TERBUKA">Pleno Terbuka</option>
+                        <option value="REKAPITULASI">Rekapitulasi</option>
+                    </optgroup>
+                    <optgroup label="🤝 Rapat & Koordinasi">
+                        <option value="RAKOR">Rakor — Rapat Koordinasi</option>
+                        <option value="RAPAT_INTERNAL">Rapat Internal</option>
+                        <option value="BRIEFING">Briefing</option>
+                        <option value="EVALUASI">Evaluasi</option>
+                        <option value="FGD">FGD — Focus Group Discussion</option>
+                    </optgroup>
+                    <optgroup label="📚 Pembinaan & Diseminasi">
+                        <option value="BIMTEK">Bimtek — Bimbingan Teknis</option>
+                        <option value="SOSIALISASI">Sosialisasi</option>
+                        <option value="WORKSHOP">Workshop</option>
+                        <option value="DISEMINASI">Diseminasi</option>
+                    </optgroup>
+                    <optgroup label="📋 Administrasi & Pelaporan">
+                        <option value="PENYUSUNAN">Penyusunan</option>
+                        <option value="VERIFIKASI">Verifikasi</option>
+                        <option value="PELAPORAN">Pelaporan</option>
+                        <option value="MONITORING">Monitoring</option>
+                        <option value="FASILITASI">Fasilitasi</option>
+                    </optgroup>
+                    <optgroup label="🎯 Layanan & Protokol">
+                        <option value="KEHUMASAN">Kehumasan</option>
+                        <option value="PELAYANAN_PUBLIK">Pelayanan Publik</option>
+                        <option value="PERSIDANGAN">Persidangan</option>
+                        <option value="PROTOKOL">Protokol</option>
+                    </optgroup>
+                    <optgroup label="🔧 Lainnya">
+                        <option value="UMUM">Umum</option>
+                        <option value="LAINNYA">Lainnya</option>
+                    </optgroup>
+                </select>
             </div>
             <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;">
                 <div class="form-group"><label>Prioritas</label><select id="fPrioritas" class="form-control"><option value="RENDAH">Rendah</option><option value="SEDANG" selected>Sedang</option><option value="TINGGI">Tinggi</option><option value="MENDESAK">Mendesak</option></select></div>
@@ -214,17 +252,39 @@
                 <div class="form-group"><label>Tanggal Mulai</label><input type="date" id="fTglMulai" class="form-control"></div>
                 <div class="form-group"><label>Target Selesai</label><input type="date" id="fTglSelesai" class="form-control"></div>
             </div>
-            <div class="form-group" style="margin-top:16px;"><label>Dasar Agenda</label>
-                <select id="fDasarAgenda" class="form-control">
+            <div class="form-group" style="margin-top:16px;"><label>Dasar Agenda <span style="color:#dc2626;">*</span></label>
+                <select id="fDasarAgenda" class="form-control" onchange="onDasarAgendaChange()">
                     <option value="">Pilih dasar agenda</option>
-                    <option value="HASIL_RAPAT_PLENO">Hasil Rapat Pleno</option>
-                    <option value="DISPOSISI_SEKRETARIS">Disposisi Sekretaris</option>
-                    <option value="INSTRUKSI_KETUA">Instruksi Ketua</option>
-                    <option value="AGENDA_PRIBADI">Agenda Pribadi</option>
-                    <option value="MONITORING">Monitoring</option>
-                    <option value="LAINNYA">Lainnya</option>
+                    <option value="HASIL_RAPAT_PLENO">📋 Hasil Rapat Pleno</option>
+                    <option value="HASIL_RAPAT_INTERNAL_SEKRE">📋 Hasil Rapat Internal Sekretariat</option>
+                    <option value="RAPAT_INTERNAL_SUBBAG">📋 Rapat Internal Subbagian</option>
+                    <option value="SURAT_PERINTAH_TUGAS">📄 Surat Perintah / Surat Tugas</option>
+                    <option value="DISPOSISI_PIMPINAN">📝 Disposisi / Instruksi Pimpinan</option>
+                    <option value="INSTRUKSI_LANGSUNG">🎯 Instruksi Langsung</option>
+                    <option value="KEGIATAN_RUTIN">🔄 Kegiatan Rutin</option>
+                    <option value="LAINNYA">🔧 Lainnya</option>
                 </select>
             </div>
+
+            <!-- Dasar Agenda: conditional fields untuk RAPAT -->
+            <div id="dasarRapatContainer" style="display:none;margin-top:12px;padding:12px;background:#f8fafc;border-radius:12px;">
+                <div class="form-group"><label>Pilih Notulen Terkait</label>
+                    <select id="fDasarNotulen" class="form-control" onchange="onDasarNotulenChange()">
+                        <option value="">Tidak ada / Notulen di luar sistem</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-top:8px;"><label>Atau link notulen / dokumen rapat</label>
+                    <input type="url" id="fDasarNotulenLink" class="form-control" placeholder="https://drive.google.com/...">
+                </div>
+            </div>
+
+            <!-- Dasar Agenda: conditional fields untuk SURAT/DISPOSISI/LAINNYA -->
+            <div id="dasarDokumenContainer" style="display:none;margin-top:12px;padding:12px;background:#f8fafc;border-radius:12px;">
+                <div class="form-group"><label>Link Dokumen Pendukung</label>
+                    <input type="url" id="fDasarDokumenLink" class="form-control" placeholder="https://drive.google.com/...">
+                </div>
+            </div>
+
             <div class="form-group" style="margin-top:16px;"><label>Catatan</label>
                 <textarea id="fCatatan" class="form-control" rows="2" placeholder="Catatan tambahan"></textarea>
             </div>
@@ -442,21 +502,86 @@ function getStatusBadge(a) {
 }
 
 // =============================================
-// WIZARD — 3 LANGKAH
+// WIZARD — 3 LANGKAH + DASAR AGENDA
 // =============================================
+var _notulenList = [];
+
+function loadNotulenForDasar() {
+  google.script.run.withSuccessHandler(function(r) {
+    _notulenList = (r.success && r.data) ? r.data : [];
+    var sel = document.getElementById('fDasarNotulen');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">Tidak ada / Notulen di luar sistem</option>';
+    _notulenList.forEach(function(n) {
+      sel.innerHTML += '<option value="' + esc(n.id) + '">' + esc(n.tanggal) + ' — ' + esc(n.judul) + '</option>';
+    });
+  }).withFailureHandler(function() {}).getListNotulen({});
+}
+
+function onDasarAgendaChange() {
+  var val = document.getElementById('fDasarAgenda').value;
+  var rapatOptions = ['HASIL_RAPAT_PLENO','HASIL_RAPAT_INTERNAL_SEKRE','RAPAT_INTERNAL_SUBBAG'];
+  var dokumenOptions = ['SURAT_PERINTAH_TUGAS','DISPOSISI_PIMPINAN','INSTRUKSI_LANGSUNG','LAINNYA'];
+  var isRapat = rapatOptions.indexOf(val) !== -1;
+  var isDokumen = dokumenOptions.indexOf(val) !== -1;
+  document.getElementById('dasarRapatContainer').style.display = isRapat ? 'block' : 'none';
+  document.getElementById('dasarDokumenContainer').style.display = isDokumen ? 'block' : 'none';
+  if (isRapat) loadNotulenForDasar();
+}
+
+function onDasarNotulenChange() {
+  var id = document.getElementById('fDasarNotulen').value;
+  if (!id) return;
+  var n = null;
+  for (var i = 0; i < _notulenList.length; i++) {
+    if (_notulenList[i].id === id) { n = _notulenList[i]; break; }
+  }
+  if (n && n.driveUrl) {
+    document.getElementById('fDasarNotulenLink').value = n.driveUrl;
+  }
+}
+
+function getDasarFileUrl() {
+  var val = document.getElementById('fDasarAgenda').value;
+  if (!val) return '';
+  var rapatOptions = ['HASIL_RAPAT_PLENO','HASIL_RAPAT_INTERNAL_SEKRE','RAPAT_INTERNAL_SUBBAG'];
+  var dokumenOptions = ['SURAT_PERINTAH_TUGAS','DISPOSISI_PIMPINAN','INSTRUKSI_LANGSUNG','LAINNYA'];
+  if (rapatOptions.indexOf(val) !== -1) {
+    // Prioritas: pilih notulen > link manual
+    var selVal = document.getElementById('fDasarNotulen').value;
+    var linkVal = document.getElementById('fDasarNotulenLink').value.trim();
+    if (selVal) {
+      var n = null;
+      for (var i = 0; i < _notulenList.length; i++) {
+        if (_notulenList[i].id === selVal) { n = _notulenList[i]; break; }
+      }
+      if (n && n.driveUrl) return n.driveUrl;
+    }
+    return linkVal;
+  }
+  if (dokumenOptions.indexOf(val) !== -1) {
+    return document.getElementById('fDasarDokumenLink').value.trim();
+  }
+  return '';
+}
+
 function openWizard() {
   wizardStep = 1; lkhSelectedProgress = [];
   document.getElementById('wizardEditId').value = '';
   document.getElementById('wizardTitle').textContent = 'Buat Agenda Baru';
   // Reset form
-  ['fJudul','fTargetOutput','fDeskripsi','fCatatan'].forEach(id => document.getElementById(id).value='');
-  document.getElementById('fSumber').value='PEGAWAI';
-  document.getElementById('fJenis').value='UMUM';
+  ['fJudul','fTargetOutput','fDeskripsi','fCatatan','fDasarNotulenLink','fDasarDokumenLink'].forEach(id => {
+    var el=document.getElementById(id); if (el) el.value='';
+  });
+  document.getElementById('fJenis').value='';
   document.getElementById('fPrioritas').value='SEDANG';
   document.getElementById('fDasarAgenda').value='';
+  document.getElementById('fDasarNotulen').innerHTML='<option value="">Tidak ada / Notulen di luar sistem</option>';
   document.getElementById('fTglMulai').value='';
   document.getElementById('fTglSelesai').value='';
   document.getElementById('fPIC').value=currentUser.email;
+  document.getElementById('dasarRapatContainer').style.display='none';
+  document.getElementById('dasarDokumenContainer').style.display='none';
   selectAssignment('SELF');
   showStep(1);
   document.getElementById('modalWizard').style.display='flex';
@@ -483,12 +608,21 @@ function wizardNext() {
   if (wizardStep===1) {
     const judul = document.getElementById('fJudul').value.trim();
     if (!judul) { Swal.fire('Validasi','Judul agenda wajib diisi','warning'); return; }
+    const jenis = document.getElementById('fJenis').value;
+    if (!jenis) { Swal.fire('Validasi','Jenis kegiatan wajib dipilih','warning'); return; }
   }
   if (wizardStep===2) {
     const pic = document.getElementById('fPIC').value;
     if (!pic) { Swal.fire('Validasi','PIC wajib dipilih','warning'); return; }
   }
   if (wizardStep<3) showStep(wizardStep+1);
+}
+
+// Validasi tambahan saat simpan
+function validateWizardStep3() {
+  const dasar = document.getElementById('fDasarAgenda').value;
+  if (!dasar) { Swal.fire('Validasi','Dasar agenda wajib dipilih','warning'); return false; }
+  return true;
 }
 
 function selectAssignment(type, evt) {
@@ -524,6 +658,7 @@ function saveAgendaWizard() {
   const picEmail = document.getElementById('fPIC').value;
   if (!judul) { Swal.fire('Validasi','Judul wajib diisi','warning'); return; }
   if (!picEmail) { Swal.fire('Validasi','PIC wajib dipilih','warning'); return; }
+  if (!validateWizardStep3()) return;
 
   const anggotaEmail = [];
   const anggotaSel = document.getElementById('fAnggota');
@@ -531,13 +666,13 @@ function saveAgendaWizard() {
 
   const payload = {
     judul, picEmail,
-    sumber: document.getElementById('fSumber').value,
     jenis: document.getElementById('fJenis').value,
     prioritas: document.getElementById('fPrioritas').value,
     subbagian: document.getElementById('fSubbag').value,
     deskripsi: document.getElementById('fDeskripsi').value.trim(),
     targetOutput: document.getElementById('fTargetOutput').value.trim(),
     dasarAgenda: document.getElementById('fDasarAgenda').value,
+    dasarFileUrl: getDasarFileUrl(),
     tanggalMulai: document.getElementById('fTglMulai').value,
     tanggalSelesai: document.getElementById('fTglSelesai').value,
     assignmentType: document.getElementById('fAssignmentType').value,
@@ -561,8 +696,7 @@ function openEditAgenda(id) { const a = currentAgendaList.find(x=>x.id===id); if
   document.getElementById('wizardEditId').value = id;
   document.getElementById('wizardTitle').textContent = 'Edit Agenda';
   document.getElementById('fJudul').value = a.judul||'';
-  document.getElementById('fSumber').value = a.sumber||'PEGAWAI';
-  document.getElementById('fJenis').value = a.jenis||'UMUM';
+  document.getElementById('fJenis').value = a.jenis||'';
   document.getElementById('fPrioritas').value = a.prioritas||'SEDANG';
   document.getElementById('fSubbag').value = a.subbagian||'';
   document.getElementById('fDeskripsi').value = a.deskripsi||'';
@@ -570,6 +704,10 @@ function openEditAgenda(id) { const a = currentAgendaList.find(x=>x.id===id); if
   document.getElementById('fTglMulai').value = a.tanggalMulai||'';
   document.getElementById('fTglSelesai').value = a.tanggalSelesai||'';
   document.getElementById('fPIC').value = a.picEmail||'';
+  document.getElementById('fDasarAgenda').value = a.dasarAgenda||'';
+  document.getElementById('fDasarNotulenLink').value = a.dasarFileUrl||'';
+  document.getElementById('fDasarDokumenLink').value = a.dasarFileUrl||'';
+  onDasarAgendaChange();
   selectAssignment('SELF');
   showStep(1);
   document.getElementById('modalWizard').style.display='flex';
@@ -613,7 +751,9 @@ function renderDetail(r) {
   document.getElementById('detailTglMulai').textContent = a.tanggalMulai||'-';
   document.getElementById('detailTenggat').textContent = a.tanggalSelesai||'-';
   document.getElementById('detailDeskripsi').textContent = a.deskripsi||'-';
-  document.getElementById('detailDasar').textContent = a.dasarAgenda||'-';
+  var dasarHtml = esc(a.dasarAgenda||'-');
+  if (a.dasarFileUrl) dasarHtml += ' <a href="' + esc(a.dasarFileUrl) + '" target="_blank" style="color:#3b82f6;font-size:12px;text-decoration:underline;"><i class="fas fa-external-link-alt"></i> Lampiran</a>';
+  document.getElementById('detailDasar').innerHTML = dasarHtml;
   document.getElementById('detailOutput').textContent = a.targetOutput||'-';
   window._currentWorkflows = r.workflows || [];
   renderAssignments(r.assignments||[]);
@@ -910,12 +1050,12 @@ function submitLKH() {
   const selected = lkhSelectedProgress.map(i => data[i]).filter(Boolean);
   if (!selected.length) return;
 
-  // Build LKH entries
+  // Build LKH entries with smart content generation
   const lkhEntries = selected.map(p => ({
     tanggal: p.tanggalSelesai ? p.tanggalSelesai.substring(0,10) : new Date().toISOString().split('T')[0],
-    kegiatan: p.progressNama + ' - ' + p.workflowNama + ' (' + p.agendaJudul + ')',
-    hasil: p.realisasi || 'Selesai',
-    keterangan: 'Dari modul Agenda & Tindak Lanjut'
+    kegiatan: '[' + (p.agendaJenis || 'UMUM') + '] ' + (p.agendaJudul || '') + ' — ' + (p.workflowNama || '') + ' — ' + (p.progressNama || ''),
+    hasil: p.agendaJenis && ['REKAPITULASI','PELAPORAN','MONITORING','EVALUASI','RAKOR','RAPAT_INTERNAL','BRIEFING','RAPAT'].indexOf(p.agendaJenis) !== -1 ? 'Laporan' : 'Dokumen',
+    keterangan: (p.realisasi || 'Kegiatan ' + (p.progressNama || '') + ' telah terlaksana dengan baik.') + ' ' + (p.agendaJenis && ['REKAPITULASI','PELAPORAN','MONITORING','EVALUASI','RAKOR','RAPAT_INTERNAL','BRIEFING','RAPAT'].indexOf(p.agendaJenis) !== -1 ? 'Laporan telah disusun dengan baik.' : 'Dokumen telah selesai dibuat.')
   }));
 
   // Kirim ke LKH (gunakan fungsi yang sudah ada di Code.gs)

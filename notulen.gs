@@ -206,9 +206,10 @@ function simpanNotulen(data) {
     for (var p2 = 0; p2 < poinList.length; p2++) {
       var poin = poinList[p2];
       if (poin.tindakLanjut === 'BUAT_AGENDA') {
+        var kepalaEmail = getKepalaSubbagEmail(poin.assignSubbag);
         var result = createAgenda({
           judul: '[Notulen] ' + poin.isi.substring(0, 100),
-          picEmail: data.userEmail,
+          picEmail: kepalaEmail || data.userEmail,
           sumber: 'RAPAT',
           jenis: data.jenis === 'RAPAT_PLENO' ? 'PLENO' : 'UMUM',
           subbagian: poin.assignSubbag || '',
@@ -316,9 +317,10 @@ function updateNotulen(data) {
     for (var p3 = 0; p3 < poinList.length; p3++) {
       var poin = poinList[p3];
       if (poin.tindakLanjut === 'BUAT_AGENDA') {
+        var kepalaEmail = getKepalaSubbagEmail(poin.assignSubbag);
         var result = createAgenda({
           judul: '[Notulen] ' + poin.isi.substring(0, 100),
-          picEmail: data.userEmail,
+          picEmail: kepalaEmail || data.userEmail,
           sumber: 'RAPAT',
           jenis: data.jenis === 'RAPAT_PLENO' ? 'PLENO' : 'UMUM',
           subbagian: poin.assignSubbag || '',
@@ -342,6 +344,29 @@ function updateNotulen(data) {
     };
   } catch (err) {
     return { success: false, message: err.message };
+  }
+}
+
+// =============================================
+// GET KEPALA SUBBAG (from MASTER_PEGAWAI)
+// =============================================
+function getKepalaSubbagEmail(subbag) {
+  if (!subbag) return null;
+  try {
+    var list = getAllPegawai();
+    var firstInSubbag = null;
+    for (var i = 0; i < list.length; i++) {
+      var p = list[i];
+      if (p.subbag !== subbag) continue;
+      if (!firstInSubbag) firstInSubbag = p;
+      if (p.jabatan && p.jabatan.toUpperCase().indexOf('KEPALA') !== -1) {
+        return p.email;
+      }
+    }
+    return firstInSubbag ? firstInSubbag.email : null;
+  } catch (err) {
+    console.error('getKepalaSubbagEmail error:', err.message);
+    return null;
   }
 }
 
