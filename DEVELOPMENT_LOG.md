@@ -13,7 +13,8 @@
 | 7 | Rebranding E-LKH → E-OFFICE + Sidebar Grup | ✅ Selesai |
 | 8 | Notulen Rapat (Fase 1: Backend + Form Dasar) | ✅ Selesai |
 | 9 | Notulen Rapat (Fase 2: 4-Step Wizard + DB Standalone) | ✅ Selesai |
-| 10 | Testing & validasi | ⏳ Pending |
+| 10 | Notulen Rapat (Fase 3: Edit + File Upload + Folder per Tanggal) | ✅ Selesai |
+| 11 | Testing & validasi | ⏳ Pending |
 
 ---
 
@@ -37,12 +38,25 @@
 - [x] Notulen 4-step wizard: Info → Jalannya Rapat → Poin & TL → Review
 - [x] Auto-save draft ke localStorage + resume
 - [x] Database Notulen terpisah: NOTULEN + JALANNYA_RAPAT + POIN_RAPAT
+- [x] Update notulen folder structure: `E-OFFICE/NOTULEN/{tahun}/{bulan}/{tanggal}/`
+- [x] Backend updateNotulen: edit notulen + re-generate file Drive + TL actions
+- [x] Backend uploadUndanganFile: upload file asli ke folder tanggal
+- [x] Frontend Edit Notulen: tombol edit di detail modal, pre-fill form wizard
+- [x] Frontend Upload File Undangan: ganti input link jadi file upload + fallback link
 - [ ] Testing CRUD end-to-end
 - [ ] UAT
 
 ---
 
 ## Change Log
+
+### v2.5.0 — 3 Jul 2026 (Notulen Edit + Upload File + Folder per Tanggal)
+- **[New] Edit Notulen (`updateNotulen`)**: Fungsi backend untuk mengupdate notulen existing — update row di sheet NOTULEN, hapus-reinsert JALANNYA & POIN, re-generate file .txt di Drive, dan menjalankan TL actions (BUAT_AGENDA / UPDATE_PROGRES)
+- **[New] Upload File Undangan (`uploadUndanganFile`)**: Upload file asli (PDF/DOC/JPG/dll) ke folder Drive, bukan lagi hanya link text. Nama file otomatis diberi prefix `undangan_{8char_id}_`. Tetap ada fallback `uploadUndanganLink` untuk link manual
+- **[New] Tombol Edit di Detail Modal**: Setiap detail notulen kini punya tombol "Edit" yang memuat ulang data ke wizard 4-step untuk diedit
+- **[Ubah] Folder Drive Notulen**: Dari `E-OFFICE/NOTULEN/{tahun}/{bulan}/` menjadi `E-OFFICE/NOTULEN/{tahun}/{bulan}/{tanggal}/` — memudahkan pencarian per hari karena dalam 1 minggu bisa beberapa kali rapat
+- **[Ubah] Frontend Upload Modal**: Input link diganti jadi input file (`<input type="file">`) dengan opsi fallback link jika pengguna lebih suka upload manual ke Drive
+- **[Fix] Date Serialization**: Konversi Date object ke string `yyyy-MM-dd` via `_fmtDate()` sebelum dikirim ke frontend — `google.script.run` gagal serialisasi Date object, mengakibatkan frontend menerima `null`
 
 ### v2.4.0 — 2 Jul 2026 (Notulen 4-Step Wizard + DB Standalone)
 - **[New] DB Notulen Terpisah**: Spreadsheet `1hC8lzsHoukbQIfv-JNmZzx3u5pBoU7uY7bmktgU2_uA` dengan 3 sheet:
@@ -128,9 +142,10 @@
 - **`.gitignore`**: File ignores untuk OS dan log
 
 ### Planned
-- v2.5 — Auto-generate PDF Notulen
-- v2.5 — Notifikasi email assignment
-- v2.6 — Template Coktas/Pelno/Rakor/Bimtek/Sosialisasi/Pleno
+- v2.6 — Auto-generate PDF Notulen
+- v2.6 — Notifikasi email assignment
+- v2.7 — Template Coktas/Pelno/Rakor/Bimtek/Sosialisasi/Pleno
+- v2.8 — Agenda: folder per subbag + upload evidence ke Drive
 - v3.0 — Approval workflow
 - v3.1 — Komentar
 
@@ -158,7 +173,7 @@
 ### Automatisasi
 - Poin dengan `BUAT_AGENDA` → `createAgenda()` di spreadsheet `1-xohP9CXPUIOL8Ar8L_L3xTOfs_S6fMkUj098nmyE10`
 - Poin dengan `UPDATE_PROGRES` → append catatan ke `MASTER_PROGRESS`
-- Backup .txt ke Drive: `E-OFFICE/NOTULEN/{TAHUN}/{BULAN}/`
+- Backup .txt notulen + upload undangan ke Drive: `E-OFFICE/NOTULEN/{TAHUN}/{BULAN}/{TANGGAL}/`
 
 ---
 
@@ -168,7 +183,9 @@
 - **4-step wizard** dengan auto-save localStorage: user bisa mulai, simpan draft, lanjut kapan saja
 - **Jalannya Rapat sebagai array bebas**: tidak ada struktur fixed — notulis bebas input kronologis
 - **Tidak ada upload/export PDF**: akan diganti auto-generate PDF di fase berikutnya
-- **Folder Drive**: `E-OFFICE/NOTULEN/{TAHUN}/{BULAN}/` untuk backup .txt notulen
+- **Folder Drive**: `E-OFFICE/NOTULEN/{TAHUN}/{BULAN}/{TANGGAL}/` untuk backup .txt notulen + file undangan — struktur per tanggal karena 1 hari bisa >1 rapat
+- **Edit notulen**: Data JALANNYA_RAPAT & POIN_RAPAT di-delete lalu re-insert (bukan update per baris) — simpel, konsisten, hindari kompleksitas tracking perubahan
+- **Upload file undangan**: File disimpan di folder tanggal yang sama dengan notulen, nama prefix `undangan_` — memudahkan pencarian bot Telegram via `getFilesByName()`
 
 ---
 
@@ -176,6 +193,7 @@
 - `AGENDA_MASTER_SHEET_ID` variable name in `backend_agenda.gs` is misleading (points to E-LKH spreadsheet, not an agenda master sheet) — cosmetic only
 - Hardcoded deployment URL in `agenda.html` sidebar E-LKH link — must be updated on redeploy
 - `notulen_draft` localStorage key tidak dibedakan per user — jika multi-user di device sama, draft bisa tertimpa
+- `updateNotulen` delete & re-insert JALANNYA + POIN — jika ada error di tengah, data child bisa hilang tanpa rollback
 
 ---
 
@@ -184,7 +202,8 @@
 - **Agenda tindak lanjut spreadsheet**: `1-xohP9CXPUIOL8Ar8L_L3xTOfs_S6fMkUj098nmyE10`
 - **Master pegawai spreadsheet**: `1JivPdetUS5lu5ZjJveqwhpKhwU5r0QiRb4GtJGXxDtA`
 - **URL base external**: `https://script.google.com/macros/s/AKfycbxejATwEFa6KmgBqjxFGiA2L_mEJGG0-CaHGsaIyxedRz5_vGA-QiAIhSE-mYwXFY_E/exec`
-- **All notulen JS functions** are in `index.html` (lines ~1452-1950 area)
-- **All notulen backend** is in `notulen.gs` (standalone, self-contained)
+- **All notulen JS functions** are in `index.html` (lines ~1452-2245 area)
+- **All notulen backend** is in `notulen.gs` (standalone, self-contained, 600 lines)
+- **Notulen endpoints**: `getListNotulen`, `getDetailNotulen`, `simpanNotulen`, `updateNotulen`, `uploadUndanganFile`, `uploadUndanganLink`, `hapusNotulen`, `getListAgendaForNotulen`
 - **CSS for step wizard & notulen badges** is in `style.html`
 - **Menu navigation** uses `switchMenu()` SPA pattern in `index.html`

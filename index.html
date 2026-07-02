@@ -551,13 +551,15 @@
                                 class="fas fa-times"></i></button>
                     </div>
                     <div style="margin:16px 0;">
-                        <p style="font-size:14px;color:#64748b;margin-bottom:16px;">Upload undangan rapat ke Google
-                            Drive, lalu tempel link-nya di sini.</p>
+                        <p style="font-size:14px;color:#64748b;margin-bottom:16px;">Pilih file undangan rapat (PDF, DOC, JPG, dll).</p>
                         <input type="hidden" id="uploadUndanganNotulenId">
                         <div class="form-group">
-                            <label>Link Google Drive</label>
-                            <input type="url" id="uploadUndanganLink" class="form-control"
-                                placeholder="https://drive.google.com/file/d/...">
+                            <label>File Undangan</label>
+                            <input type="file" id="uploadUndanganFileInput" class="form-control" accept=".pdf,.doc,.docx,.jpg,.png,.xlsx,.xls">
+                        </div>
+                        <div id="undanganLinkUpload" style="margin-top:12px;padding:8px 12px;background:#f8fafc;border-radius:8px;">
+                            <p style="font-size:12px;color:#64748b;margin:0 0 4px;">Atau tempel link Google Drive:</p>
+                            <input type="url" id="uploadUndanganLink" class="form-control" style="font-size:13px;" placeholder="https://drive.google.com/file/d/...">
                         </div>
                     </div>
                     <div style="display:flex;gap:8px;justify-content:flex-end;">
@@ -1955,19 +1957,22 @@
         }
 
         function resetFormState() {
-            notulenPoinCount = 0;
+            editingNotulenId = null;
+            notulenCurrentStep = 1;
             notulenPembahasanCount = 0;
-
-            document.getElementById('notulenPoinContainer').innerHTML = '' +
-                '<div class="empty-state" id="notulenEmptyState">' +
-                '<i class="fas fa-list"></i><h3>Belum Ada Poin</h3><p>Klik "Tambah Poin" untuk mencatat hasil rapat</p>' +
-                '</div>';
-
+            notulenPoinCount = 0;
             document.getElementById('pembahasanContainer').innerHTML = '' +
                 '<div class="empty-state" id="pembahasanEmptyState">' +
-                '<i class="fas fa-comment-dots"></i><h3>Belum Ada Catatan</h3><p>Klik "Tambah" untuk mulai mencatat jalannya rapat</p>' +
+                '<i class="fas fa-comment-dots"></i>' +
+                '<h3>Belum Ada Catatan</h3>' +
+                '<p>Klik "Tambah" untuk mulai mencatat jalannya rapat</p>' +
                 '</div>';
-
+            document.getElementById('notulenPoinContainer').innerHTML = '' +
+                '<div class="empty-state" id="notulenEmptyState">' +
+                '<i class="fas fa-list"></i>' +
+                '<h3>Belum Ada Poin</h3>' +
+                '<p>Klik "Tambah Poin" untuk mencatat hasil rapat</p>' +
+                '</div>';
             document.getElementById('notulenJudul').value = '';
             document.getElementById('notulenJenis').value = '';
             document.getElementById('notulenPimpinan').value = '';
@@ -1988,8 +1993,25 @@
             if (!draft.info.judul) { Swal.fire('Validasi', 'Judul rapat wajib diisi', 'warning'); return; }
 
             var profile = window.currentUser || JSON.parse(localStorage.getItem('userProfile') || '{}');
+            var isEdit = !!editingNotulenId;
 
-            showLoading('Menyimpan notulen ke database...');
+            showLoading(isEdit ? 'Memperbarui notulen...' : 'Menyimpan notulen ke database...');
+
+            var payload = {
+                tanggal: draft.info.tanggal,
+                jenis: draft.info.jenis,
+                judul: draft.info.judul,
+                pimpinan: draft.info.pimpinan || '',
+                notulis: draft.info.notulis || '',
+                undangan: draft.info.undangan || '',
+                userEmail: profile.email,
+                jalannyaList: draft.jalannyaRapat || [],
+                poinList: draft.poinList || []
+            };
+
+            if (isEdit) payload.id = editingNotulenId;
+
+            var fnName = isEdit ? 'updateNotulen' : 'simpanNotulen';
 
             google.script.run
                 .withSuccessHandler(function (res) {
@@ -1997,8 +2019,16 @@
                     if (!res) { Swal.fire('Error', 'Tidak ada respons dari server. Coba refresh halaman.', 'error'); return; }
                     if (res.success) {
                         clearDraft();
-                        Swal.fire('Berhasil', 'Notulen berhasil disimpan' + (res.agendaCount ? '. ' + res.agendaCount + ' agenda dibuat.' : ''), 'success');
+                        editingNotulenId = null;
+                        var searchInput = document.getElementById('notulenSearch');
+                        var filterSelect = document.getElementById('notulenFilterJenis');
+                        if (searchInput) searchInput.value = '';
+                        if (filterSelect) filterSelect.value = '';
+                        Swal.fire('Berhasil', isEdit ? 'Notulen diperbarui' : 'Notulen berhasil disimpan' + (res.agendaCount ? '. ' + res.agendaCount + ' agenda dibuat.' : ''), 'success');
                         showNotulenView('list');
+                        if (typeof loadNotulenList === 'function') {
+                            setTimeout(loadNotulenList, 100);
+                        }
                     } else {
                         Swal.fire('Gagal', res.message || 'Terjadi kesalahan', 'error');
                     }
@@ -2006,18 +2036,7 @@
                 .withFailureHandler(function (err) {
                     hideLoading();
                     Swal.fire('Error', err.message || 'Gagal menyimpan notulen', 'error');
-                })
-                .simpanNotulen({
-                    tanggal: draft.info.tanggal,
-                    jenis: draft.info.jenis,
-                    judul: draft.info.judul,
-                    pimpinan: draft.info.pimpinan || '',
-                    notulis: draft.info.notulis || '',
-                    undangan: draft.info.undangan || '',
-                    userEmail: profile.email,
-                    jalannyaList: draft.jalannyaRapat || [],
-                    poinList: draft.poinList || []
-                });
+                })[fnName](payload);
         }
 
         // ======================
@@ -2053,7 +2072,10 @@
             google.script.run
                 .withSuccessHandler(function (res) {
                     console.log("SUCCESS :", res);
-            
+                    if (!res) {
+                        container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><h3>Gagal memuat data</h3><p>Respons server kosong. Silakan refresh halaman.</p></div>';
+                        return;
+                    }
                     if (res.success && res.data) {
                         var list = res.data;
                         if (filterJenis) list = list.filter(function (n) { return n.jenis === filterJenis; });
@@ -2092,11 +2114,12 @@
                         });
                         container.innerHTML = html;
                     } else {
-                        container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><h3>Gagal memuat data</h3></div>';
+                        container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><h3>Gagal memuat data</h3><p>' + (res.message || 'Terjadi kesalahan') + '</p></div>';
                     }
                 })
-                .withFailureHandler(function () {
-                    container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>Error koneksi</h3></div>';
+                .withFailureHandler(function (err) {
+                    console.error('getListNotulen error:', err);
+                    container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>Error koneksi</h3><p>' + (err && err.message ? err.message : 'Tidak dapat tersambung ke server') + '</p></div>';
                 })
                 .getListNotulen({});
         }
@@ -2166,6 +2189,7 @@
                             '<hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0;">' +
                             '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
                             '<button class="btn-secondary" onclick="closeModalDetailNotulen()"><i class="fas fa-times"></i> Tutup</button>' +
+                            '<button class="btn-primary" onclick="closeModalDetailNotulen();editNotulen(\'' + n.id + '\')"><i class="fas fa-edit"></i> Edit</button>' +
                             '<button class="btn-secondary" onclick="closeModalDetailNotulen();showUndanganUpload(\'' + n.id + '\')"><i class="fas fa-paperclip"></i> Upload Undangan</button>' +
                             '</div>' +
                             '</div>';
@@ -2185,6 +2209,7 @@
 
         function showUndanganUpload(id) {
             document.getElementById('uploadUndanganNotulenId').value = id;
+            document.getElementById('uploadUndanganFileInput').value = '';
             document.getElementById('uploadUndanganLink').value = '';
             document.getElementById('modalUploadUndangan').style.display = 'flex';
         }
@@ -2195,18 +2220,87 @@
 
         function submitUploadUndangan() {
             var id = document.getElementById('uploadUndanganNotulenId').value;
+            var fileInput = document.getElementById('uploadUndanganFileInput');
             var link = document.getElementById('uploadUndanganLink').value.trim();
-            if (!link) { Swal.fire('Validasi', 'Link undangan wajib diisi', 'warning'); return; }
-            showLoading('Menyimpan undangan...');
+
+            if (fileInput.files && fileInput.files.length > 0) {
+                var file = fileInput.files[0];
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    var base64 = e.target.result.split(',')[1];
+                    showLoading('Mengupload file undangan...');
+                    google.script.run
+                        .withSuccessHandler(function (res) {
+                            hideLoading();
+                            if (!res) { Swal.fire('Error', 'Tidak ada respons.', 'error'); return; }
+                            if (res.success) { Swal.fire('Berhasil', 'Undangan berhasil diupload', 'success'); closeModalUploadUndangan(); loadNotulenList(); }
+                            else { Swal.fire('Gagal', res.message || 'Terjadi kesalahan', 'error'); }
+                        })
+                        .withFailureHandler(function (err) { hideLoading(); Swal.fire('Error', err.message, 'error'); })
+                        .uploadUndanganFile({ id: id, base64: base64, namaFile: file.name, mimeType: file.type });
+                };
+                reader.readAsDataURL(file);
+            } else if (link) {
+                showLoading('Menyimpan link undangan...');
+                google.script.run
+                    .withSuccessHandler(function (res) {
+                        hideLoading();
+                        if (!res) { Swal.fire('Error', 'Tidak ada respons.', 'error'); return; }
+                        if (res.success) { Swal.fire('Berhasil', 'Link undangan disimpan', 'success'); closeModalUploadUndangan(); loadNotulenList(); }
+                        else { Swal.fire('Gagal', res.message || 'Terjadi kesalahan', 'error'); }
+                    })
+                    .withFailureHandler(function (err) { hideLoading(); Swal.fire('Error', err.message, 'error'); })
+                    .uploadUndanganLink({ id: id, link: link });
+            } else {
+                Swal.fire('Validasi', 'Pilih file atau masukkan link undangan', 'warning');
+            }
+        }
+
+        // ======================
+        // EDIT NOTULEN
+        // ======================
+        var editingNotulenId = null;
+
+        function editNotulen(id) {
+            editingNotulenId = id;
+            showLoading('Memuat data notulen...');
             google.script.run
                 .withSuccessHandler(function (res) {
                     hideLoading();
-                    if (!res) { Swal.fire('Error', 'Tidak ada respons. Coba refresh.', 'error'); return; }
-                    if (res.success) { Swal.fire('Berhasil', 'Undangan berhasil disimpan', 'success'); closeModalUploadUndangan(); loadNotulenList(); }
-                    else { Swal.fire('Gagal', res.message || 'Terjadi kesalahan', 'error'); }
+                    if (!res || !res.success || !res.data) {
+                        Swal.fire('Error', 'Gagal memuat data notulen', 'error');
+                        return;
+                    }
+                    var n = res.data;
+
+                    // Pre-fill draft di localStorage
+                    var draft = {
+                        step: 1,
+                        info: {
+                            tanggal: n.tanggal || '',
+                            jenis: n.jenis || '',
+                            judul: n.judul || '',
+                            pimpinan: n.pimpinan || '',
+                            notulis: n.notulis || '',
+                            undangan: ''
+                        },
+                        jalannyaRapat: (n.jalannyaList || []).map(function (j) {
+                            return { pembicara: j.pembicara, pokokBahasan: j.pokokBahasan };
+                        }),
+                        poinList: (n.poinList || []).map(function (p) {
+                            return { isi: p.isi, tindakLanjut: p.tindakLanjut, assignSubbag: p.assignSubbag, agendaId: p.agendaId };
+                        })
+                    };
+                    saveDraftToLS(draft);
+
+                    showNotulenView('form', true);
+                    resumeDraft(draft);
                 })
-                .withFailureHandler(function (err) { hideLoading(); Swal.fire('Error', err.message || 'Gagal menyimpan undangan', 'error'); })
-                .uploadUndanganNotulen({ id: id, link: link });
+                .withFailureHandler(function (err) {
+                    hideLoading();
+                    Swal.fire('Error', err.message || 'Gagal memuat data', 'error');
+                })
+                .getDetailNotulen({ id: id });
         }
 
         function hapusNotulen(id) {
