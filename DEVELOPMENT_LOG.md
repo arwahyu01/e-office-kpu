@@ -17,7 +17,8 @@
 | 11 | Agenda: enrich jenis + smart dasar agenda + auto LKH cerdas | ✅ Selesai |
 | 12 | AI Notula + PDF Export | ✅ Selesai |
 | 13 | Peserta Rapat (dropdown MASTER_PEGAWAI + chips) | ✅ Selesai |
-| 14 | Testing & validasi | ⏳ Pending |
+| 14 | Refactor AI Notula: arsitektur sederhana + dynamic atasan | ✅ Selesai |
+| 15 | Testing & validasi | ⏳ Pending |
 
 ---
 
@@ -94,6 +95,16 @@
 - **[Fix] `getListNotulen` / `getDetailNotulen`**: Parse PESERTA_JSON, kirim `pesertaList` ke frontend
 - **[Fix] Edit Notulen**: Pre-fill pesertaList dari data existing
 - **[Fix] Review & Detail Modal**: Tampilkan peserta sebagai chips warna ungu
+
+### v2.9.0 — 3 Jul 2026 (Refactor AI Notula: Arsitektur Sederhana + Dynamic Atasan)
+- **[Ubah] Arsitektur AI Notula**: Dari 13 field AI (judul, hari, tanggal, tempat, peserta, pembuka, agenda, isi_rapat, penutup_rapat, jam_selesai, kesimpulan, atasan_langsung, notula) menjadi **6 field** (judul, hari, tanggal, tempat, peserta, isi_notula)
+- **[Ubah] Template Google Docs**: Placeholder dipangkas dari 13 menjadi 8 — `{{JUDUL}}`, `{{HARI}}`, `{{TANGGAL}}`, `{{TEMPAT}}`, `{{PESERTA}}`, `{{ISI_NOTULA}}`, `{{ATASAN_LANGSUNG}}`, `{{NOTULIS}}`. Hanya `{{ISI_NOTULA}}` sebagai placeholder besar untuk narasi lengkap
+- **[Ubah] `NOTULA_SYSTEM_PROMPT`**: Prompt baru lebih spesifik — AI sebagai Notulis Resmi Sekretariat KPU Kabupaten Siak, output hanya JSON dengan 6 field. `isi_notula` berisi narasi lengkap (pembukaan, agenda, pendapat, penutup, kesimpulan)
+- **[Ubah] `buildNotulaPrompt()`**: User prompt disederhanakan — hanya kirim konteks rapat mentah (judul, tanggal, jenis, pimpinan, notulis, peserta, jalannya, poin) tanpa contoh output atau instruksi format
+- **[New] `_findAtasanLangsung(notulisNama)`**: Fungsi baru untuk mencari atasan langsung notulis dari data MASTER_PEGAWAI — fallback ke "KETUA KPU KABUPATEN SIAK" jika tidak ditemukan
+- **[Ubah] `generateNotulaAI()`**: `atasan_langsung` dan `notulis` sekarang diisi dari database pegawai (via `_findAtasanLangsung`), bukan dari output AI — menghilangkan hardcode "AR. Wahyu Pradana" dan "KETUA KPU KABUPATEN SIAK"
+- **[Hapus] Field lama**: `pembuka`, `agenda`, `isi_rapat`, `penutup_rapat`, `jam_selesai`, `kesimpulan`, `notula` (sebagai field AI) — tidak lagi digunakan di prompt, placeholder, maupun mapping template
+- **[Fix] PDF konsisten**: PDF hanya berisi 1 dokumen notula resmi dari template — tanpa JSON mentah, debug, atau salinan prompt
 
 ### v2.5.0 — 3 Jul 2026 (Notulen Edit + Upload File + Folder per Tanggal)
 - **[New] Edit Notulen (`updateNotulen`)**: Fungsi backend untuk mengupdate notulen existing — update row di sheet NOTULEN, hapus-reinsert JALANNYA & POIN, re-generate file .txt di Drive, dan menjalankan TL actions (BUAT_AGENDA / UPDATE_PROGRES)
@@ -291,7 +302,9 @@
 - **Master pegawai spreadsheet**: `1JivPdetUS5lu5ZjJveqwhpKhwU5r0QiRb4GtJGXxDtA`
 - **URL base external**: `https://script.google.com/macros/s/AKfycbxejATwEFa6KmgBqjxFGiA2L_mEJGG0-CaHGsaIyxedRz5_vGA-QiAIhSE-mYwXFY_E/exec`
 - **All notulen JS functions** are in `index.html` (lines ~1452-2245 area)
-- **All notulen backend** is in `notulen.gs` (standalone, self-contained, ~800 lines)
+- **All notulen backend** is in `notulen.gs` (standalone, self-contained, ~893 lines)
+- **AI Notula**: Hanya 6 field dari AI (`judul`, `hari`, `tanggal`, `tempat`, `peserta`, `isi_notula`); `atasan_langsung` dan `notulis` diisi dari database pegawai
+- **Template placeholders**: `{{JUDUL}}`, `{{HARI}}`, `{{TANGGAL}}`, `{{TEMPAT}}`, `{{PESERTA}}`, `{{ISI_NOTULA}}`, `{{ATASAN_LANGSUNG}}`, `{{NOTULIS}}`
 - **Notulen endpoints**: `getListNotulen`, `getDetailNotulen`, `simpanNotulen`, `updateNotulen`, `uploadUndanganFile`, `uploadUndanganLink`, `hapusNotulen`, `getListAgendaForNotulen`, `generateNotulaAI`, `getDataPegawai`
 - **NOTULEN sheet columns (13)**: ID, TANGGAL, JENIS, JUDUL, PIMPINAN, NOTULIS, JALANNYA_COUNT, POIN_COUNT, CREATED_AT, DRIVE_URL, UNDANGAN_LINK, STATUS, PESERTA_JSON
 - **CSS for step wizard & notulen badges** is in `style.html`
