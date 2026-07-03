@@ -18,7 +18,9 @@
 | 12 | AI Notula + PDF Export | ✅ Selesai |
 | 13 | Peserta Rapat (dropdown MASTER_PEGAWAI + chips) | ✅ Selesai |
 | 14 | Refactor AI Notula: arsitektur sederhana + dynamic atasan | ✅ Selesai |
-| 15 | Testing & validasi | ⏳ Pending |
+| 15 | AI Notula: template filler engine + kualitas narasi profesional | ✅ Selesai |
+| 16 | Upload Notulen TTD (Signed PDF) | ✅ Selesai |
+| 17 | Testing & validasi | ⏳ Pending |
 
 ---
 
@@ -105,6 +107,19 @@
 - **[Ubah] `generateNotulaAI()`**: `atasan_langsung` dan `notulis` sekarang diisi dari database pegawai (via `_findAtasanLangsung`), bukan dari output AI — menghilangkan hardcode "AR. Wahyu Pradana" dan "KETUA KPU KABUPATEN SIAK"
 - **[Hapus] Field lama**: `pembuka`, `agenda`, `isi_rapat`, `penutup_rapat`, `jam_selesai`, `kesimpulan`, `notula` (sebagai field AI) — tidak lagi digunakan di prompt, placeholder, maupun mapping template
 - **[Fix] PDF konsisten**: PDF hanya berisi 1 dokumen notula resmi dari template — tanpa JSON mentah, debug, atau salinan prompt
+
+### v2.10.0 — 4 Jul 2026 (AI Notula Fix + Upload Notulen TTD)
+- **[Fix] Duplikasi isi notula di PDF**: System prompt diubah menjadi "TEMPLATE FILLER ENGINE" — AI dilarang keras menulis ulang heading (NOTULA RAPAT, Hari, Tanggal, Tempat, Peserta, TENTANG) di dalam nilai field. User message diubah dari "Buat isi notula" menjadi "Isi nilai placeholder. Jangan buat struktur dokumen."
+- **[Fix] `buildNotulaPrompt()`**: Ditambahkan `_inferHari()` untuk menyimpulkan nama hari dari tanggal. Konteks data dikirim dalam format numbered (1-10) agar lebih terstruktur untuk AI.
+- **[Fix] `_sanitizeAIOutput()`**: Fungsi baru sebagai defense-in-depth — membersihkan output AI dari struktur template yang mungkin lolos (NOTULA RAPAT, Hari/Tanggal/Tempat label), mencetak warning jika ada pembersihan.
+- **[Fix] Kualitas narasi `isi_notula`**: Prompt diperkaya dengan panduan alur narasi profesional — setiap agenda berupa paragraf deskriptif (3-5 kalimat), variasi diksi, transisi alami, contoh narasi kaya dengan nama pimpinan riil KPU Siak.
+- **[New] Data pimpinan KPU Siak di prompt**: Prompt berisi struktur pimpinan KPU Kabupaten Siak (Said Dharma Setiawan, Berlian Littaqwa, Dedi Kurniawan, Dailin Fajri Sormin, Moh. Royani) + panduan panggilan profesional.
+- **[New] `{{JABATAN_ATASAN}}` dan `{{JABATAN_NOTULIS}}`**: Dua placeholder baru di template Google Docs. JABATAN_ATASAN diisi dari MASTER_PEGAWAI (jabatan atasan langsung notulis), JABATAN_NOTULIS diisi jabatan notulis dari MASTER_PEGAWAI via `_findJabatanPegawai()`.
+- **[New] Default {{TEMPAT}}**: Jika AI tidak menyimpulkan tempat rapat, default "Aula Rapat Lt.2 KPU Kabupaten Siak".
+- **[New] `uploadSignedNotulen()`**: Backend endpoint untuk upload notulen PDF yang sudah ditandatangani — simpan ke folder Drive dengan prefix `notulen_ttd_`, simpan URL ke kolom SIGNED_PDF_URL (col 14) di NOTULEN sheet.
+- **[New] Kolom SIGNED_PDF_URL**: NOTULEN sheet sekarang 14 kolom — kolom baru untuk menyimpan URL notulen TTD.
+- **[New] UI Upload TTD**: Modal upload file PDF + tombol hijau "Upload TTD" di card list dan detail modal + link "Notulen TTD" jika sudah diupload.
+- **[Ubah] Template placeholders**: Dari 8 menjadi 10 — ditambah `{{JABATAN_ATASAN}}` dan `{{JABATAN_NOTULIS}}`.
 
 ### v2.5.0 — 3 Jul 2026 (Notulen Edit + Upload File + Folder per Tanggal)
 - **[New] Edit Notulen (`updateNotulen`)**: Fungsi backend untuk mengupdate notulen existing — update row di sheet NOTULEN, hapus-reinsert JALANNYA & POIN, re-generate file .txt di Drive, dan menjalankan TL actions (BUAT_AGENDA / UPDATE_PROGRES)
@@ -251,8 +266,8 @@
 
 ### Spreadsheet: `1hC8lzsHoukbQIfv-JNmZzx3u5pBoU7uY7bmktgU2_uA`
 
-**NOTULEN**
-| ID | TANGGAL | JENIS | JUDUL | PIMPINAN | NOTULIS | JALANNYA_COUNT | POIN_COUNT | CREATED_AT | DRIVE_URL | UNDANGAN_LINK | STATUS | PESERTA_JSON |
+**NOTULEN** (14 kolom)
+| ID | TANGGAL | JENIS | JUDUL | PIMPINAN | NOTULIS | JALANNYA_COUNT | POIN_COUNT | CREATED_AT | DRIVE_URL | UNDANGAN_LINK | STATUS | PESERTA_JSON | SIGNED_PDF_URL |
 
 **JALANNYA_RAPAT**
 | ID | NOTULEN_ID | PEMBICARA | POKOK_BAHASAN | URUTAN |
@@ -303,9 +318,9 @@
 - **URL base external**: `https://script.google.com/macros/s/AKfycbxejATwEFa6KmgBqjxFGiA2L_mEJGG0-CaHGsaIyxedRz5_vGA-QiAIhSE-mYwXFY_E/exec`
 - **All notulen JS functions** are in `index.html` (lines ~1452-2245 area)
 - **All notulen backend** is in `notulen.gs` (standalone, self-contained, ~893 lines)
-- **AI Notula**: Hanya 6 field dari AI (`judul`, `hari`, `tanggal`, `tempat`, `peserta`, `isi_notula`); `atasan_langsung` dan `notulis` diisi dari database pegawai
-- **Template placeholders**: `{{JUDUL}}`, `{{HARI}}`, `{{TANGGAL}}`, `{{TEMPAT}}`, `{{PESERTA}}`, `{{ISI_NOTULA}}`, `{{ATASAN_LANGSUNG}}`, `{{NOTULIS}}`
-- **Notulen endpoints**: `getListNotulen`, `getDetailNotulen`, `simpanNotulen`, `updateNotulen`, `uploadUndanganFile`, `uploadUndanganLink`, `hapusNotulen`, `getListAgendaForNotulen`, `generateNotulaAI`, `getDataPegawai`
-- **NOTULEN sheet columns (13)**: ID, TANGGAL, JENIS, JUDUL, PIMPINAN, NOTULIS, JALANNYA_COUNT, POIN_COUNT, CREATED_AT, DRIVE_URL, UNDANGAN_LINK, STATUS, PESERTA_JSON
+- **AI Notula**: Hanya 6 field dari AI (`judul`, `hari`, `tanggal`, `tempat`, `peserta`, `isi_notula`); `atasan_langsung`, `notulis`, `jabatan_atasan`, `jabatan_notulis` diisi dari database pegawai
+- **Template placeholders (10)**: `{{JUDUL}}`, `{{HARI}}`, `{{TANGGAL}}`, `{{TEMPAT}}`, `{{PESERTA}}`, `{{ISI_NOTULA}}`, `{{ATASAN_LANGSUNG}}`, `{{NOTULIS}}`, `{{JABATAN_ATASAN}}`, `{{JABATAN_NOTULIS}}`
+- **Notulen endpoints**: `getListNotulen`, `getDetailNotulen`, `simpanNotulen`, `updateNotulen`, `uploadUndanganFile`, `uploadUndanganLink`, `uploadSignedNotulen`, `hapusNotulen`, `getListAgendaForNotulen`, `generateNotulaAI`, `getDataPegawai`
+- **NOTULEN sheet columns (14)**: ID, TANGGAL, JENIS, JUDUL, PIMPINAN, NOTULIS, JALANNYA_COUNT, POIN_COUNT, CREATED_AT, DRIVE_URL, UNDANGAN_LINK, STATUS, PESERTA_JSON, SIGNED_PDF_URL
 - **CSS for step wizard & notulen badges** is in `style.html`
 - **Menu navigation** uses `switchMenu()` SPA pattern in `index.html`
