@@ -25,26 +25,89 @@ const NOTULA_LOG_HEADERS = [
   'ID', 'NOTULEN_ID', 'AI_JSON', 'DOC_URL', 'PDF_URL', 'STATUS', 'CREATED_AT'
 ];
 
-const NOTULA_SYSTEM_PROMPT = `Anda adalah notulis profesional Sekretariat KPU Kabupaten Siak.
-Buat notula rapat yang lengkap, formal, dan sesuai kaidah tata naskah pemerintahan Indonesia.
-Gunakan bahasa Indonesia baku, kalimat efektif, dan struktur yang rapi.
+const NOTULA_SYSTEM_PROMPT = `
+Anda adalah Notulis Resmi Sekretariat Komisi Pemilihan Umum Kabupaten Siak.
 
-Output HANYA JSON valid tanpa markdown, tanpa kutip tambahan, tanpa teks lain.
+Tugas Anda adalah menyusun isi notula resmi berdasarkan data rapat yang diberikan.
 
-JSON keys (wajib semua):
-- judul: judul rapat
-- hari: nama hari dalam Bahasa Indonesia (Senin, Selasa, ...)
-- tanggal: tanggal dalam format "DD Bulan YYYY" (contoh: "03 Juli 2026")
-- tempat: tempat rapat (default "Ruang Rapat KPU Kabupaten Siak" jika tidak tersedia)
-- peserta: narasi daftar peserta
-- pembuka: narasi pembukaan rapat
-- agenda: narasi agenda rapat
-- isi_rapat: narasi lengkap pembahasan rapat (detail, profesional)
-- penutup_rapat: narasi penutup rapat
-- jam_selesai: perkiraan waktu selesai (format "HH.WIB" atau "HH:HH WIB")
-- kesimpulan: kesimpulan dan keputusan rapat
-- atasan_langsung: "KETUA KPU KABUPATEN SIAK"
-- notula: FULL TEXT notula lengkap yang menggabungkan semua field di atas dalam format narasi formal dan siap cetak`;
+Gunakan Bahasa Indonesia baku dan gaya bahasa naskah dinas pemerintahan.
+
+ATURAN
+
+1. Jangan menambah fakta yang tidak disebutkan.
+2. Jangan mengurangi keputusan rapat.
+3. Jangan membuat kop surat.
+4. Jangan membuat heading NOTULA.
+5. Jangan membuat tanda tangan.
+6. Jangan membuat markdown.
+7. Jangan menggunakan \`\`\`.
+8. Kembalikan HANYA JSON valid.
+9. Semua output akan dimasukkan ke template Google Docs.
+
+Output wajib:
+
+{
+  "judul":"",
+  "hari":"",
+  "tanggal":"",
+  "tempat":"",
+  "peserta":"",
+  "isi_notula":""
+}
+
+Field isi_notula HARUS berupa narasi lengkap dengan urutan berikut:
+
+1. Pembukaan rapat.
+
+2. Agenda rapat.
+
+3. Pendapat dan pembahasan.
+
+4. Penutup rapat.
+
+5. Kesimpulan rapat.
+
+Gunakan format seperti contoh berikut.
+
+Rapat dibuka oleh Ketua KPU Kabupaten Siak, ...
+
+Agenda rapat meliputi:
+
+1.
+...
+
+2.
+...
+
+3.
+...
+
+Adapun pendapat dan/atau saran/masukan antara lain:
+
+1.
+...
+
+2.
+...
+
+3.
+...
+
+Rapat ditutup oleh Ketua KPU Kabupaten Siak ... pada pukul ...
+
+Kesimpulan rapat:
+
+1.
+...
+
+2.
+...
+
+3.
+...
+
+Jangan membuat heading lain selain isi_notula.
+`;
 
 function getSS() { return SpreadsheetApp.openById(NOTULEN_SPREADSHEET_ID); }
 
@@ -677,6 +740,30 @@ function getDataPegawai() {
 // AI NOTULA GENERATION + PDF EXPORT
 // =============================================
 
+function _findAtasanLangsung(notulisNama) {
+  if (!notulisNama) return "KETUA KPU KABUPATEN SIAK";
+  try {
+    var list = getAllPegawai();
+    var target = notulisNama.toLowerCase().trim();
+    // Cari pegawai yang namanya mengandung nama notulis
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].nama && list[i].nama.toLowerCase().trim() === target) {
+        return list[i].atasan || "KETUA KPU KABUPATEN SIAK";
+      }
+    }
+    // Fallback: cari dengan partial match
+    for (var j = 0; j < list.length; j++) {
+      if (list[j].nama && list[j].nama.toLowerCase().trim().indexOf(target) !== -1) {
+        return list[j].atasan || "KETUA KPU KABUPATEN SIAK";
+      }
+    }
+    return "KETUA KPU KABUPATEN SIAK";
+  } catch (err) {
+    console.warn('Gagal mencari atasan langsung:', err.message);
+    return "KETUA KPU KABUPATEN SIAK";
+  }
+}
+
 function generateNotulaAI(notulenId) {
   try {
     var detail = getDetailNotulen({ id: notulenId });
@@ -693,6 +780,10 @@ function generateNotulaAI(notulenId) {
       return { success: false, message: 'AI tidak mengembalikan JSON', raw: cleaned.substring(0, 500) };
     }
     var aiResult = JSON.parse(cleaned.substring(start, end + 1));
+
+    // Isi atasan_langsung dan notulis dari data pegawai, bukan dari AI
+    aiResult.atasan_langsung = _findAtasanLangsung(n.notulis);
+    aiResult.notulis = n.notulis || '';
 
     var folderId = getOrCreateNotulenFolder(n.tanggal);
 
@@ -715,36 +806,36 @@ function generateNotulaAI(notulenId) {
 }
 
 function buildNotulaPrompt(notulenData) {
-  var context = 'JUDUL RAPAT: ' + (notulenData.judul || '-') + '\n';
-  context += 'TANGGAL: ' + (notulenData.tanggal || '-') + '\n';
-  context += 'JENIS: ' + (notulenData.jenis || '-') + '\n';
-  context += 'PIMPINAN RAPAT: ' + (notulenData.pimpinan || '-') + '\n';
-  context += 'NOTULIS: ' + (notulenData.notulis || '-') + '\n';
+  var context = 'Judul: ' + (notulenData.judul || '-') + '\n';
+  context += 'Tanggal: ' + (notulenData.tanggal || '-') + '\n';
+  context += 'Jenis: ' + (notulenData.jenis || '-') + '\n';
+  context += 'Pimpinan: ' + (notulenData.pimpinan || '-') + '\n';
+  context += 'Notulis: ' + (notulenData.notulis || '-') + '\n';
 
   if (notulenData.pesertaList && notulenData.pesertaList.length) {
-    context += '\n-- PESERTA RAPAT --\n';
+    context += '\nPeserta:\n';
     notulenData.pesertaList.forEach(function (p, i) {
-      context += (i + 1) + '. ' + p.nama + ' — ' + (p.jabatan || '-') + '\n';
+      context += '- ' + p.nama + ' (' + (p.jabatan || '-') + ')\n';
     });
   }
 
   if (notulenData.jalannyaList && notulenData.jalannyaList.length) {
-    context += '\n-- JALANNYA RAPAT --\n';
+    context += '\nJalannya Rapat:\n';
     notulenData.jalannyaList.forEach(function (j, i) {
-      context += (i + 1) + '. ' + (j.pembicara || '-') + ': ' + (j.pokokBahasan || '') + '\n';
+      context += '- ' + (j.pembicara || '-') + ': ' + (j.pokokBahasan || '') + '\n';
     });
   }
 
   if (notulenData.poinList && notulenData.poinList.length) {
-    context += '\n-- POIN / KEPUTUSAN RAPAT --\n';
+    context += '\nPoin / Keputusan:\n';
     notulenData.poinList.forEach(function (p, i) {
-      context += (i + 1) + '. ' + (p.isi || '') + '\n   Tindak Lanjut: ' + (p.tindakLanjut || '-') + '\n   Assign: ' + (p.assignSubbag || '-') + '\n';
+      context += '- ' + (p.isi || '') + '\n';
     });
   }
 
   return [
     { role: 'system', content: NOTULA_SYSTEM_PROMPT },
-    { role: 'user', content: 'Berdasarkan data rapat berikut, buat notula resmi:\n\n' + context }
+    { role: 'user', content: 'Buat isi notula berdasarkan data rapat berikut:\n\n' + context }
   ];
 }
 
@@ -760,25 +851,19 @@ function _createNotulaDocument(aiResult, folderId, notulenId) {
   var body = doc.getBody();
 
   var replacements = {
-    '{{JUDUL}}': aiResult.judul || '',
-    '{{HARI}}': aiResult.hari || '',
-    '{{TANGGAL}}': aiResult.tanggal || '',
-    '{{TEMPAT}}': aiResult.tempat || '',
-    '{{PESERTA}}': aiResult.peserta || '',
-    '{{PEMBUKA}}': aiResult.pembuka || '',
-    '{{AGENDA}}': aiResult.agenda || '',
-    '{{ISI_RAPAT}}': aiResult.isi_rapat || '',
-    '{{PENUTUP_RAPAT}}': aiResult.penutup_rapat || '',
-    '{{JAM_SELESAI}}': aiResult.jam_selesai || '',
-    '{{KESIMPULAN}}': aiResult.kesimpulan || '',
-    '{{ATASAN_LANGSUNG}}': aiResult.atasan_langsung || '',
-    '{{NOTULA}}': aiResult.notula || ''
+    "{{JUDUL}}": aiResult.judul || "",
+    "{{HARI}}": aiResult.hari || "",
+    "{{TANGGAL}}": aiResult.tanggal || "",
+    "{{TEMPAT}}": aiResult.tempat || "",
+    "{{PESERTA}}": aiResult.peserta || "",
+    "{{ISI_NOTULA}}": aiResult.isi_notula || "",
+    "{{ATASAN_LANGSUNG}}": aiResult.atasan_langsung || "",
+    "{{NOTULIS}}": aiResult.notulis || ""
   };
 
   for (var key in replacements) {
     if (replacements.hasOwnProperty(key)) {
-      var val = replacements[key];
-      body.replaceText(key, val);
+      body.replaceText(key, replacements[key]);
     }
   }
 
