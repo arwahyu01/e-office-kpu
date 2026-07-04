@@ -310,7 +310,7 @@
         <input type="hidden" id="workflowId"><input type="hidden" id="workflowAgendaId">
         <div class="form-group"><label>Nama Tahapan <span style="color:#dc2626;">*</span></label><input type="text" id="fNamaWorkflow" class="form-control" placeholder="Nama tahapan / workflow"></div>
         <div class="form-group" style="margin-top:16px;"><label>PIC Tahapan</label><select id="fWorkflowPIC" class="form-control"><option value="">Pilih PIC</option></select></div>
-        <div class="form-group" style="margin-top:16px;"><label>Target</label><input type="text" id="fWorkflowTarget" class="form-control" placeholder="Target tahapan"></div>
+        <div class="form-group" style="margin-top:16px;"><label>Target <span style="color:#dc2626;">*</span></label><select id="fWorkflowTarget" class="form-control"><option value="">Pilih Target</option><option value="Dokumen">Dokumen</option><option value="Laporan">Laporan</option><option value="Lainnya">Lainnya</option></select></div>
         <div class="form-group" style="margin-top:16px;"><label>Keterangan</label><textarea id="fWorkflowKet" class="form-control" rows="2" placeholder="Keterangan tambahan"></textarea></div>
         <button onclick="saveWorkflow()" class="btn-primary full-width" style="margin-top:24px;width:100%;"><i class="fas fa-save"></i> Simpan Tahapan</button>
     </div>
@@ -318,17 +318,58 @@
 
 <!-- ========== PROGRESS MODAL ========== -->
 <div id="modalProgress" class="modal" style="display:none;">
-    <div class="modal-content" style="max-width:520px;">
+    <div class="modal-content" style="max-width:680px;">
         <div class="modal-header"><h2 id="modalProgressTitle"><b>Tambah Progress</b></h2><button class="close-btn" onclick="closeModalProgress()"><i class="fas fa-times"></i></button></div>
         <input type="hidden" id="progressId"><input type="hidden" id="progressWorkflowId">
-        <div id="progressWorkflowDisplay" style="padding:12px;background:#f8fafc;border-radius:12px;margin-bottom:16px;">
-            <span style="font-size:12px;color:#64748b;">Workflow</span>
-            <div style="font-weight:600;font-size:15px;color:#1e293b;margin-top:2px;" id="progressWorkflowName">-</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div>
+                <div id="progressWorkflowDisplay" style="padding:12px;background:#f8fafc;border-radius:12px;margin-bottom:16px;">
+                    <span style="font-size:12px;color:#64748b;">Workflow</span>
+                    <div style="font-weight:600;font-size:15px;color:#1e293b;margin-top:2px;" id="progressWorkflowName">-</div>
+                </div>
+                <div class="form-group"><label>Nama Progress / Uraian Pekerjaan <span style="color:#dc2626;">*</span></label>
+                    <input type="text" id="fNamaProgress" class="form-control" placeholder="Contoh: Nota Dinas, Undangan, Dokumentasi, dll">
+                </div>
+                <div class="form-group" style="margin-top:16px;"><label>Status</label>
+                    <select id="fProgressStatus" class="form-control">
+                        <option value="RENCANA">Belum Mulai</option>
+                        <option value="BERJALAN">Sedang Dikerjakan</option>
+                        <option value="SELESAI">Selesai</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-top:16px;"><label>Target <span style="color:#dc2626;">*</span></label>
+                    <select id="fProgressTarget" class="form-control">
+                        <option value="">Pilih Target</option>
+                        <option value="Dokumen">Dokumen</option>
+                        <option value="Laporan">Laporan</option>
+                        <option value="Lainnya">Lainnya</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-top:16px;"><label>Penanggung Jawab (PJ)</label>
+                    <select id="fProgressPJ" class="form-control"><option value="">Pilih PJ</option></select>
+                </div>
+                <div class="form-group" style="margin-top:16px;"><label>Hasil Pekerjaan <span style="color:#dc2626;">* jika Selesai</span></label>
+                    <input type="text" id="fHasilPekerjaan" class="form-control" placeholder="Contoh: Draft nota dinas telah selesai disusun">
+                </div>
+                <div class="form-group" style="margin-top:16px;"><label>Catatan <span style="color:#94a3b8;font-weight:400;">(opsional)</span></label>
+                    <textarea id="fProgressCatatan" class="form-control" rows="2" placeholder="Kendala atau informasi tambahan"></textarea>
+                </div>
+            </div>
+            <div>
+                <div class="form-group"><label>Anggota <span style="color:#94a3b8;font-weight:400;">(centang yang ditugaskan)</span></label>
+                    <div id="fProgressAnggotaContainer" style="border:1px solid #e5e7eb;border-radius:8px;padding:8px;max-height:440px;overflow-y:auto;">
+                        <div id="fProgressAnggotaList"></div>
+                    </div>
+                    <div style="margin-top:6px;display:flex;gap:6px;">
+                        <button type="button" class="btn-secondary" onclick="selectAllAnggota(true)" style="font-size:11px;padding:3px 10px;">Pilih Semua</button>
+                        <button type="button" class="btn-secondary" onclick="selectAllAnggota(false)" style="font-size:11px;padding:3px 10px;">Hapus Semua</button>
+                    </div>
+                    <div style="margin-top:6px;">
+                        <input type="text" id="fCariAnggota" class="form-control" placeholder="Cari pegawai..." oninput="filterAnggota()" style="font-size:12px;padding:6px 10px;">
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="form-group"><label>Status</label><select id="fProgressStatus" class="form-control"><option value="RENCANA">Belum Mulai</option><option value="BERJALAN">Sedang Dikerjakan</option><option value="SELESAI">Selesai</option></select></div>
-        <div class="form-group" style="margin-top:16px;"><label>PIC</label><select id="fProgressPIC" class="form-control"><option value="">Pilih PIC</option></select></div>
-        <div class="form-group" style="margin-top:16px;"><label>Hasil Pekerjaan</label><input type="text" id="fHasilPekerjaan" class="form-control" placeholder="Contoh: Draft nota dinas telah selesai disusun dan siap diparaf."></div>
-        <div class="form-group" style="margin-top:16px;"><label>Catatan <span style="color:#94a3b8;font-weight:400;">(opsional)</span></label><textarea id="fProgressCatatan" class="form-control" rows="2" placeholder="Kendala atau informasi tambahan (opsional)"></textarea></div>
         <button onclick="saveProgress()" class="btn-primary full-width" style="margin-top:24px;width:100%;"><i class="fas fa-save"></i> Simpan Progress</button>
     </div>
 </div>
@@ -407,12 +448,13 @@ function loadPegawai() {
 }
 
 function populateDropdowns() {
-  const picIds = ['fPIC','fWorkflowPIC','fProgressPIC'];
+  const picIds = ['fPIC','fWorkflowPIC','fProgressPJ'];
   picIds.forEach(id => {
     const s=document.getElementById(id); if (!s) return;
-    s.innerHTML='<option value="">Pilih PIC</option>';
+    s.innerHTML='<option value="">'+(id==='fProgressPJ'?'Pilih PJ':'Pilih PIC')+'</option>';
     pegawaiList.forEach(p => s.innerHTML+=`<option value="${p.email}">${p.nama} ${p.jabatan?'- '+p.jabatan:''}</option>`);
   });
+  renderAnggotaCheckboxes();
   const anggota=document.getElementById('fAnggota');
   if (anggota) { anggota.innerHTML=''; pegawaiList.forEach(p => anggota.innerHTML+=`<option value="${p.email}">${p.nama} (${p.subbag||'-'})</option>`); }
   const subIds=['filterSubbag','filterSubbag2','fSubbag'];
@@ -804,6 +846,7 @@ function renderWorkflows(workflows) {
         <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;">
           <div><strong>${esc(wf.namaWorkflow)}</strong> <span style="margin-left:8px;font-size:11px;color:#94a3b8;">PIC: ${esc(wf.picNama||'-')}</span></div>
           <div style="display:flex;gap:4px;flex-shrink:0;">
+            ${(!isActive && !isComplete && wf.picEmail===currentUser.email)?`<button class="btn-primary" onclick="claimWorkflow('${wf.id}')" style="padding:2px 8px;font-size:10px;" title="Klaim tahapan"><i class="fas fa-hand-paper"></i> Klaim</button>`:''}
             ${canUp?`<button class="btn-secondary" onclick="reorderWf('${currentDetailId}','${wf.id}',${idx})" style="padding:2px 6px;font-size:10px;" title="Naik"><i class="fas fa-chevron-up"></i></button>`:''}
             ${canDown?`<button class="btn-secondary" onclick="reorderWf('${currentDetailId}','${wf.id}',${idx+2})" style="padding:2px 6px;font-size:10px;" title="Turun"><i class="fas fa-chevron-down"></i></button>`:''}
             <button class="btn-secondary" onclick="openCreateProgress('${wf.id}')" style="padding:2px 6px;font-size:10px;" title="Tambah Progress"><i class="fas fa-plus"></i></button>
@@ -821,10 +864,16 @@ function renderWorkflows(workflows) {
         const pc = prog.status==='SELESAI';
         html += `<div class="progress-item ${pc?'completed':''}">
           <div style="display:flex;justify-content:space-between;align-items:center;">
-            <div><strong style="font-size:13px;">${esc(prog.namaProgress)}</strong> <span style="font-size:11px;color:#94a3b8;">PIC: ${esc(prog.picNama||'-')}</span></div>
+            <div><strong style="font-size:13px;">${esc(prog.namaProgress)}</strong>
+              ${prog.target?`<span style="display:inline-block;margin-left:6px;padding:1px 6px;border-radius:6px;font-size:10px;font-weight:600;color:#fff;background:#6366f1;">${esc(prog.target)}</span>`:''}
+              <div style="font-size:11px;color:#94a3b8;margin-top:2px;">PJ: ${esc(prog.pjNama||'-')}
+              ${prog.anggotaNamaList&&prog.anggotaNamaList.length?` &middot; Anggota: ${prog.anggotaNamaList.map(function(n){return esc(n);}).join(', ')}`:''}
+              </div>
+            </div>
             <div style="display:flex;align-items:center;gap:6px;">
               <span style="font-size:12px;font-weight:700;color:${pc?'#059669':'#64748b'};">${prog.persentase||0}%</span>
               <div class="progress-bar-container" style="width:50px;"><div class="progress-bar-fill ${pc?'selesai':'sedang'}" style="width:${prog.persentase||0}%"></div></div>
+              ${(!pc && prog.pjEmail===currentUser.email)?`<button class="btn-primary" onclick="claimProgress('${prog.id}')" style="padding:2px 8px;font-size:10px;" title="Klaim pekerjaan"><i class="fas fa-hand-paper"></i></button>`:''}
               <button class="btn-secondary" onclick="openEditProgress('${prog.id}')" style="padding:2px 6px;font-size:10px;"><i class="fas fa-edit"></i></button>
               <button class="btn-secondary" onclick="openCreateEvidence('${prog.id}')" style="padding:2px 6px;font-size:10px;"><i class="fas fa-paperclip"></i></button>
             </div>
@@ -877,7 +926,9 @@ function saveWorkflow() {
   const agendaId=document.getElementById('workflowAgendaId').value;
   const nama=document.getElementById('fNamaWorkflow').value.trim();
   if (!nama) { Swal.fire('Validasi','Nama tahapan wajib diisi','warning'); return; }
-  const payload={agendaId,namaWorkflow:nama,target:document.getElementById('fWorkflowTarget').value.trim(),picEmail:document.getElementById('fWorkflowPIC').value,keterangan:document.getElementById('fWorkflowKet').value.trim(),userEmail:currentUser.email};
+  const target = document.getElementById('fWorkflowTarget').value;
+  if (!target) { Swal.fire('Validasi','Target tahapan wajib dipilih','warning'); return; }
+  const payload={agendaId,namaWorkflow:nama,target,picEmail:document.getElementById('fWorkflowPIC').value,keterangan:document.getElementById('fWorkflowKet').value.trim(),userEmail:currentUser.email};
   showLoading('Menyimpan...');
   const cb = (r) => { hideLoading(); if (r.success) { closeModalWorkflow(); viewDetail(agendaId); Swal.fire('Berhasil',id?'Tahapan diperbarui':'Tahapan ditambahkan','success'); } else Swal.fire('Gagal',r.message,'error'); };
   const eb = (e) => { hideLoading(); Swal.fire('Error',e.message,'error'); };
@@ -907,10 +958,15 @@ function openCreateProgress(workflowId) {
   document.getElementById('progressId').value='';
   document.getElementById('progressWorkflowId').value=workflowId;
   document.getElementById('progressWorkflowName').textContent=wf ? wf.namaWorkflow : '-';
+  document.getElementById('fNamaProgress').value='';
   document.getElementById('fHasilPekerjaan').value='';
   document.getElementById('fProgressCatatan').value='';
   document.getElementById('fProgressStatus').value='RENCANA';
-  document.getElementById('fProgressPIC').value=currentUser.email;
+  document.getElementById('fProgressTarget').value='';
+  document.getElementById('fProgressPJ').value=currentUser.email;
+  selectAllAnggota(false);
+  document.getElementById('fCariAnggota').value='';
+  filterAnggota();
   document.getElementById('modalProgress').style.display='flex';
 }
 
@@ -932,30 +988,95 @@ function openEditProgress(id) {
   document.getElementById('progressId').value=prog.id;
   document.getElementById('progressWorkflowId').value=prog.workflowId;
   document.getElementById('progressWorkflowName').textContent=wfName||'-';
+  document.getElementById('fNamaProgress').value=prog.namaProgress||'';
   document.getElementById('fProgressStatus').value=prog.status||'RENCANA';
+  document.getElementById('fProgressTarget').value=prog.target||'';
   document.getElementById('fHasilPekerjaan').value=prog.realisasi||'';
   document.getElementById('fProgressCatatan').value=prog.catatan||'';
-  document.getElementById('fProgressPIC').value=prog.picEmail||currentUser.email;
+  document.getElementById('fProgressPJ').value=prog.pjEmail||currentUser.email;
+  setAnggotaSelect(prog.anggotaEmails||[]);
+  document.getElementById('fCariAnggota').value='';
+  filterAnggota();
   document.getElementById('modalProgress').style.display='flex';
+}
+
+function renderAnggotaCheckboxes() {
+  var c=document.getElementById('fProgressAnggotaList');
+  if (!c) return;
+  c.innerHTML='';
+  pegawaiList.forEach(function(p) {
+    c.innerHTML+='<label style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background=\'#f8fafc\'" onmouseout="this.style.background=\'transparent\'">'+
+      '<input type="checkbox" class="anggota-checkbox" value="'+esc(p.email)+'" style="width:16px;height:16px;accent-color:#b30000;">'+
+      '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">'+esc(p.nama)+'</div><div style="font-size:11px;color:#94a3b8;">'+esc(p.jabatan||'')+' · '+esc(p.subbag||'-')+'</div></div>'+
+      '</label>';
+  });
+}
+function filterAnggota() {
+  var q=document.getElementById('fCariAnggota').value.toLowerCase().trim();
+  var labels=document.querySelectorAll('#fProgressAnggotaList label');
+  labels.forEach(function(l) {
+    l.style.display=(!q || l.textContent.toLowerCase().indexOf(q)!==-1)?'flex':'none';
+  });
+}
+function selectAllAnggota(select) {
+  var cbs=document.querySelectorAll('#fProgressAnggotaList .anggota-checkbox');
+  cbs.forEach(function(cb){cb.checked=select;});
+}
+function getAnggotaEmails() {
+  var cbs=document.querySelectorAll('#fProgressAnggotaList .anggota-checkbox:checked');
+  var result=[];
+  cbs.forEach(function(cb){result.push(cb.value);});
+  return result;
+}
+function setAnggotaSelect(emails) {
+  var cbs=document.querySelectorAll('#fProgressAnggotaList .anggota-checkbox');
+  cbs.forEach(function(cb){
+    cb.checked=emails&&emails.length&&emails.indexOf(cb.value)!==-1;
+  });
 }
 
 function saveProgress() {
   var id=document.getElementById('progressId').value;
   var wfId=document.getElementById('progressWorkflowId').value;
+  var namaProgress=document.getElementById('fNamaProgress').value.trim();
   var status=document.getElementById('fProgressStatus').value;
+  var target=document.getElementById('fProgressTarget').value;
   var hasil=document.getElementById('fHasilPekerjaan').value.trim();
-  var persentase=status==='SELESAI'?100:(status==='BERJALAN'?50:0);
+  if (!namaProgress) { Swal.fire('Validasi','Nama progress / uraian pekerjaan wajib diisi','warning'); return; }
+  if (!target) { Swal.fire('Validasi','Target wajib dipilih','warning'); return; }
   if (status==='SELESAI' && !hasil) { Swal.fire('Validasi','Hasil pekerjaan wajib diisi jika status Selesai','warning'); return; }
-  var wfs=window._currentWorkflows||[];
-  var wf=null;
-  for (var i=0;i<wfs.length;i++){if(wfs[i].id===wfId){wf=wfs[i];break;}}
-  var namaProgress=wf?wf.namaWorkflow:'';
-  var payload={workflowId:wfId,namaProgress:namaProgress,status:status,persentase:persentase,realisasi:hasil,picEmail:document.getElementById('fProgressPIC').value,catatan:document.getElementById('fProgressCatatan').value.trim(),userEmail:currentUser.email};
+  var persentase=status==='SELESAI'?100:(status==='BERJALAN'?50:0);
+  var pjEmail=document.getElementById('fProgressPJ').value;
+  var anggotaEmails=getAnggotaEmails();
+  var payload={workflowId:wfId,namaProgress:namaProgress,target:target,status:status,persentase:persentase,realisasi:hasil,pjEmail:pjEmail,anggotaEmails:anggotaEmails,catatan:document.getElementById('fProgressCatatan').value.trim(),userEmail:currentUser.email};
   showLoading('Menyimpan...');
   const cb = (r) => { hideLoading(); if (r.success) { closeModalProgress(); viewDetail(currentDetailId); Swal.fire('Berhasil',id?'Progress diperbarui':'Progress ditambahkan','success'); } else Swal.fire('Gagal',r.message,'error'); };
   const eb = (e) => { hideLoading(); Swal.fire('Error',e.message,'error'); };
   if (id) { payload.id=id; google.script.run.withSuccessHandler(cb).withFailureHandler(eb).updateProgress(payload); }
   else google.script.run.withSuccessHandler(cb).withFailureHandler(eb).createProgress(payload);
+}
+
+// =============================================
+// KLAIM WORKFLOW & PROGRESS
+// =============================================
+function claimWorkflow(wfId) {
+  showLoading('Mengklaim tahapan...');
+  google.script.run.withSuccessHandler(function(r) {
+    hideLoading();
+    if (r.success) { viewDetail(currentDetailId); Swal.fire('Berhasil','Tahapan diklaim, status berubah menjadi BERJALAN','success'); }
+    else Swal.fire('Gagal',r.message,'error');
+  }).withFailureHandler(function(e) { hideLoading(); Swal.fire('Error',e.message,'error'); })
+  .updateWorkflow({ id: wfId, status: 'BERJALAN', userEmail: currentUser.email });
+}
+
+function claimProgress(progId) {
+  showLoading('Mengklaim pekerjaan...');
+  google.script.run.withSuccessHandler(function(r) {
+    hideLoading();
+    if (r.success) { viewDetail(currentDetailId); Swal.fire('Berhasil','Pekerjaan diklaim, status berubah menjadi BERJALAN','success'); }
+    else Swal.fire('Gagal',r.message,'error');
+  }).withFailureHandler(function(e) { hideLoading(); Swal.fire('Error',e.message,'error'); })
+  .updateProgress({ id: progId, status: 'BERJALAN', persentase: 50, userEmail: currentUser.email });
 }
 
 // =============================================

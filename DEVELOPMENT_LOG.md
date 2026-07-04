@@ -311,6 +311,53 @@
 
 ---
 
+## v2.11.0 — Refactor Progress: PJ + Anggota + Target per Progress (2026-07-04)
+
+### Perubahan
+
+#### 1. MASTER_PROGRESS headers (backend_agenda.gs)
+- `PIC_EMAIL` → `PJ_EMAIL` (Penanggung Jawab)
+- Tambah kolom ke-14: `ANGGOTA_EMAILS` (JSON array of emails)
+- `ensureAgendaColumn()` otomatis rename header lama yang masih `PIC_EMAIL`
+
+#### 2. Backend Progress CRUD (backend_agenda.gs)
+- `createProgress()` / `updateProgress()`:
+  - `picEmail` → `pjEmail`
+  - Kirim `anggotaEmails` (array), disimpan sebagai JSON string di kolom 14
+  - Kirim `target` (Dokumen/Laporan/Lainnya) — disimpan di kolom 7
+- `getProgressByWorkflowId()`:
+  - Return `pjEmail`, `pjNama`, `anggotaEmails`, `anggotaNamaList` (nama hasil resolve dari MASTER_PEGAWAI)
+  - Return `target`
+- `autoSaveLKH()` → `autoSaveLKHAll()`:
+  - Generate LKH untuk **PJ + semua anggota** (bukan hanya PIC)
+  - Ambil `target` dari progress (priority), fallback ke workflow target, lalu agenda jenis
+  - LKH_REFERENCE_ID menyimpan multiple refs dengan format `email1:id1,email2:id2` untuk track yang sudah dibuat
+
+#### 3. Frontend Progress Modal (agenda.html)
+- Hapus `fProgressPIC` → ganti `fProgressPJ` (Penanggung Jawab)
+- Tambah `fProgressTarget` — dropdown: Dokumen / Laporan / Lainnya
+- Tambah `fProgressAnggota` — `<select multiple>` untuk pilih anggota
+- Helper: `deselectAll()`, `getAnggotaEmails()`, `setAnggotaSelect()`
+- `saveProgress()`: validasi target wajib, kirim `pjEmail` + `anggotaEmails` + `target`
+- `populateDropdowns()`: isi `fProgressPJ` dan `fProgressAnggota` dari pegawaiList
+
+#### 4. Render detail (agenda.html — renderWorkflows)
+- Setiap progress menampilkan:
+  - **Target badge** (pill warna ungu)
+  - **PJ** (Penanggung Jawab)
+  - **Anggota** (daftar nama, jika ada)
+
+### Alur baru
+1. Workflow punya **PIC** (kasubbag) — tidak berubah
+2. Di dalam workflow, Progress punya:
+   - **Target** — menentukan hasil LKH (Dokumen/Laporan/Lainnya)
+   - **PJ** — penanggung jawab task, LKH auto-generated untuknya
+   - **Anggota** — orang lain yang ikut, LKH juga auto-generated
+3. Siapa saja upload evidence (tidak dibatasi)
+4. Saat progress selesai → LKH untuk PJ + semua anggota
+
+---
+
 ## Critical Context for Next Session
 - **Notulen spreadsheet**: `1hC8lzsHoukbQIfv-JNmZzx3u5pBoU7uY7bmktgU2_uA`
 - **Agenda tindak lanjut spreadsheet**: `1-xohP9CXPUIOL8Ar8L_L3xTOfs_S6fMkUj098nmyE10`

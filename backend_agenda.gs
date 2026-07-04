@@ -33,8 +33,8 @@ const AGENDA_HEADERS = {
   ],
   MASTER_PROGRESS: [
     "ID","WORKFLOW_ID","URUTAN","NAMA_PROGRESS","STATUS",
-    "PERSENTASE","TARGET","REALISASI","PIC_EMAIL","CATATAN",
-    "CREATED_AT","UPDATED_AT","LKH_REFERENCE_ID"
+    "PERSENTASE","TARGET","REALISASI","PJ_EMAIL","CATATAN",
+    "CREATED_AT","UPDATED_AT","LKH_REFERENCE_ID","ANGGOTA_EMAILS"
   ],
   MASTER_EVIDENCE: [
     "ID","PROGRESS_ID","NAMA_FILE","LINK","KETERANGAN",
@@ -176,6 +176,10 @@ function ensureAgendaColumn() {
     const headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
     const targetHeaders = AGENDA_HEADERS[key];
     if (!targetHeaders) return;
+    // Rename old header PIC_EMAIL → PJ_EMAIL
+    if (key === 'MASTER_PROGRESS' && headers.length > 8 && String(headers[8] || '').trim() === 'PIC_EMAIL') {
+      sh.getRange(1, 9).setValue('PJ_EMAIL');
+    }
     targetHeaders.forEach((h, idx) => {
       if (idx >= headers.length) {
         sh.getRange(1, idx + 1).setValue(h);
@@ -210,7 +214,8 @@ function jenisToHasilType(jenis) {
 function generateKeteranganLKH(hasilType, realisasi, progressNama, judulAgenda) {
   if (!realisasi) return 'Kegiatan ' + progressNama + ' pada agenda ' + judulAgenda + ' telah terlaksana dengan baik.';
   if (hasilType === 'Dokumen') return realisasi + ' Dokumen telah selesai dibuat.';
-  return realisasi + ' Laporan telah disusun dengan baik.';
+  if (hasilType === 'Laporan') return realisasi + ' Laporan telah disusun dengan baik.';
+  return realisasi + ' ' + hasilType + ' telah selesai.';
 }
 
 function createAgenda(data) {
@@ -275,6 +280,18 @@ function agendaUpdateAgenda(data) {
         if (data.dasarFileUrl !== undefined) sh.getRange(r, 17).setValue(data.dasarFileUrl);
         sh.getRange(r, 16).setValue(new Date());
         SpreadsheetApp.flush();
+
+        // Update assignments: hapus lama, buat baru
+        const shAssign = ss.getSheetByName(AGENDA_SHEETS.MASTER_ASSIGNMENT);
+        if (shAssign) {
+          const assignRows = shAssign.getDataRange().getValues();
+          for (let a = assignRows.length - 1; a >= 1; a--) {
+            if (assignRows[a][1] === data.id) shAssign.deleteRow(a + 1);
+          }
+        }
+        if (data.picEmail || data.assignmentType) {
+          createAssignments(data.id, data);
+        }
 
         logAgendaActivity(data.userEmail || "", "UPDATE_AGENDA", data.id);
         clearAgendaCache();
@@ -691,30 +708,20 @@ function updateAgendaStatusFromWorkflow(agendaId) {
 
 // =============================================
 // AUTO SAVE TO LKH (AGENDA sheet in E-LKH spreadsheet)
+// — Generate untuk PJ + semua Anggota
 // =============================================
-function autoSaveLKH(progressId, workflowId, picEmail, namaProgress, realisasi, status) {
+function autoSaveLKHAll(progressId, workflowId, pjEmail, anggotaEmails, namaProgress, realisasi, status) {
   try {
-    if (status !== "SELESAI" || !realisasi || !picEmail) return;
-
-    // Cari LKH_REFERENCE_ID dari MASTER_PROGRESS
-    var progSh = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.MASTER_PROGRESS);
-    var progRows = progSh.getDataRange().getValues();
-    var lkhRefId = "";
-    var progRowNum = -1;
-    for (var i = 1; i < progRows.length; i++) {
-      if (progRows[i][0] === progressId) {
-        lkhRefId = String(progRows[i][12] || "").trim();
-        progRowNum = i + 1;
-        break;
-      }
-    }
+    if (status !== "SELESAI" || !realisasi) return;
+    var allEmails = [pjEmail].concat(anggotaEmails || []).filter(Boolean);
+    if (!allEmails.length) return;
 
     // Get workflow & agenda context
     var wfSh = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.MASTER_WORKFLOW);
     var wfRows = wfSh.getDataRange().getValues();
-    var agendaId = "", wfNama = "";
+    var agendaId = "", wfNama = "", wfTarget = "";
     for (var w = 1; w < wfRows.length; w++) {
-      if (wfRows[w][0] === workflowId) { agendaId = wfRows[w][1]; wfNama = wfRows[w][3]; break; }
+      if (wfRows[w][0] === workflowId) { agendaId = wfRows[w][1]; wfNama = wfRows[w][3]; wfTarget = String(wfRows[w][5] || "").trim(); break; }
     }
 
     var agendaJudul = "", agendaJenis = "";
@@ -726,50 +733,63 @@ function autoSaveLKH(progressId, workflowId, picEmail, namaProgress, realisasi, 
       }
     }
 
-    // Get employee info from MASTER_PEGAWAI
-    var peg = getPegawaiByEmail(picEmail);
-    var nama = peg ? peg.nama : picEmail;
-    var nip = peg ? peg.nip : "";
-
     var elkhSs = SpreadsheetApp.openById(AGENDA_MASTER_SHEET_ID);
     var sh = elkhSs.getSheetByName("AGENDA");
     if (!sh) return;
 
     var now = new Date();
     var tglStr = Utilities.formatDate(now, AGENDA_TIMEZONE, "yyyy-MM-dd");
-
-    // --- Smart content generation ---
-    var hasilType = jenisToHasilType(agendaJenis || '');
+    // Ambil target dari progress (priority), fallback ke workflow target, lalu agenda jenis
+    var progSh2 = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.MASTER_PROGRESS);
+    var progRows2 = progSh2.getDataRange().getValues();
+    var progTarget = "";
+    for (var pt = 1; pt < progRows2.length; pt++) {
+      if (progRows2[pt][0] === progressId) { progTarget = String(progRows2[pt][6] || "").trim(); break; }
+    }
+    var hasilLkh = progTarget || wfTarget || jenisToHasilType(agendaJenis || '');
     var kegiatanLkh = '[' + (agendaJenis || 'UMUM') + '] ' + (agendaJudul || '') + ' — ' + (wfNama || '') + ' — ' + namaProgress;
-    var keteranganLkh = generateKeteranganLKH(hasilType, realisasi, namaProgress, agendaJudul);
-    var hasilLkh = hasilType; // 'Dokumen' or 'Laporan'
+    var keteranganLkh = generateKeteranganLKH(hasilLkh, realisasi, namaProgress, agendaJudul);
 
-    if (lkhRefId) {
-      // UPDATE existing LKH record
-      if (sh.getLastRow() < 2) return;
-      var lkhData = sh.getDataRange().getValues();
-      for (var j = 1; j < lkhData.length; j++) {
-        if (String(lkhData[j][0] || "").trim() === lkhRefId) {
-          var row = j + 1;
-          sh.getRange(row, 5).setValue(tglStr);     // TANGGAL
-          sh.getRange(row, 6).setValue(kegiatanLkh); // KEGIATAN
-          sh.getRange(row, 7).setValue(hasilLkh);    // HASIL
-          sh.getRange(row, 8).setValue(keteranganLkh); // KETERANGAN
-          break;
-        }
-      }
-    } else {
-      // INSERT new LKH record
-      var lkhId = Utilities.getUuid();
-      sh.appendRow([lkhId, picEmail, nip, nama, tglStr, kegiatanLkh, hasilLkh, keteranganLkh, now, "AGENDA"]);
-
-      // Simpan LKH_REFERENCE_ID ke MASTER_PROGRESS
-      if (progRowNum > 0) {
-        progSh.getRange(progRowNum, 13).setValue(lkhId);
+    // Cari LKH_REFERENCE_ID dari MASTER_PROGRESS (untuk PJ)
+    var progSh = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.MASTER_PROGRESS);
+    var progRows = progSh.getDataRange().getValues();
+    var lkhRefIdsStr = "";
+    var progRowNum = -1;
+    for (var i = 1; i < progRows.length; i++) {
+      if (progRows[i][0] === progressId) {
+        lkhRefIdsStr = String(progRows[i][12] || "").trim();
+        progRowNum = i + 1;
+        break;
       }
     }
+    var lkhRefIds = lkhRefIdsStr ? lkhRefIdsStr.split(',') : [];
+    var existingRefIds = [];
+
+    allEmails.forEach(function(email) {
+      var peg = getPegawaiByEmail(email);
+      var nama = peg ? peg.nama : email;
+      var nip = peg ? peg.nip : "";
+
+      // Cari apakah sudah ada LKH untuk email ini
+      var found = false;
+      for (var j = 0; j < lkhRefIds.length; j++) {
+        if (lkhRefIds[j].indexOf(email) !== -1) { found = true; break; }
+      }
+
+      if (!found) {
+        var lkhId = Utilities.getUuid();
+        sh.appendRow([lkhId, email, nip, nama, tglStr, kegiatanLkh, hasilLkh, keteranganLkh, now, "AGENDA"]);
+        existingRefIds.push(email + ':' + lkhId);
+      }
+    });
+
+    // Simpan LKH_REFERENCE_ID ke MASTER_PROGRESS jika ada baru
+    if (existingRefIds.length && progRowNum > 0) {
+      var allRefs = lkhRefIds.concat(existingRefIds);
+      progSh.getRange(progRowNum, 13).setValue(allRefs.join(','));
+    }
   } catch (err) {
-    console.error("autoSaveLKH error:", err);
+    console.error("autoSaveLKHAll error:", err);
   }
 }
 
@@ -783,11 +803,12 @@ function createProgress(data) {
     const sh = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.MASTER_PROGRESS);
     const id = Utilities.getUuid();
     const urutan = data.urutan || (sh.getLastRow());
+    var anggotaJson = data.anggotaEmails && data.anggotaEmails.length ? JSON.stringify(data.anggotaEmails) : '';
     sh.appendRow([id, data.workflowId, urutan, data.namaProgress,
       data.status || "RENCANA", data.persentase || 0,
       data.target || "", data.realisasi || "",
-      data.picEmail || "", data.catatan || "", new Date(), new Date()]);
-    autoSaveLKH(id, data.workflowId, data.picEmail, data.namaProgress, data.realisasi, data.status || "RENCANA");
+      data.pjEmail || "", data.catatan || "", new Date(), new Date(), '', anggotaJson]);
+    autoSaveLKHAll(id, data.workflowId, data.pjEmail, data.anggotaEmails || [], data.namaProgress, data.realisasi, data.status || "RENCANA");
     logAgendaActivity(data.userEmail || "", "BUAT_PROGRESS", "");
     return { success: true, id };
   } catch (err) { return { success: false, message: err.message }; }
@@ -806,8 +827,11 @@ function updateProgress(data) {
         if (data.persentase !== undefined) sh.getRange(r, 6).setValue(data.persentase);
         if (data.target !== undefined) sh.getRange(r, 7).setValue(data.target);
         if (data.realisasi !== undefined) sh.getRange(r, 8).setValue(data.realisasi);
-        if (data.picEmail) sh.getRange(r, 9).setValue(data.picEmail);
+        if (data.pjEmail) sh.getRange(r, 9).setValue(data.pjEmail);
         if (data.catatan !== undefined) sh.getRange(r, 10).setValue(data.catatan);
+        if (data.anggotaEmails !== undefined) {
+          sh.getRange(r, 14).setValue(data.anggotaEmails.length ? JSON.stringify(data.anggotaEmails) : '');
+        }
         sh.getRange(r, 12).setValue(new Date());
 
         // Auto-update workflow status
@@ -820,8 +844,12 @@ function updateProgress(data) {
         var effStatus = data.status || rows[i][4];
         var effRealisasi = data.realisasi !== undefined ? data.realisasi : rows[i][7];
         var effNama = data.namaProgress || rows[i][3];
-        var effPic = data.picEmail || rows[i][8];
-        autoSaveLKH(data.id, wfId, effPic, effNama, effRealisasi, effStatus);
+        var effPj = data.pjEmail || rows[i][8];
+        var anggotaStr = String(rows[i][13] || '');
+        var effAnggota = [];
+        try { effAnggota = JSON.parse(anggotaStr); } catch(e) {}
+        if (data.anggotaEmails !== undefined) effAnggota = data.anggotaEmails;
+        autoSaveLKHAll(data.id, wfId, effPj, effAnggota, effNama, effRealisasi, effStatus);
 
         logAgendaActivity(data.userEmail || "", "UPDATE_PROGRESS", "");
         return { success: true, message: "Progress diperbarui" };
@@ -865,13 +893,18 @@ function getProgressByWorkflowId(workflowId) {
     const result = [];
     for (let i = 1; i < rows.length; i++) {
       if (String(rows[i][1]) !== workflowId) continue;
-      const picEmail = String(rows[i][8] || "").trim();
-      const pic = pegawaiMap[picEmail] || null;
+      const pjEmail = String(rows[i][8] || "").trim();
+      const pj = pegawaiMap[pjEmail] || null;
+      var anggotaList = [];
+      try { var raw = String(rows[i][13] || ''); if (raw) anggotaList = JSON.parse(raw); } catch(e) {}
+      var anggotaNamaList = anggotaList.map(function(e) { var p = pegawaiMap[e]; return p ? p.nama : e; });
       result.push({
         id: rows[i][0], workflowId: rows[i][1], urutan: rows[i][2],
         namaProgress: rows[i][3], status: rows[i][4],
         persentase: rows[i][5], target: rows[i][6], realisasi: rows[i][7],
-        picEmail, picNama: pic ? pic.nama : picEmail,
+        pjEmail: pjEmail, pjNama: pj ? pj.nama : pjEmail,
+        anggotaEmails: anggotaList,
+        anggotaNamaList: anggotaNamaList,
         catatan: rows[i][9],
         createdAt: rows[i][10] instanceof Date ? Utilities.formatDate(rows[i][10], AGENDA_TIMEZONE, "dd MMM yyyy") : String(rows[i][10] || ""),
         updatedAt: rows[i][11] instanceof Date ? Utilities.formatDate(rows[i][11], AGENDA_TIMEZONE, "dd MMM yyyy") : String(rows[i][11] || "")
