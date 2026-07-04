@@ -39,7 +39,7 @@ const AGENDA_HEADERS = {
   ],
   MASTER_EVIDENCE: [
     "ID","PROGRESS_ID","NAMA_FILE","LINK","KETERANGAN",
-    "UPLOAD_BY_EMAIL","UPLOAD_AT"
+    "UPLOAD_BY_EMAIL","UPLOAD_AT","FILE_DRIVE_ID","MIME_TYPE"
   ],
   MASTER_ASSIGNMENT: [
     "ID","AGENDA_ID","EMAIL_PEGAWAI","ROLE","STATUS",
@@ -1008,11 +1008,42 @@ function createEvidence(data) {
     const sh = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.MASTER_EVIDENCE);
     sh.appendRow([Utilities.getUuid(), data.progressId, data.namaFile,
       data.link || "", data.keterangan || "",
-      data.uploadByEmail || "", new Date()]);
+      data.uploadByEmail || "", new Date(),
+      data.fileDriveId || "", data.mimeType || ""]);
     var agendaId4 = _progressToAgendaId(data.progressId);
     logAgendaActivity(data.uploadByEmail || "", "UPLOAD_EVIDENCE", agendaId4 || data.progressId);
     return { success: true, message: "Evidence ditambahkan" };
   } catch (err) { return { success: false, message: err.message }; }
+}
+
+/**
+ * Upload a single file to Drive and create evidence row.
+ * Called from client via google.script.run with file blob.
+ */
+function createEvidenceFile(progressId, fileBlob, keterangan, uploadByEmail) {
+  try {
+    if (!progressId || !fileBlob)
+      return { success: false, message: "Data tidak lengkap" };
+    var folder = _getEvidenceFolder();
+    var driveFile = folder.createFile(fileBlob);
+    driveFile.setDescription("Evidence for progress: " + progressId);
+    var fileUrl = driveFile.getUrl();
+    var fileName = driveFile.getName();
+    var mimeType = fileBlob.getContentType() || driveFile.getMimeType() || "";
+    var fileDriveId = driveFile.getId();
+    var id = Utilities.getUuid();
+    const sh = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.MASTER_EVIDENCE);
+    sh.appendRow([id, progressId, fileName, fileUrl, keterangan || "",
+      uploadByEmail || "", new Date(), fileDriveId, mimeType]);
+    var agendaId4 = _progressToAgendaId(progressId);
+    logAgendaActivity(uploadByEmail || "", "UPLOAD_EVIDENCE", agendaId4 || progressId);
+    return {
+      success: true, id: id, namaFile: fileName, link: fileUrl,
+      fileDriveId: fileDriveId, mimeType: mimeType
+    };
+  } catch (err) {
+    return { success: false, message: "Gagal upload file: " + err.message };
+  }
 }
 
 function deleteEvidence(id, userEmail) {
@@ -1020,7 +1051,15 @@ function deleteEvidence(id, userEmail) {
     const sh = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.MASTER_EVIDENCE);
     const rows = sh.getDataRange().getValues();
     for (let i = 1; i < rows.length; i++) {
-      if (rows[i][0] === id) { sh.deleteRow(i + 1); return { success: true }; }
+      if (rows[i][0] === id) {
+        // Hapus file dari Drive jika ada
+        var fileDriveId = String(rows[i][7] || "").trim();
+        if (fileDriveId) {
+          try { DriveApp.getFileById(fileDriveId).setTrashed(true); } catch (e) { /* file mungkin sudah dihapus */ }
+        }
+        sh.deleteRow(i + 1);
+        return { success: true };
+      }
     }
     return { success: false, message: "Evidence tidak ditemukan" };
   } catch (err) { return { success: false, message: err.message }; }
@@ -1035,17 +1074,43 @@ function getEvidenceByProgressId(progressId) {
     const result = [];
     for (let i = 1; i < rows.length; i++) {
       if (String(rows[i][1]) !== progressId) continue;
-      const uploadBy = String(rows[i][5] || "").trim();
-      const peg = pegawaiMap[uploadBy] || null;
+      var uploadBy = String(rows[i][5] || "").trim();
+      var peg = pegawaiMap[uploadBy] || null;
+      var mime = String(rows[i][8] || "").trim();
       result.push({
         id: rows[i][0], progressId: rows[i][1], namaFile: rows[i][2],
         link: rows[i][3], keterangan: rows[i][4],
         uploadByEmail: uploadBy, uploadByNama: peg ? peg.nama : uploadBy,
-        uploadAt: rows[i][6] instanceof Date ? Utilities.formatDate(rows[i][6], AGENDA_TIMEZONE, "dd MMM yyyy HH:mm") : String(rows[i][6] || "")
+        uploadAt: rows[i][6] instanceof Date ? Utilities.formatDate(rows[i][6], AGENDA_TIMEZONE, "dd MMM yyyy HH:mm") : String(rows[i][6] || ""),
+        fileDriveId: String(rows[i][7] || "").trim(),
+        mimeType: _mapMimeType(mime)
       });
     }
     return result;
   } catch (err) { return []; }
+}
+
+function _getEvidenceFolder() {
+  var tahun = Utilities.formatDate(new Date(), AGENDA_TIMEZONE, "yyyy");
+  var bulan = Utilities.formatDate(new Date(), AGENDA_TIMEZONE, "MM");
+  var folderName = "EVIDENCE_" + tahun + "_" + bulan;
+  var folders = DriveApp.getFoldersByName(folderName);
+  if (folders.hasNext()) return folders.next();
+  var root = DriveApp.getFolderById(AGENDA_SPREADSHEET_ID);
+  // Simpan folder evidence di root spreadsheet untuk kemudahan akses
+  return root.createFolder(folderName);
+}
+
+function _mapMimeType(mime) {
+  if (!mime) return "";
+  if (mime.includes("pdf")) return "pdf";
+  if (mime.includes("word") || mime.includes("document")) return "doc";
+  if (mime.includes("spreadsheet") || mime.includes("excel")) return "xls";
+  if (mime.includes("presentation") || mime.includes("powerpoint")) return "ppt";
+  if (mime.includes("image") || mime.includes("png") || mime.includes("jpg") || mime.includes("jpeg")) return "img";
+  if (mime.includes("zip") || mime.includes("rar") || mime.includes("tar")) return "zip";
+  if (mime.includes("text") || mime.includes("json") || mime.includes("csv")) return "txt";
+  return "file";
 }
 
 // =============================================
@@ -1111,106 +1176,6 @@ function getProgressSelesaiForLKH(userEmail) {
     });
 
     return { success: true, data: result };
-  } catch (err) {
-    return { success: false, message: err.message };
-  }
-}
-
-// =============================================
-// MONITORING — EKSEKUTIF DASHBOARD
-// =============================================
-function getMonitoringData(statusFilter, subbagFilter) {
-  try {
-    ensureAgendaSheets();
-    const sh = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.MASTER_AGENDA);
-    if (sh.getLastRow() < 2) return { success: true, stats: {}, subbag: [], prioritas: [], sumber: [], overdue: [] };
-
-    const rows = sh.getDataRange().getValues();
-    const pegawaiMap = getPegawaiMapByEmail();
-    const now = new Date();
-
-    // Normalize filters
-    statusFilter = (statusFilter || "").trim();
-    subbagFilter = (subbagFilter || "").trim();
-
-    let total=0, rencana=0, berjalan=0, selesai=0, overdueCount=0;
-    const subbagMap = {};
-    const prioritasMap = { MENDESAK:0, TINGGI:0, SEDANG:0, RENDAH:0 };
-    const sumberMap = {};
-    const overdueList = [];
-
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i];
-      const status = String(row[7] || "");
-      const prioritas = String(row[6] || "SEDANG");
-      const sumber = String(row[3] || "LAINNYA");
-      const subbag = String(row[5] || "Tanpa Subbag");
-
-      // Apply filters
-      if (statusFilter && status !== statusFilter) continue;
-      if (subbagFilter && subbag !== subbagFilter) continue;
-
-      total++;
-      if (status === "RENCANA") rencana++;
-      else if (status === "BERJALAN") berjalan++;
-      else if (status === "SELESAI") selesai++;
-
-      // Overdue check
-      const tglSelesai = row[12];
-      let isOverdue = false;
-      if (tglSelesai && status !== "SELESAI") {
-        const d = new Date(String(tglSelesai) + "T23:59:59");
-        if (!isNaN(d) && d < now) isOverdue = true;
-      }
-      if (isOverdue) {
-        overdueCount++;
-        const selisih = Math.floor((now - d) / (1000*60*60*24));
-        const pic = (pegawaiMap[String(row[13]).trim()] || {}).nama || String(row[13]);
-        overdueList.push({
-          id: row[0], judul: row[2], subbag, prioritas,
-          tenggat: tglSelesai, telat: selisih, pic
-        });
-      }
-
-      // Per Subbag progress
-      if (!subbagMap[subbag]) subbagMap[subbag] = { total:0, done:0, nama:subbag };
-      subbagMap[subbag].total++;
-      if (status === "SELESAI") subbagMap[subbag].done++;
-
-      // Per Prioritas
-      if (prioritasMap[prioritas] !== undefined) prioritasMap[prioritas]++;
-
-      // Per Sumber
-      if (!sumberMap[sumber]) sumberMap[sumber] = 0;
-      sumberMap[sumber]++;
-    }
-
-    // Sort overdue by most late
-    overdueList.sort((a,b) => b.telat - a.telat);
-
-    // Format subbag progress
-    const subbagArr = Object.values(subbagMap).map(s => ({
-      subbag: s.nama,
-      persentase: s.total > 0 ? Math.round((s.done / s.total) * 100) : 0,
-      total: s.total,
-      done: s.done
-    })).sort((a,b) => a.persentase - b.persentase);
-
-    // Format prioritas
-    const prioritasArr = Object.entries(prioritasMap).map(([label, count]) => ({ label, count }));
-
-    // Format sumber
-    const sumberArr = Object.entries(sumberMap).map(([label, count]) => ({ label:label.charAt(0)+label.slice(1).toLowerCase(), count }))
-      .sort((a,b) => b.count - a.count);
-
-    return {
-      success: true,
-      stats: { total, rencana, berjalan, selesai, overdue: overdueCount },
-      subbag: subbagArr,
-      prioritas: prioritasArr,
-      sumber: sumberArr,
-      overdue: overdueList
-    };
   } catch (err) {
     return { success: false, message: err.message };
   }

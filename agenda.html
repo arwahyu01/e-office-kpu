@@ -34,12 +34,32 @@
             </nav>
         </div>
         <div class="sidebar-footer">
-            <div class="footer-main">
-                <div class="institution-brand"><div class="brand-icon"><i class="fas fa-university"></i></div><div class="brand-info"><div class="brand-name">KPU Kabupaten Siak</div><div class="brand-subtitle">Agenda & Tindak Lanjut</div></div></div>
-                <div class="system-info"><div class="info-item"><div class="status-dot active"></div><span class="app-version">v2.0</span></div></div>
+                <div class="footer-main">
+                    <div class="institution-brand">
+                        <div class="brand-icon">
+                            <i class="fas fa-university"></i>
+                        </div>
+                        <div class="brand-info">
+                            <div class="brand-name">KPU Kabupaten Siak</div>
+                            <div class="brand-subtitle">Sistem Informasi E-Office Terpadu</div>
+                        </div>
+                    </div>
+
+                    <div class="system-info">
+                        <div class="info-item">
+                            <i class="fas fa-database"></i>
+                            <span>Google Drive Sync</span>
+                        </div>
+                        <div class="info-item">
+                            <div class="status-dot active"></div>
+                            <span class="app-version"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="footer-copyright">
+                    © 2026 KPU Kabupaten Siak
+                </div>
             </div>
-            <div class="footer-copyright">&copy; 2026 KPU Kabupaten Siak</div>
-        </div>
     </aside>
 
     <main class="main-content">
@@ -55,12 +75,6 @@
                 <div class="stat-card"><div class="stat-icon" style="background:#dbeafe;color:#2563eb;"><i class="fas fa-spinner"></i></div><div class="stat-info"><h3 id="statBerjalan">0</h3><p>Sedang Berjalan</p></div></div>
                 <div class="stat-card"><div class="stat-icon" style="background:#d1fae5;color:#059669;"><i class="fas fa-check-circle"></i></div><div class="stat-info"><h3 id="statSelesai">0</h3><p>Selesai</p></div></div>
                 <div class="stat-card"><div class="stat-icon" style="background:#fee2e2;color:#dc2626;"><i class="fas fa-exclamation-triangle"></i></div><div class="stat-info"><h3 id="statOverdue">0</h3><p>Terlambat</p></div></div>
-            </div>
-            <div id="analyticsBar" class="analytics-bar" style="display:none;">
-                <div class="analytics-segment" id="anOverdue"><div class="an-loading"></div></div>
-                <div class="analytics-segment" id="anPrioritas"><div class="an-loading"></div></div>
-                <div class="analytics-segment" id="anSubbag"><div class="an-loading"></div></div>
-                <div class="analytics-segment" id="anSumber" style="border-right:none;"><div class="an-loading"></div></div>
             </div>
             <div class="filter-bar"><div class="filter-group" style="display:flex;gap:10px;flex-wrap:wrap;">
                 <select id="filterStatus" class="filter-select" onchange="filterChange()"><option value="">Semua Status</option><option value="RENCANA">Belum Mulai</option><option value="BERJALAN">Sedang Dikerjakan</option><option value="SELESAI">Selesai</option></select>
@@ -500,13 +514,78 @@
 
 <!-- ========== EVIDENCE MODAL ========== -->
 <div id="modalEvidence" class="modal" style="display:none;">
-    <div class="modal-content" style="max-width:480px;">
-        <div class="modal-header"><h2><b>Tambah Evidence</b></h2><button class="close-btn" onclick="closeModalEvidence()"><i class="fas fa-times"></i></button></div>
+    <div class="modal-content ev-modal-content">
+        <div class="modal-header ev-modal-header">
+            <div class="ev-modal-title">
+                <div class="ev-title-icon"><i class="fas fa-paperclip"></i></div>
+                <div>
+                    <h2><b>Evidence</b></h2>
+                    <span class="ev-subtitle" id="evModalSubtitle">Lampirkan file atau tautan pendukung</span>
+                </div>
+            </div>
+            <button class="close-btn" onclick="closeModalEvidence()"><i class="fas fa-times"></i></button>
+        </div>
         <input type="hidden" id="evidenceProgressId">
-        <div class="form-group"><label>Nama File <span style="color:#dc2626;">*</span></label><input type="text" id="fNamaFile" class="form-control" placeholder="Nama dokumen/file"></div>
-        <div class="form-group" style="margin-top:16px;"><label>Link / URL</label><input type="url" id="fLink" class="form-control" placeholder="https://drive.google.com/..."></div>
-        <div class="form-group" style="margin-top:16px;"><label>Keterangan</label><textarea id="fEvidenceKet" class="form-control" rows="2" placeholder="Keterangan evidence"></textarea></div>
-        <button onclick="saveEvidence()" class="btn-primary full-width" style="margin-top:24px;width:100%;"><i class="fas fa-upload"></i> Simpan Evidence</button>
+
+        <div class="ev-body">
+            <!-- Drop Zone -->
+            <div class="ev-dropzone" id="evDropZone">
+                <input type="file" id="fEvidenceFiles" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.bmp,.tiff,.zip,.rar,.txt,.csv" style="display:none;">
+                <div class="ev-dropzone-inner">
+                    <div class="ev-dz-icon"><i class="fas fa-file-upload"></i></div>
+                    <div class="ev-dz-text">
+                        <span class="ev-dz-main">Seret file ke sini atau <span class="ev-dz-link" onclick="document.getElementById('fEvidenceFiles').click()">klik untuk memilih</span></span>
+                        <span class="ev-dz-hint">PDF, DOC, XLS, PPT, JPG, PNG, ZIP, TXT — Maks 10 file</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Selected Files List -->
+            <div class="ev-files-container" id="evFilesContainer" style="display:none;">
+                <div class="ev-files-header">
+                    <span class="ev-files-count" id="evFilesCount">0 file dipilih</span>
+                    <button class="ev-clear-btn" onclick="clearSelectedFiles()">Hapus semua</button>
+                </div>
+                <div class="ev-files-list" id="evFilesList"></div>
+            </div>
+
+            <!-- Link Section -->
+            <div class="ev-divider">Atau tambahkan via tautan</div>
+            <div class="ev-link-section">
+                <div class="ev-link-row">
+                    <div class="form-group">
+                        <label class="ev-label"><i class="fas fa-link"></i> URL</label>
+                        <input type="url" id="fLinkUrl" class="form-control" placeholder="https://drive.google.com/...">
+                    </div>
+                    <div class="form-group">
+                        <label class="ev-label"><i class="fas fa-tag"></i> Nama</label>
+                        <input type="text" id="fLinkNama" class="form-control" placeholder="Nama file/dokumen">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Keterangan -->
+            <div class="form-group" style="margin-top:12px;">
+                <label class="ev-label"><i class="fas fa-comment-alt"></i> Keterangan</label>
+                <textarea id="fEvidenceKet" class="form-control ev-textarea" rows="2" placeholder="Tambahkan catatan untuk evidence ini (opsional)"></textarea>
+            </div>
+
+            <!-- Upload Progress -->
+            <div class="ev-progress-container" id="evProgressContainer" style="display:none;">
+                <div class="ev-progress-bar-track">
+                    <div class="ev-progress-bar-fill" id="evProgressFill" style="width:0%;"></div>
+                </div>
+                <div class="ev-progress-status" id="evProgressStatus">Mengupload 0/0 file...</div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="ev-actions">
+                <button class="btn-secondary ev-btn-cancel" onclick="closeModalEvidence()">Batal</button>
+                <button class="btn-primary ev-btn-upload" id="evBtnUpload" onclick="saveEvidenceMultiple()" disabled>
+                    <i class="fas fa-cloud-upload-alt"></i> <span>Upload Evidence</span>
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -582,7 +661,7 @@ function logout() { localStorage.removeItem(SESSION_KEY); redirectToLogin(); }
 function showLoading(m) { const el=document.getElementById('loading'); el.querySelector('.loading-text').textContent=m||'Memuat...'; el.style.display='flex'; }
 function hideLoading() { document.getElementById('loading').style.display='none'; }
 
-function initApp() { hideLoading(); loadPegawai(); loadList(); loadDashboardStats(); initAnalytics(); }
+function initApp() { hideLoading(); loadPegawai(); loadList(); loadDashboardStats(); }
 
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
 
@@ -592,7 +671,7 @@ function switchSection(id, btn) {
   if (btn) btn.classList.add('active');
   const t=document.getElementById('section-'+id);
   if (t) t.style.display='block';
-  if (id==='dashboard') { loadDashboardStats(); loadList(); loadAnalyticsIfPimpinan(); }
+  if (id==='dashboard') { loadDashboardStats(); loadList(); }
   if (id==='history') loadHistory();
   if (id==='kalender') loadKalender();
 }
@@ -923,69 +1002,9 @@ function confirmDelete(id) {
   }});
 }
 
-function filterChange() { loadList(); loadAnalyticsIfPimpinan(); }
+function filterChange() { loadList(); }
 function refreshAll() { loadDashboardStats(); loadList(); }
 
-// =============================================
-// ANALYTICS (PIMPINAN ONLY — DI BERANDA)
-// =============================================
-function initAnalytics() {
-  const role = (currentUser?.level || '').toUpperCase();
-  const allowed = ['ADMIN','SEKRETARIS','PIMPINAN','KOMISIONER'];
-  document.getElementById('analyticsContainer').style.display = allowed.includes(role) ? 'block' : 'none';
-}
-
-function loadAnalyticsIfPimpinan() {
-  const role = (currentUser?.level || '').toUpperCase();
-  if (!['ADMIN','SEKRETARIS','PIMPINAN','KOMISIONER'].includes(role)) return;
-  document.getElementById('analyticsBar').style.display = 'flex';
-  const status = document.getElementById('filterStatus').value;
-  const subbag = document.getElementById('filterSubbag').value;
-  google.script.run.withSuccessHandler(r => {
-    if (!r.success) return;
-    anRenderOverdue(r.overdue||[]);
-    anRenderPrioritas(r.prioritas||[]);
-    anRenderSubbag(r.subbag||[]);
-    anRenderSumber(r.sumber||[]);
-  }).withFailureHandler(() => {}).getMonitoringData(status, subbag);
-}
-
-function anRenderOverdue(list) {
-  const c = document.getElementById('anOverdue');
-  if (!list.length) { c.innerHTML = '<div class="an-value an-ok"><i class="fas fa-check-circle"></i> 0 Terlambat</div>'; return; }
-  const top = list.slice(0, 2);
-  c.innerHTML = '<div class="an-value an-warn"><i class="fas fa-exclamation-circle"></i> ' + list.length + ' Terlambat</div>' +
-    top.map(a => '<div class="an-item" onclick="viewDetail(\'' + a.id + '\')">' + esc(truncate(a.judul,22)) + ' <span class="an-telat">' + a.telat + 'h</span></div>').join('') +
-    (list.length > 2 ? '<div class="an-more">+' + (list.length - 2) + ' lainnya</div>' : '');
-}
-
-function anRenderPrioritas(list) {
-  const c = document.getElementById('anPrioritas');
-  const colors = {MENDESAK:'#dc2626',TINGGI:'#ea580c',SEDANG:'#ca8a04',RENDAH:'#0284c7'};
-  const total = list.reduce((s,i) => s+i.count, 0) || 1;
-  c.innerHTML = list.map(i => {
-    const pct = Math.round((i.count/total)*100);
-    return '<div class="an-prio-item"><span class="an-prio-dot" style="background:' + (colors[i.label]||'#94a3b8') + ';"></span><span class="an-prio-label">' + i.label + '</span><span class="an-prio-count">' + i.count + '</span><div class="an-prio-bar"><div class="an-prio-fill" style="width:' + pct + '%;background:' + (colors[i.label]||'#94a3b8') + ';"></div></div></div>';
-  }).join('');
-}
-
-function anRenderSubbag(list) {
-  const c = document.getElementById('anSubbag');
-  if (!list.length) { c.innerHTML = '<div class="an-value" style="color:#94a3b8;"><i class="fas fa-building"></i> Belum ada data</div>'; return; }
-  c.innerHTML = list.slice(0, 3).map(s => {
-    const cls = s.persentase >= 80 ? 'an-bar-green' : s.persentase >= 40 ? 'an-bar-blue' : 'an-bar-amber';
-    return '<div class="an-subbag-item"><div class="an-subbag-top"><span class="an-subbag-nama">' + esc(s.subbag) + '</span><span class="an-subbag-pct">' + s.persentase + '%</span></div><div class="an-prio-bar"><div class="an-prio-fill ' + cls + '" style="width:' + s.persentase + '%;"></div></div></div>';
-  }).join('') + (list.length > 3 ? '<div class="an-more">+' + (list.length - 3) + ' subbag</div>' : '');
-}
-
-function anRenderSumber(list) {
-  const c = document.getElementById('anSumber');
-  const total = list.reduce((s,i) => s+i.count, 0) || 1;
-  c.innerHTML = list.map(i => {
-    const pct = Math.round((i.count/total)*100);
-    return '<div class="an-sumber-item"><span class="an-sumber-dot" style="background:#6366f1;"></span><span class="an-sumber-label">' + esc(i.label) + '</span><span class="an-sumber-pct">' + pct + '%</span></div>';
-  }).join('');
-}
 
 // =============================================
 // KEGIATAN SAYA — DRAMATIC DASHBOARD
@@ -1675,9 +1694,9 @@ function renderWorkflows(workflows) {
       html += `<div style="margin-top:12px;padding-left:12px;border-left:2px solid #e5e7eb;">`;
       wf.progressList.forEach(prog => {
         const pc = prog.status==='SELESAI';
-        html += `<div class="progress-item ${pc?'completed':''}">
+        html += `<div class="progress-item ${pc?'completed':''}" data-prog-id="${prog.id}">
           <div style="display:flex;justify-content:space-between;align-items:center;">
-            <div><strong style="font-size:13px;">${esc(prog.namaProgress)}</strong>
+            <div><strong class="prog-name" style="font-size:13px;">${esc(prog.namaProgress)}</strong>
               ${prog.target?`<span style="display:inline-block;margin-left:6px;padding:1px 6px;border-radius:6px;font-size:10px;font-weight:600;color:#fff;background:#6366f1;">${esc(prog.target)}</span>`:''}
               <div style="font-size:11px;color:#94a3b8;margin-top:2px;">PJ: ${esc(prog.pjNama||'-')}
               ${prog.anggotaNamaList&&prog.anggotaNamaList.length?` &middot; Anggota: ${prog.anggotaNamaList.map(function(n){return esc(n);}).join(', ')}`:''}
@@ -1693,7 +1712,17 @@ function renderWorkflows(workflows) {
           </div>
           ${prog.catatan?`<div style="font-size:11px;color:#64748b;margin-top:4px;">${esc(prog.catatan)}</div>`:''}
           ${prog.realisasi?`<div style="font-size:11px;color:#059669;margin-top:2px;">Hasil Pekerjaan: ${esc(prog.realisasi)}</div>`:''}
-          ${prog.evidenceList&&prog.evidenceList.length?`<div style="margin-top:6px;">${prog.evidenceList.map(ev => `<div class="evidence-item" style="margin-bottom:4px;"><i class="fas fa-file-alt" style="color:#3b82f6;"></i> ${ev.link?`<a href="${ev.link}" target="_blank">${esc(ev.namaFile)}</a>`:`<span>${esc(ev.namaFile)}</span>`} <span style="color:#94a3b8;font-size:10px;">${esc(ev.uploadByNama||'')}</span> <button onclick="confirmDeleteEv('${ev.id}')" style="margin-left:auto;background:none;border:none;color:#dc2626;cursor:pointer;font-size:10px;"><i class="fas fa-trash"></i></button></div>`).join('')}</div>`:''}
+          ${prog.evidenceList&&prog.evidenceList.length?`<div class="ev-list-wrap">${prog.evidenceList.map(ev => {
+            var eicon = ev.mimeType ? 'fa-file-'+ev.mimeType : 'fa-file-alt';
+            if (ev.mimeType==='doc') eicon='fa-file-word';
+            else if (ev.mimeType==='xls') eicon='fa-file-excel';
+            else if (ev.mimeType==='ppt') eicon='fa-file-powerpoint';
+            else if (ev.mimeType==='img') eicon='fa-file-image';
+            else if (ev.mimeType==='zip') eicon='fa-file-archive';
+            else if (ev.mimeType==='txt') eicon='fa-file-alt';
+            else if (ev.mimeType==='pdf') eicon='fa-file-pdf';
+            return `<div class="ev-item-inline"><i class="fas ${eicon} ev-item-icon"></i> ${ev.link?`<a href="${ev.link}" target="_blank" class="ev-item-link">${esc(ev.namaFile)}</a>`:`<span class="ev-item-name">${esc(ev.namaFile)}</span>`} <span class="ev-item-user">${esc(ev.uploadByNama||'')}</span> <button onclick="confirmDeleteEv('${ev.id}')" class="ev-item-del" title="Hapus"><i class="fas fa-trash-alt"></i></button></div>`;
+          }).join('')}</div>`:''}
         </div>`;
       });
       html += `</div>`;
@@ -1895,27 +1924,264 @@ function claimProgress(progId) {
 // =============================================
 // EVIDENCE CRUD
 // =============================================
+var _evSelectedFiles = [];
+var _evUploading = false;
+
 function openCreateEvidence(progressId) {
   document.getElementById('evidenceProgressId').value=progressId;
-  document.getElementById('fNamaFile').value='';
-  document.getElementById('fLink').value='';
   document.getElementById('fEvidenceKet').value='';
+  document.getElementById('fLinkUrl').value='';
+  document.getElementById('fLinkNama').value='';
+  clearSelectedFiles();
+  document.getElementById('evProgressContainer').style.display='none';
+  document.getElementById('evBtnUpload').disabled=true;
+  // Set subtitle with progress info
+  var sub = document.getElementById('evModalSubtitle');
+  sub.textContent = 'Lampirkan file atau tautan pendukung';
   document.getElementById('modalEvidence').style.display='flex';
+  // Try to show context
+  var el = document.querySelector(`[data-prog-id="${progressId}"]`);
+  if (el) {
+    var txt = el.querySelector('.prog-name');
+    if (txt) sub.textContent = txt.textContent.trim();
+  }
 }
 
-function closeModalEvidence() { document.getElementById('modalEvidence').style.display='none'; }
+function closeModalEvidence() {
+  if (_evUploading) return;
+  document.getElementById('modalEvidence').style.display='none';
+  clearSelectedFiles();
+  document.getElementById('fLinkUrl').value='';
+  document.getElementById('fLinkNama').value='';
+}
 
-function saveEvidence() {
-  const progressId=document.getElementById('evidenceProgressId').value;
-  const namaFile=document.getElementById('fNamaFile').value.trim();
-  if (!namaFile) { Swal.fire('Validasi','Nama file wajib diisi','warning'); return; }
-  showLoading('Menyimpan...');
-  google.script.run.withSuccessHandler(r=>{hideLoading();if(r.success){closeModalEvidence();viewDetail(currentDetailId);Swal.fire('Berhasil','Evidence ditambahkan','success');}else Swal.fire('Gagal',r.message,'error');})
-  .withFailureHandler(e=>{hideLoading();Swal.fire('Error',e.message,'error');}).createEvidence({progressId,namaFile,link:document.getElementById('fLink').value.trim(),keterangan:document.getElementById('fEvidenceKet').value.trim(),uploadByEmail:currentUser.email});
+// ---- File Management ----
+function handleEvFileSelect(input) {
+  var files = Array.from(input.files);
+  files.forEach(f => addEvFile(f));
+  input.value = '';
+  updateEvUi();
+}
+
+function addEvFile(file) {
+  // Check max 10
+  if (_evSelectedFiles.length >= 10) {
+    Swal.fire('Maksimal 10 file', 'Hapus beberapa file terlebih dahulu', 'warning');
+    return;
+  }
+  // Check duplicate
+  if (_evSelectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+    Swal.fire('File sudah dipilih', file.name, 'warning');
+    return;
+  }
+  // Check size (max 10MB per file)
+  if (file.size > 10 * 1024 * 1024) {
+    Swal.fire('File terlalu besar', file.name + ' — Maksimal 10MB per file', 'warning');
+    return;
+  }
+  _evSelectedFiles.push(file);
+  renderEvFileList();
+  updateEvUi();
+}
+
+function removeEvFile(index) {
+  _evSelectedFiles.splice(index, 1);
+  renderEvFileList();
+  updateEvUi();
+}
+
+function clearSelectedFiles() {
+  _evSelectedFiles = [];
+  renderEvFileList();
+  updateEvUi();
+}
+
+function renderEvFileList() {
+  var c = document.getElementById('evFilesList');
+  if (!_evSelectedFiles.length) {
+    document.getElementById('evFilesContainer').style.display='none';
+    c.innerHTML = '';
+    return;
+  }
+  document.getElementById('evFilesContainer').style.display='block';
+  document.getElementById('evFilesCount').textContent = _evSelectedFiles.length + ' file dipilih';
+  c.innerHTML = _evSelectedFiles.map((f, i) => {
+    var icon = getEvFileIcon(f.name);
+    var size = formatEvFileSize(f.size);
+    return `<div class="ev-file-item">
+      <div class="ev-file-icon"><i class="${icon.icon}"></i></div>
+      <div class="ev-file-info">
+        <div class="ev-file-name">${esc(f.name)}</div>
+        <div class="ev-file-meta">${size} &middot; ${icon.label}</div>
+      </div>
+      <button class="ev-file-remove" onclick="removeEvFile(${i})" title="Hapus"><i class="fas fa-times"></i></button>
+    </div>`;
+  }).join('');
+}
+
+function getEvFileIcon(name) {
+  var ext = name.split('.').pop().toLowerCase();
+  var map = {
+    pdf: ['fa-file-pdf','#dc2626','PDF'],
+    doc: ['fa-file-word','#2563eb','DOC'], docx: ['fa-file-word','#2563eb','DOCX'],
+    xls: ['fa-file-excel','#059669','XLS'], xlsx: ['fa-file-excel','#059669','XLSX'],
+    ppt: ['fa-file-powerpoint','#d97706','PPT'], pptx: ['fa-file-powerpoint','#d97706','PPTX'],
+    jpg: ['fa-file-image','#ec4899','JPG'], jpeg: ['fa-file-image','#ec4899','JPEG'],
+    png: ['fa-file-image','#ec4899','PNG'], gif: ['fa-file-image','#ec4899','GIF'],
+    bmp: ['fa-file-image','#ec4899','BMP'],
+    zip: ['fa-file-archive','#64748b','ZIP'], rar: ['fa-file-archive','#64748b','RAR'],
+    txt: ['fa-file-alt','#64748b','TXT'], csv: ['fa-file-csv','#059669','CSV']
+  };
+  var m = map[ext] || ['fa-file','#64748b','FILE'];
+  return { icon: m[0] + ' ev-ficon', color: m[1], label: m[2] };
+}
+
+function formatEvFileSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/1048576).toFixed(1) + ' MB';
+}
+
+function updateEvUi() {
+  var btn = document.getElementById('evBtnUpload');
+  var hasFiles = _evSelectedFiles.length > 0;
+  var hasLink = document.getElementById('fLinkUrl').value.trim() !== '' && document.getElementById('fLinkNama').value.trim() !== '';
+  btn.disabled = (!hasFiles && !hasLink) || _evUploading;
+  if (_evUploading) {
+    btn.querySelector('span').textContent = 'Mengupload...';
+  } else if (hasFiles) {
+    btn.querySelector('span').textContent = 'Upload ' + _evSelectedFiles.length + ' File';
+  } else {
+    btn.querySelector('span').textContent = 'Upload Evidence';
+  }
+}
+
+// ---- Drag & Drop ----
+document.addEventListener('DOMContentLoaded', function() {
+  var dz = document.getElementById('evDropZone');
+  if (!dz) return;
+  dz.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    dz.classList.add('ev-dz-dragover');
+  });
+  dz.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    dz.classList.remove('ev-dz-dragover');
+  });
+  dz.addEventListener('drop', function(e) {
+    e.preventDefault();
+    dz.classList.remove('ev-dz-dragover');
+    if (_evUploading) return;
+    Array.from(e.dataTransfer.files).forEach(f => addEvFile(f));
+    updateEvUi();
+  });
+  document.getElementById('fEvidenceFiles').addEventListener('change', function() {
+    handleEvFileSelect(this);
+  });
+  ['fLinkUrl','fLinkNama'].forEach(function(id) {
+    document.getElementById(id).addEventListener('input', function() {
+      updateEvUi();
+    });
+  });
+});
+
+// ---- Upload ----
+function saveEvidenceMultiple() {
+  if (_evUploading) return;
+  var hasFiles = _evSelectedFiles.length > 0;
+  var linkUrl = document.getElementById('fLinkUrl').value.trim();
+  var linkNama = document.getElementById('fLinkNama').value.trim();
+  var hasLink = linkUrl !== '' && linkNama !== '';
+  if (!hasFiles && !hasLink) return;
+
+  var progressId = document.getElementById('evidenceProgressId').value;
+  var keterangan = document.getElementById('fEvidenceKet').value.trim();
+
+  // Link-only mode
+  if (hasLink && !hasFiles) {
+    showLoading('Menyimpan...');
+    google.script.run.withSuccessHandler(function(r) {
+      hideLoading();
+      if (r.success) {
+        closeModalEvidence();
+        viewDetail(currentDetailId);
+        Swal.fire('Berhasil','Evidence ditambahkan','success');
+      } else {
+        Swal.fire('Gagal',r.message,'error');
+      }
+    }).withFailureHandler(function(e) {
+      hideLoading();
+      Swal.fire('Error',e.message,'error');
+    }).createEvidence({progressId:progressId, namaFile:linkNama, link:linkUrl, keterangan:keterangan, uploadByEmail:currentUser.email});
+    return;
+  }
+
+  // File upload mode (with optional link as extra)
+  _evUploading = true;
+  var btn = document.getElementById('evBtnUpload');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengupload...';
+  document.getElementById('evProgressContainer').style.display='block';
+  updateEvProgress(0, _evSelectedFiles.length, 'Mulai upload...');
+
+  // If link is also provided, upload it first
+  if (hasLink) {
+    google.script.run.withSuccessHandler(function(r) {
+      if (r.success) {
+        uploadEvNext(0, _evSelectedFiles.length, 1, 0, progressId, keterangan);
+      } else {
+        uploadEvNext(0, _evSelectedFiles.length, 0, 1, progressId, keterangan);
+      }
+    }).withFailureHandler(function() {
+      uploadEvNext(0, _evSelectedFiles.length, 0, 1, progressId, keterangan);
+    }).createEvidence({progressId:progressId, namaFile:linkNama, link:linkUrl, keterangan:keterangan, uploadByEmail:currentUser.email});
+  } else {
+    uploadEvNext(0, _evSelectedFiles.length, 0, 0, progressId, keterangan);
+  }
+}
+
+function uploadEvNext(index, total, success, fail, progressId, keterangan) {
+  if (index >= total) {
+    _evUploading = false;
+    var msg = success + ' file berhasil diupload';
+    if (fail > 0) msg += ', ' + fail + ' file gagal';
+    updateEvProgress(total, total, 'Selesai!');
+    setTimeout(function() {
+      closeModalEvidence();
+      viewDetail(currentDetailId);
+      Swal.fire(msg, '', success > 0 ? 'success' : 'error');
+    }, 600);
+    return;
+  }
+  var file = _evSelectedFiles[index];
+  updateEvProgress(index, total, 'Mengupload ' + (index+1) + '/' + total + ': ' + file.name);
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (r.success) {
+        updateEvProgress(index+1, total, (index+1) + '/' + total + ' selesai');
+        uploadEvNext(index+1, total, success+1, fail, progressId, keterangan);
+      } else {
+        console.error('Upload fail:', r.message);
+        updateEvProgress(index+1, total, (index+1) + '/' + total + ' gagal: ' + file.name);
+        uploadEvNext(index+1, total, success, fail+1, progressId, keterangan);
+      }
+    })
+    .withFailureHandler(function(e) {
+      console.error('Upload error:', e.message);
+      updateEvProgress(index+1, total, (index+1) + '/' + total + ' error: ' + file.name);
+      uploadEvNext(index+1, total, success, fail+1, progressId, keterangan);
+    })
+    .createEvidenceFile(progressId, file, keterangan, currentUser.email);
+}
+
+function updateEvProgress(done, total, statusText) {
+  var pct = total > 0 ? Math.round((done/total)*100) : 0;
+  document.getElementById('evProgressFill').style.width = pct + '%';
+  document.getElementById('evProgressStatus').textContent = statusText;
 }
 
 function confirmDeleteEv(id) {
-  Swal.fire({title:'Hapus Evidence?',icon:'warning',showCancelButton:true,confirmButtonColor:'#dc2626',confirmButtonText:'Ya',cancelButtonText:'Batal'})
+  Swal.fire({title:'Hapus Evidence?',text:'File akan dipindahkan ke Trash Drive',icon:'warning',showCancelButton:true,confirmButtonColor:'#dc2626',confirmButtonText:'Ya, Hapus',cancelButtonText:'Batal'})
   .then(r=>{if(r.isConfirmed){showLoading();google.script.run.withSuccessHandler(r2=>{hideLoading();if(r2.success){viewDetail(currentDetailId);Swal.fire('Berhasil','Evidence dihapus','success');}else Swal.fire('Gagal',r2.message,'error');}).withFailureHandler(e=>{hideLoading();Swal.fire('Error',e.message,'error');}).deleteEvidence(id,currentUser.email);}});
 }
 
