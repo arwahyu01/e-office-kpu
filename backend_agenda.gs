@@ -168,6 +168,34 @@ function logAgendaActivity(userEmail, aktivitas, referensi) {
   } catch (err) { console.error("log error:", err); }
 }
 
+// Helper: resolve workflowId → agendaId
+function _workflowToAgendaId(workflowId) {
+  if (!workflowId) return '';
+  try {
+    var sh = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.MASTER_WORKFLOW);
+    if (!sh || sh.getLastRow() < 2) return '';
+    var rows = sh.getDataRange().getValues();
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][0] === workflowId) return String(rows[i][1] || '').trim();
+    }
+  } catch(e) {}
+  return '';
+}
+
+// Helper: resolve progressId → workflowId → agendaId
+function _progressToAgendaId(progressId) {
+  if (!progressId) return '';
+  try {
+    var sh = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.MASTER_PROGRESS);
+    if (!sh || sh.getLastRow() < 2) return '';
+    var rows = sh.getDataRange().getValues();
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][0] === progressId) return _workflowToAgendaId(String(rows[i][1] || '').trim());
+    }
+  } catch(e) {}
+  return '';
+}
+
 function clearAgendaCache() {
   CacheService.getScriptCache().remove("AGENDA_DB_INIT_v2");
 }
@@ -386,6 +414,7 @@ function createAssignments(agendaId, data) {
       email === data.picEmail ? "PIC" : "ANGGOTA",
       "AKTIF", "", "", "", new Date(), new Date()
     ]);
+    logAgendaActivity(email, "BUAT_ASSIGNMENT", agendaId);
   });
 }
 
@@ -813,7 +842,8 @@ function createProgress(data) {
       data.target || "", data.realisasi || "",
       data.pjEmail || "", data.catatan || "", new Date(), new Date(), '', anggotaJson]);
     autoSaveLKHAll(id, data.workflowId, data.pjEmail, data.anggotaEmails || [], data.namaProgress, data.realisasi, data.status || "RENCANA");
-    logAgendaActivity(data.userEmail || "", "BUAT_PROGRESS", "");
+    var agendaId = _workflowToAgendaId(data.workflowId);
+    logAgendaActivity(data.userEmail || "", "BUAT_PROGRESS", agendaId || data.workflowId);
     return { success: true, id };
   } catch (err) { return { success: false, message: err.message }; }
 }
@@ -855,7 +885,8 @@ function updateProgress(data) {
         if (data.anggotaEmails !== undefined) effAnggota = data.anggotaEmails;
         autoSaveLKHAll(data.id, wfId, effPj, effAnggota, effNama, effRealisasi, effStatus);
 
-        logAgendaActivity(data.userEmail || "", "UPDATE_PROGRESS", "");
+        var agendaId2 = _workflowToAgendaId(wfId);
+        logAgendaActivity(data.userEmail || "", "UPDATE_PROGRESS", agendaId2 || wfId);
         return { success: true, message: "Progress diperbarui" };
       }
     }
@@ -880,7 +911,8 @@ function deleteProgress(id, userEmail) {
         }
         sh.deleteRow(i + 1);
         checkAndUpdateWorkflowStatus(wfId);
-        logAgendaActivity(userEmail || "", "HAPUS_PROGRESS", "");
+        var agendaId3 = _workflowToAgendaId(wfId);
+        logAgendaActivity(userEmail || "", "HAPUS_PROGRESS", agendaId3 || wfId);
         return { success: true, message: "Progress dihapus" };
       }
     }
@@ -977,7 +1009,8 @@ function createEvidence(data) {
     sh.appendRow([Utilities.getUuid(), data.progressId, data.namaFile,
       data.link || "", data.keterangan || "",
       data.uploadByEmail || "", new Date()]);
-    logAgendaActivity(data.uploadByEmail || "", "UPLOAD_EVIDENCE", "");
+    var agendaId4 = _progressToAgendaId(data.progressId);
+    logAgendaActivity(data.uploadByEmail || "", "UPLOAD_EVIDENCE", agendaId4 || data.progressId);
     return { success: true, message: "Evidence ditambahkan" };
   } catch (err) { return { success: false, message: err.message }; }
 }
@@ -1456,11 +1489,12 @@ function getMyActivityDashboard(userEmail) {
       var waktu = '';
       try { waktu = Utilities.formatDate(new Date(logData[i][4]), AGENDA_TIMEZONE, "dd MMM yyyy HH:mm"); } catch(e) { waktu = String(logData[i][4] || ''); }
 
-      // Evidence count for this activity's agenda
+      // Evidence count: map progressId → agendaId, then sum per agenda
       var evCount = 0;
-      if (rawAktivitas.indexOf('EVIDENCE') >= 0) {
-        // count all evidence for the same progress
-        Object.keys(evCountMap).forEach(function(k) { evCount += evCountMap[k]; });
+      if (rawAktivitas.indexOf('EVIDENCE') >= 0 && refId) {
+        Object.keys(evCountMap).forEach(function(k) {
+          if (k === refId) evCount += evCountMap[k];
+        });
       }
 
       activities.push({
@@ -1497,7 +1531,10 @@ function getActivityLabel(raw) {
     'HAPUS_WORKFLOW': 'Menghapus tahapan',
     'BUAT_PROGRESS': 'Melaporkan progress',
     'UPDATE_PROGRESS': 'Memperbarui progress',
-    'UPLOAD_EVIDENCE': 'Mengunggah lampiran'
+    'HAPUS_PROGRESS': 'Menghapus progress',
+    'UPLOAD_EVIDENCE': 'Mengunggah lampiran',
+    'BUAT_ASSIGNMENT': 'Ditugaskan dalam agenda',
+    'VIEW_AGENDA': 'Melihat detail agenda'
   };
   return map[raw] || raw;
 }

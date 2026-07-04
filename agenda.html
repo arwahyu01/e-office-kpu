@@ -147,15 +147,15 @@
             <div class="my-stats-grid" id="myStatsGrid">
                 <div class="my-stat-card" data-delay="0">
                     <div class="my-stat-icon" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);"><i class="fas fa-tasks"></i></div>
-                    <div class="my-stat-info"><span class="my-stat-number" data-target="0">0</span><span class="my-stat-label">Total Kegiatan</span></div>
+                    <div class="my-stat-info"><span class="my-stat-number" data-target="0">0</span><span class="my-stat-label">Total Aktivitas</span></div>
                 </div>
                 <div class="my-stat-card" data-delay="100">
-                    <div class="my-stat-icon" style="background:linear-gradient(135deg,#10b981,#059669);"><i class="fas fa-check-circle"></i></div>
-                    <div class="my-stat-info"><span class="my-stat-number" data-target="0">0</span><span class="my-stat-label">Selesai</span></div>
+                    <div class="my-stat-icon" style="background:linear-gradient(135deg,#10b981,#059669);"><i class="fas fa-plus-circle"></i></div>
+                    <div class="my-stat-info"><span class="my-stat-number" data-target="0">0</span><span class="my-stat-label">Agenda Dibuat</span></div>
                 </div>
                 <div class="my-stat-card" data-delay="200">
-                    <div class="my-stat-icon" style="background:linear-gradient(135deg,#f59e0b,#d97706);"><i class="fas fa-spinner"></i></div>
-                    <div class="my-stat-info"><span class="my-stat-number" data-target="0">0</span><span class="my-stat-label">Dalam Progres</span></div>
+                    <div class="my-stat-icon" style="background:linear-gradient(135deg,#f59e0b,#d97706);"><i class="fas fa-flag-checkered"></i></div>
+                    <div class="my-stat-info"><span class="my-stat-number" data-target="0">0</span><span class="my-stat-label">Progress Dilaporkan</span></div>
                 </div>
                 <div class="my-stat-card" data-delay="300">
                     <div class="my-stat-icon" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);"><i class="fas fa-paperclip"></i></div>
@@ -1051,7 +1051,7 @@ function renderMyDashboard(d) {
 
   // ── Stat Cards (animated count-up) ──
   var cards = document.querySelectorAll('.my-stat-number');
-  var targets = [s.total, s.progress, (s.workflow + s.membuat), d.totalEvidence || 0];
+  var targets = [s.total, s.membuat, s.progress, d.totalEvidence || 0];
   cards.forEach(function(el, i) {
     el.setAttribute('data-target', targets[i] || 0);
     el.textContent = '0';
@@ -1103,14 +1103,16 @@ function myActivityCard(a) {
     'HAPUS_AGENDA': 'fa-trash-can', 'BUAT_WORKFLOW': 'fa-diagram-project',
     'UPDATE_WORKFLOW': 'fa-diagram-project', 'HAPUS_WORKFLOW': 'fa-diagram-project',
     'BUAT_PROGRESS': 'fa-circle-check', 'UPDATE_PROGRESS': 'fa-rotate',
-    'UPLOAD_EVIDENCE': 'fa-paperclip'
+    'HAPUS_PROGRESS': 'fa-eraser', 'UPLOAD_EVIDENCE': 'fa-paperclip',
+    'BUAT_ASSIGNMENT': 'fa-user-plus', 'VIEW_AGENDA': 'fa-eye'
   };
   var colorMap = {
     'BUAT_AGENDA': '#059669', 'UPDATE_AGENDA': '#3b82f6',
     'HAPUS_AGENDA': '#dc2626', 'BUAT_WORKFLOW': '#8b5cf6',
     'UPDATE_WORKFLOW': '#8b5cf6', 'HAPUS_WORKFLOW': '#dc2626',
     'BUAT_PROGRESS': '#059669', 'UPDATE_PROGRESS': '#f59e0b',
-    'UPLOAD_EVIDENCE': '#8b5cf6'
+    'HAPUS_PROGRESS': '#dc2626', 'UPLOAD_EVIDENCE': '#8b5cf6',
+    'BUAT_ASSIGNMENT': '#0891b2', 'VIEW_AGENDA': '#6366f1'
   };
   var icon = iconMap[a.aktivitas] || 'fa-circle';
   var color = colorMap[a.aktivitas] || '#6366f1';
@@ -1158,9 +1160,6 @@ function dateToDayKey(waktuStr) {
     var mon = months[parts[1]] || 1;
     var yr = parts[2];
     return yr + '-' + String(mon).padStart(2,'0') + '-' + String(day).padStart(2,'0');
-  }
-  return fmtDate(new Date());
-}
   }
   return fmtDate(new Date());
 }
