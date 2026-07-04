@@ -56,25 +56,11 @@
                 <div class="stat-card"><div class="stat-icon" style="background:#d1fae5;color:#059669;"><i class="fas fa-check-circle"></i></div><div class="stat-info"><h3 id="statSelesai">0</h3><p>Selesai</p></div></div>
                 <div class="stat-card"><div class="stat-icon" style="background:#fee2e2;color:#dc2626;"><i class="fas fa-exclamation-triangle"></i></div><div class="stat-info"><h3 id="statOverdue">0</h3><p>Terlambat</p></div></div>
             </div>
-            <div id="analyticsContainer" style="display:none;">
-                <div class="monitoring-grid">
-                    <div class="monitoring-card">
-                        <div class="monitoring-card-header"><h3><i class="fas fa-clock" style="color:#dc2626;"></i> Agenda Terlambat</h3></div>
-                        <div class="monitoring-card-body" id="analyticsOverdue"><p style="color:#94a3b8;font-size:13px;">Memuat...</p></div>
-                    </div>
-                    <div class="monitoring-card">
-                        <div class="monitoring-card-header"><h3><i class="fas fa-signal"></i> Prioritas</h3></div>
-                        <div class="monitoring-card-body" id="analyticsPrioritas"><p style="color:#94a3b8;font-size:13px;">Memuat...</p></div>
-                    </div>
-                    <div class="monitoring-card">
-                        <div class="monitoring-card-header"><h3><i class="fas fa-building"></i> Progress per Subbagian</h3></div>
-                        <div class="monitoring-card-body" id="analyticsSubbag"><p style="color:#94a3b8;font-size:13px;">Memuat...</p></div>
-                    </div>
-                    <div class="monitoring-card">
-                        <div class="monitoring-card-header"><h3><i class="fas fa-tag"></i> Sumber Agenda</h3></div>
-                        <div class="monitoring-card-body" id="analyticsSumber"><p style="color:#94a3b8;font-size:13px;">Memuat...</p></div>
-                    </div>
-                </div>
+            <div id="analyticsBar" class="analytics-bar" style="display:none;">
+                <div class="analytics-segment" id="anOverdue"><div class="an-loading"></div></div>
+                <div class="analytics-segment" id="anPrioritas"><div class="an-loading"></div></div>
+                <div class="analytics-segment" id="anSubbag"><div class="an-loading"></div></div>
+                <div class="analytics-segment" id="anSumber" style="border-right:none;"><div class="an-loading"></div></div>
             </div>
             <div class="filter-bar"><div class="filter-group" style="display:flex;gap:10px;flex-wrap:wrap;">
                 <select id="filterStatus" class="filter-select" onchange="filterChange()"><option value="">Semua Status</option><option value="RENCANA">Belum Mulai</option><option value="BERJALAN">Sedang Dikerjakan</option><option value="SELESAI">Selesai</option></select>
@@ -952,78 +938,52 @@ function initAnalytics() {
 function loadAnalyticsIfPimpinan() {
   const role = (currentUser?.level || '').toUpperCase();
   if (!['ADMIN','SEKRETARIS','PIMPINAN','KOMISIONER'].includes(role)) return;
-  const ids = ['analyticsOverdue','analyticsPrioritas','analyticsSubbag','analyticsSumber'];
-  ids.forEach(id => {
-    document.getElementById(id).innerHTML = '<div class="monitoring-loading"><div class="skeleton skeleton-line w60"></div><div class="skeleton skeleton-line w80"></div><div class="skeleton skeleton-line"></div></div>';
-  });
+  document.getElementById('analyticsBar').style.display = 'flex';
   const status = document.getElementById('filterStatus').value;
   const subbag = document.getElementById('filterSubbag').value;
   google.script.run.withSuccessHandler(r => {
     if (!r.success) return;
-    renderAnalyticsOverdue(r.overdue||[]);
-    renderAnalyticsPrioritas(r.prioritas||[]);
-    renderAnalyticsSubbag(r.subbag||[]);
-    renderAnalyticsSumber(r.sumber||[]);
+    anRenderOverdue(r.overdue||[]);
+    anRenderPrioritas(r.prioritas||[]);
+    anRenderSubbag(r.subbag||[]);
+    anRenderSumber(r.sumber||[]);
   }).withFailureHandler(() => {}).getMonitoringData(status, subbag);
 }
 
-function renderAnalyticsOverdue(list) {
-  const c = document.getElementById('analyticsOverdue');
-  if (!list.length) { c.innerHTML = '<p style="color:#059669;font-size:13px;"><i class="fas fa-check-circle"></i> Tidak ada agenda terlambat.</p>'; return; }
-  c.innerHTML = list.map(a => {
-    const pc = a.prioritas==='MENDESAK'?'badge-prioritas-mendesak':a.prioritas==='TINGGI'?'badge-prioritas-tinggi':a.prioritas==='SEDANG'?'badge-prioritas-sedang':'badge-prioritas-rendah';
-    return `<div class="monitoring-overdue-item">
-      <div class="monitoring-overdue-left">
-        <div class="monitoring-overdue-judul">${esc(a.judul)}</div>
-        <div class="monitoring-overdue-meta">${esc(a.subbag)} · ${esc(a.pic)}</div>
-      </div>
-      <div class="monitoring-overdue-right">
-        <span class="badge ${pc}">${a.prioritas}</span>
-        <span class="monitoring-overdue-telat">${a.telat} hari</span>
-        <button class="btn-agenda-view" onclick="viewDetail('${a.id}')" title="Detail"><i class="fas fa-eye"></i></button>
-      </div>
-    </div>`;
-  }).join('');
+function anRenderOverdue(list) {
+  const c = document.getElementById('anOverdue');
+  if (!list.length) { c.innerHTML = '<div class="an-value an-ok"><i class="fas fa-check-circle"></i> 0 Terlambat</div>'; return; }
+  const top = list.slice(0, 2);
+  c.innerHTML = '<div class="an-value an-warn"><i class="fas fa-exclamation-circle"></i> ' + list.length + ' Terlambat</div>' +
+    top.map(a => '<div class="an-item" onclick="viewDetail(\'' + a.id + '\')">' + esc(truncate(a.judul,22)) + ' <span class="an-telat">' + a.telat + 'h</span></div>').join('') +
+    (list.length > 2 ? '<div class="an-more">+' + (list.length - 2) + ' lainnya</div>' : '');
 }
 
-function renderAnalyticsPrioritas(list) {
-  const c = document.getElementById('analyticsPrioritas');
-  const total = list.reduce((s,i) => s+i.count, 0) || 1;
+function anRenderPrioritas(list) {
+  const c = document.getElementById('anPrioritas');
   const colors = {MENDESAK:'#dc2626',TINGGI:'#ea580c',SEDANG:'#ca8a04',RENDAH:'#0284c7'};
-  c.innerHTML = list.map(i => {
-    const pct = Math.round((i.count/total)*100);
-    return `<div class="monitoring-bar-item">
-      <div class="monitoring-bar-label"><span>${i.label}</span><span>${i.count}</span></div>
-      <div class="monitoring-bar-track"><div class="monitoring-bar-fill" style="width:${pct}%;background:${colors[i.label]||'#94a3b8'};"></div></div>
-    </div>`;
-  }).join('');
-}
-
-function renderAnalyticsSubbag(list) {
-  const c = document.getElementById('analyticsSubbag');
-  if (!list.length) { c.innerHTML = '<p style="color:#94a3b8;font-size:13px;">Belum ada data.</p>'; return; }
-  c.innerHTML = list.map(s => {
-    const cls = s.persentase >= 80 ? 'selesai' : s.persentase >= 40 ? 'tinggi' : s.persentase > 0 ? 'sedang' : 'rendah';
-    return `<div class="monitoring-subbag-item">
-      <div class="monitoring-subbag-top">
-        <span class="monitoring-subbag-nama">${esc(s.subbag)}</span>
-        <span class="monitoring-subbag-pct">${s.persentase}%</span>
-      </div>
-      <div class="monitoring-bar-track"><div class="monitoring-bar-fill ${cls}" style="width:${s.persentase}%;"></div></div>
-      <div class="monitoring-subbag-bottom"><span>${s.done} selesai</span><span>${s.total} agenda</span></div>
-    </div>`;
-  }).join('');
-}
-
-function renderAnalyticsSumber(list) {
-  const c = document.getElementById('analyticsSumber');
   const total = list.reduce((s,i) => s+i.count, 0) || 1;
   c.innerHTML = list.map(i => {
     const pct = Math.round((i.count/total)*100);
-    return `<div class="monitoring-bar-item">
-      <div class="monitoring-bar-label"><span>${esc(i.label)}</span><span>${i.count}</span></div>
-      <div class="monitoring-bar-track"><div class="monitoring-bar-fill" style="width:${pct}%;background:#6366f1;"></div></div>
-    </div>`;
+    return '<div class="an-prio-item"><span class="an-prio-dot" style="background:' + (colors[i.label]||'#94a3b8') + ';"></span><span class="an-prio-label">' + i.label + '</span><span class="an-prio-count">' + i.count + '</span><div class="an-prio-bar"><div class="an-prio-fill" style="width:' + pct + '%;background:' + (colors[i.label]||'#94a3b8') + ';"></div></div></div>';
+  }).join('');
+}
+
+function anRenderSubbag(list) {
+  const c = document.getElementById('anSubbag');
+  if (!list.length) { c.innerHTML = '<div class="an-value" style="color:#94a3b8;"><i class="fas fa-building"></i> Belum ada data</div>'; return; }
+  c.innerHTML = list.slice(0, 3).map(s => {
+    const cls = s.persentase >= 80 ? 'an-bar-green' : s.persentase >= 40 ? 'an-bar-blue' : 'an-bar-amber';
+    return '<div class="an-subbag-item"><div class="an-subbag-top"><span class="an-subbag-nama">' + esc(s.subbag) + '</span><span class="an-subbag-pct">' + s.persentase + '%</span></div><div class="an-prio-bar"><div class="an-prio-fill ' + cls + '" style="width:' + s.persentase + '%;"></div></div></div>';
+  }).join('') + (list.length > 3 ? '<div class="an-more">+' + (list.length - 3) + ' subbag</div>' : '');
+}
+
+function anRenderSumber(list) {
+  const c = document.getElementById('anSumber');
+  const total = list.reduce((s,i) => s+i.count, 0) || 1;
+  c.innerHTML = list.map(i => {
+    const pct = Math.round((i.count/total)*100);
+    return '<div class="an-sumber-item"><span class="an-sumber-dot" style="background:#6366f1;"></span><span class="an-sumber-label">' + esc(i.label) + '</span><span class="an-sumber-pct">' + pct + '%</span></div>';
   }).join('');
 }
 
