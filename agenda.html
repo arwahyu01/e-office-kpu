@@ -26,7 +26,7 @@
             </div>
             <nav class="sidebar-nav">
                 <button class="nav-item active" onclick="switchSection('dashboard',this)"><i class="fas fa-chart-pie"></i><span>Beranda</span></button>
-                <button class="nav-item" id="navMonitoring" onclick="switchSection('monitoring',this)" style="display:none;"><i class="fas fa-gauge-high"></i><span>Monitoring</span></button>
+                <button class="nav-item" onclick="switchSection('history',this)"><i class="fas fa-clock-rotate-left"></i><span>Kegiatan Saya</span></button>
                 <a href="https://script.google.com/macros/s/AKfycbxejATwEFa6KmgBqjxFGiA2L_mEJGG0-CaHGsaIyxedRz5_vGA-QiAIhSE-mYwXFY_E/exec" target="_top" class="nav-item"><i class="fas fa-grid-2"></i><span>E-OFFICE</span></a>
                 <a href="#" class="nav-item" onclick="logout();return false;"><i class="fas fa-arrow-right-from-bracket"></i><span>Logout</span></a>
             </nav>
@@ -54,6 +54,26 @@
                 <div class="stat-card"><div class="stat-icon" style="background:#d1fae5;color:#059669;"><i class="fas fa-check-circle"></i></div><div class="stat-info"><h3 id="statSelesai">0</h3><p>Selesai</p></div></div>
                 <div class="stat-card"><div class="stat-icon" style="background:#fee2e2;color:#dc2626;"><i class="fas fa-exclamation-triangle"></i></div><div class="stat-info"><h3 id="statOverdue">0</h3><p>Terlambat</p></div></div>
             </div>
+            <div id="analyticsContainer" style="display:none;">
+                <div class="monitoring-grid">
+                    <div class="monitoring-card">
+                        <div class="monitoring-card-header"><h3><i class="fas fa-clock" style="color:#dc2626;"></i> Agenda Terlambat</h3></div>
+                        <div class="monitoring-card-body" id="analyticsOverdue"><p style="color:#94a3b8;font-size:13px;">Memuat...</p></div>
+                    </div>
+                    <div class="monitoring-card">
+                        <div class="monitoring-card-header"><h3><i class="fas fa-signal"></i> Prioritas</h3></div>
+                        <div class="monitoring-card-body" id="analyticsPrioritas"><p style="color:#94a3b8;font-size:13px;">Memuat...</p></div>
+                    </div>
+                    <div class="monitoring-card">
+                        <div class="monitoring-card-header"><h3><i class="fas fa-building"></i> Progress per Subbagian</h3></div>
+                        <div class="monitoring-card-body" id="analyticsSubbag"><p style="color:#94a3b8;font-size:13px;">Memuat...</p></div>
+                    </div>
+                    <div class="monitoring-card">
+                        <div class="monitoring-card-header"><h3><i class="fas fa-tag"></i> Sumber Agenda</h3></div>
+                        <div class="monitoring-card-body" id="analyticsSumber"><p style="color:#94a3b8;font-size:13px;">Memuat...</p></div>
+                    </div>
+                </div>
+            </div>
             <div class="filter-bar"><div class="filter-group" style="display:flex;gap:10px;flex-wrap:wrap;">
                 <select id="filterStatus" class="filter-select" onchange="loadList()"><option value="">Semua Status</option><option value="RENCANA">Belum Mulai</option><option value="BERJALAN">Sedang Dikerjakan</option><option value="SELESAI">Selesai</option></select>
                 <select id="filterSubbag" class="filter-select" onchange="loadList()"><option value="">Semua Subbagian</option></select>
@@ -63,71 +83,18 @@
             <button class="fab" onclick="openWizard()" title="Buat Agenda Baru"><i class="fas fa-plus"></i></button>
         </section>
 
-        <!-- ============ MONITORING ============ -->
-        <section id="section-monitoring" class="content-section" style="display:none;">
+        <!-- ============ KEGIATAN SAYA ============ -->
+        <section id="section-history" class="content-section" style="display:none;">
             <div class="hero-section">
-                <h1>Monitoring Agenda</h1>
-                <p>Ringkasan eksekutif seluruh aktivitas dan kinerja pegawai</p>
+                <h1>Kegiatan Saya</h1>
+                <p>Riwayat seluruh aktivitas yang telah Anda lakukan</p>
             </div>
-
-            <div class="stats-grid" id="monitoringStats">
-                <div class="stat-card"><div class="stat-icon" style="background:#e0e7ff;color:#4338ca;"><i class="fas fa-clipboard-list"></i></div><div class="stat-info"><h3 id="monTotal">0</h3><p>Total Agenda</p></div></div>
-                <div class="stat-card"><div class="stat-icon" style="background:#dbeafe;color:#2563eb;"><i class="fas fa-spinner"></i></div><div class="stat-info"><h3 id="monBerjalan">0</h3><p>Sedang Berjalan</p></div></div>
-                <div class="stat-card"><div class="stat-icon" style="background:#d1fae5;color:#059669;"><i class="fas fa-check-circle"></i></div><div class="stat-info"><h3 id="monSelesai">0</h3><p>Selesai</p></div></div>
-                <div class="stat-card"><div class="stat-icon" style="background:#fee2e2;color:#dc2626;"><i class="fas fa-exclamation-triangle"></i></div><div class="stat-info"><h3 id="monOverdue">0</h3><p>Terlambat</p></div></div>
-            </div>
-
-            <div class="monitoring-grid">
-                <!-- OVERDUE -->
-                <div class="monitoring-card">
-                    <div class="monitoring-card-header"><h3><i class="fas fa-clock" style="color:#dc2626;"></i> Agenda Terlambat</h3></div>
-                    <div class="monitoring-card-body" id="monitoringOverdue"><p style="color:#94a3b8;font-size:13px;">Tidak ada agenda terlambat.</p></div>
+            <div class="detail-section">
+                <div class="detail-card-header" onclick="toggleCard(this)">
+                    <h3><i class="fas fa-clock-rotate-left"></i> Riwayat Aktivitas</h3>
+                    <i class="fas fa-chevron-up card-toggle"></i>
                 </div>
-
-                <!-- PRIORITY DISTRIBUTION -->
-                <div class="monitoring-card">
-                    <div class="monitoring-card-header"><h3><i class="fas fa-signal"></i> Prioritas</h3></div>
-                    <div class="monitoring-card-body" id="monitoringPrioritas"><p style="color:#94a3b8;font-size:13px;">Memuat...</p></div>
-                </div>
-
-                <!-- SUBBAG PROGRESS -->
-                <div class="monitoring-card">
-                    <div class="monitoring-card-header"><h3><i class="fas fa-building"></i> Progress per Subbagian</h3></div>
-                    <div class="monitoring-card-body" id="monitoringSubbag"><p style="color:#94a3b8;font-size:13px;">Memuat...</p></div>
-                </div>
-
-                <!-- SUMBER -->
-                <div class="monitoring-card">
-                    <div class="monitoring-card-header"><h3><i class="fas fa-tag"></i> Sumber Agenda</h3></div>
-                    <div class="monitoring-card-body" id="monitoringSumber"><p style="color:#94a3b8;font-size:13px;">Memuat...</p></div>
-                </div>
-            </div>
-
-            <!-- ALL AGENDAS TABLE -->
-            <div class="monitoring-card" style="margin-top:20px;">
-                <div class="monitoring-card-header">
-                    <h3><i class="fas fa-list"></i> Seluruh Agenda</h3>
-                    <span style="font-size:12px;color:#94a3b8;font-weight:500;" id="monTotalAgenda">0 agenda</span>
-                </div>
-                <div class="monitoring-card-body" style="padding:0;">
-                    <div class="table-container" style="border:none;box-shadow:none;">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Judul</th>
-                                    <th>Subbag</th>
-                                    <th>PIC</th>
-                                    <th>Prioritas</th>
-                                    <th>Status</th>
-                                    <th>Progress</th>
-                                    <th>Tenggat</th>
-                                    <th>Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="monitoringTableBody"></tbody>
-                        </table>
-                    </div>
-                </div>
+                <div class="detail-card-body" id="historyContainer"><div class="empty-state"><i class="fas fa-clock"></i><h3>Belum Ada Aktivitas</h3></div></div>
             </div>
         </section>
 
@@ -505,7 +472,7 @@ function logout() { localStorage.removeItem(SESSION_KEY); redirectToLogin(); }
 function showLoading(m) { const el=document.getElementById('loading'); el.querySelector('.loading-text').textContent=m||'Memuat...'; el.style.display='flex'; }
 function hideLoading() { document.getElementById('loading').style.display='none'; }
 
-function initApp() { hideLoading(); loadPegawai(); loadList(); loadDashboardStats(); initMonitoring(); }
+function initApp() { hideLoading(); loadPegawai(); loadList(); loadDashboardStats(); initAnalytics(); }
 
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
 
@@ -515,8 +482,8 @@ function switchSection(id, btn) {
   if (btn) btn.classList.add('active');
   const t=document.getElementById('section-'+id);
   if (t) t.style.display='block';
-  if (id==='dashboard') { loadDashboardStats(); loadList(); }
-  if (id==='monitoring') loadMonitoring();
+  if (id==='dashboard') { loadDashboardStats(); loadList(); loadAnalyticsIfPimpinan(); }
+  if (id==='history') loadHistory();
 }
 
 // =============================================
@@ -848,65 +815,32 @@ function confirmDelete(id) {
 function refreshAll() { loadDashboardStats(); loadList(); }
 
 // =============================================
-// MONITORING
+// ANALYTICS (PIMPINAN ONLY — DI BERANDA)
 // =============================================
-function initMonitoring() {
+function initAnalytics() {
   const role = (currentUser?.level || '').toUpperCase();
   const allowed = ['ADMIN','SEKRETARIS','PIMPINAN','KOMISIONER'];
-  document.getElementById('navMonitoring').style.display = allowed.includes(role) ? '' : 'none';
+  document.getElementById('analyticsContainer').style.display = allowed.includes(role) ? 'block' : 'none';
 }
 
-function loadMonitoring() {
-  ['monitoringOverdue','monitoringPrioritas','monitoringSubbag','monitoringSumber'].forEach(id => {
+function loadAnalyticsIfPimpinan() {
+  const role = (currentUser?.level || '').toUpperCase();
+  if (!['ADMIN','SEKRETARIS','PIMPINAN','KOMISIONER'].includes(role)) return;
+  const ids = ['analyticsOverdue','analyticsPrioritas','analyticsSubbag','analyticsSumber'];
+  ids.forEach(id => {
     document.getElementById(id).innerHTML = '<div class="monitoring-loading"><div class="skeleton skeleton-line w60"></div><div class="skeleton skeleton-line w80"></div><div class="skeleton skeleton-line"></div></div>';
   });
-  document.getElementById('monitoringTableBody').innerHTML = '<tr><td colspan="8"><div style="padding:24px;text-align:center;"><div class="skeleton skeleton-line w60" style="margin:0 auto;"></div><div class="skeleton skeleton-line w80" style="margin:4px auto 0;"></div></div></td></tr>';
-
   google.script.run.withSuccessHandler(r => {
     if (!r.success) return;
-    const s = r.stats;
-    document.getElementById('monTotal').textContent = s.total||0;
-    document.getElementById('monBerjalan').textContent = s.berjalan||0;
-    document.getElementById('monSelesai').textContent = s.selesai||0;
-    document.getElementById('monOverdue').textContent = s.overdue||0;
-    renderMonitoringOverdue(r.overdue||[]);
-    renderMonitoringPrioritas(r.prioritas||[]);
-    renderMonitoringSubbag(r.subbag||[]);
-    renderMonitoringSumber(r.sumber||[]);
+    renderAnalyticsOverdue(r.overdue||[]);
+    renderAnalyticsPrioritas(r.prioritas||[]);
+    renderAnalyticsSubbag(r.subbag||[]);
+    renderAnalyticsSumber(r.sumber||[]);
   }).withFailureHandler(() => {}).getMonitoringData();
-
-  google.script.run.withSuccessHandler(r => {
-    document.getElementById('monTotalAgenda').textContent = (r.data||[]).length + ' agenda';
-    renderMonitoringTable(r.data||[]);
-  }).withFailureHandler(() => {}).getListAgenda({ userEmail:currentUser.email, role:currentUser.level, status:'', subbag:'' });
 }
 
-function renderMonitoringTable(list) {
-  const tbody = document.getElementById('monitoringTableBody');
-  if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><i class="fas fa-inbox"></i><h3>Belum Ada Agenda</h3></div></td></tr>';
-    return;
-  }
-  tbody.innerHTML = list.map(a => {
-    const pc = getPrioritasClass(a.prioritas);
-    const sb = getStatusBadge(a);
-    const pct = a.progressPersentase||0;
-    const pcls = pct>=100?'selesai':pct>=50?'tinggi':pct>0?'sedang':'rendah';
-    return `<tr>
-      <td><div class="agenda-title-cell">${esc(a.judul)}</div><div class="agenda-subtitle-cell">${a.nomorAgenda||''}</div></td>
-      <td style="font-size:13px;">${esc(a.subbagian||'-')}</td>
-      <td style="font-size:13px;">${esc(a.picNama||a.createdByNama||'-')}</td>
-      <td><span class="badge ${pc}">${a.prioritas||'-'}</span></td>
-      <td>${sb}</td>
-      <td style="min-width:120px;"><div style="display:flex;align-items:center;gap:8px;"><div class="progress-bar-container" style="flex:1;"><div class="progress-bar-fill ${pcls}" style="width:${pct}%"></div></div><span style="font-size:12px;font-weight:700;color:#64748b;white-space:nowrap;">${pct}%</span></div></td>
-      <td style="font-size:13px;color:${a.isOverdue?'#dc2626':'#64748b'};font-weight:${a.isOverdue?'700':'500'};">${a.tanggalSelesai||'-'}${a.isOverdue?' <i class="fas fa-exclamation-circle"></i>':''}</td>
-      <td><div class="agenda-actions"><button class="btn-agenda-view" onclick="viewDetail('${a.id}')" title="Detail"><i class="fas fa-eye"></i></button></div></td>
-    </tr>`;
-  }).join('');
-}
-
-function renderMonitoringOverdue(list) {
-  const c = document.getElementById('monitoringOverdue');
+function renderAnalyticsOverdue(list) {
+  const c = document.getElementById('analyticsOverdue');
   if (!list.length) { c.innerHTML = '<p style="color:#059669;font-size:13px;"><i class="fas fa-check-circle"></i> Tidak ada agenda terlambat.</p>'; return; }
   c.innerHTML = list.map(a => {
     const pc = a.prioritas==='MENDESAK'?'badge-prioritas-mendesak':a.prioritas==='TINGGI'?'badge-prioritas-tinggi':a.prioritas==='SEDANG'?'badge-prioritas-sedang':'badge-prioritas-rendah';
@@ -924,8 +858,8 @@ function renderMonitoringOverdue(list) {
   }).join('');
 }
 
-function renderMonitoringPrioritas(list) {
-  const c = document.getElementById('monitoringPrioritas');
+function renderAnalyticsPrioritas(list) {
+  const c = document.getElementById('analyticsPrioritas');
   const total = list.reduce((s,i) => s+i.count, 0) || 1;
   const colors = {MENDESAK:'#dc2626',TINGGI:'#ea580c',SEDANG:'#ca8a04',RENDAH:'#0284c7'};
   c.innerHTML = list.map(i => {
@@ -937,8 +871,8 @@ function renderMonitoringPrioritas(list) {
   }).join('');
 }
 
-function renderMonitoringSubbag(list) {
-  const c = document.getElementById('monitoringSubbag');
+function renderAnalyticsSubbag(list) {
+  const c = document.getElementById('analyticsSubbag');
   if (!list.length) { c.innerHTML = '<p style="color:#94a3b8;font-size:13px;">Belum ada data.</p>'; return; }
   c.innerHTML = list.map(s => {
     const cls = s.persentase >= 80 ? 'selesai' : s.persentase >= 40 ? 'tinggi' : s.persentase > 0 ? 'sedang' : 'rendah';
@@ -953,8 +887,8 @@ function renderMonitoringSubbag(list) {
   }).join('');
 }
 
-function renderMonitoringSumber(list) {
-  const c = document.getElementById('monitoringSumber');
+function renderAnalyticsSumber(list) {
+  const c = document.getElementById('analyticsSumber');
   const total = list.reduce((s,i) => s+i.count, 0) || 1;
   c.innerHTML = list.map(i => {
     const pct = Math.round((i.count/total)*100);
@@ -963,6 +897,34 @@ function renderMonitoringSumber(list) {
       <div class="monitoring-bar-track"><div class="monitoring-bar-fill" style="width:${pct}%;background:#6366f1;"></div></div>
     </div>`;
   }).join('');
+}
+
+// =============================================
+// KEGIATAN SAYA
+// =============================================
+function loadHistory() {
+  const c = document.getElementById('historyContainer');
+  c.innerHTML = '<div style="padding:20px;text-align:center;"><div class="skeleton skeleton-line w60" style="margin:0 auto;"></div><div class="skeleton skeleton-line w80" style="margin:4px auto 0;"></div><div class="skeleton skeleton-line w40" style="margin:4px auto 0;"></div></div>';
+  google.script.run.withSuccessHandler(r => {
+    if (!r.success || !r.data || !r.data.length) {
+      c.innerHTML = '<div class="empty-state"><i class="fas fa-clock"></i><h3>Belum Ada Aktivitas</h3><p>Setiap perubahan yang Anda lakukan akan tercatat di sini.</p></div>';
+      return;
+    }
+    c.innerHTML = r.data.map(log => {
+      const icon = log.aktivitas==='BUAT_AGENDA'?'fa-plus-circle':log.aktivitas==='UPDATE_AGENDA'||log.aktivitas==='HAPUS_AGENDA'?'fa-pen-circle':'fa-circle';
+      const color = log.aktivitas==='BUAT_AGENDA'?'#059669':log.aktivitas==='HAPUS_AGENDA'?'#dc2626':'#3b82f6';
+      return `<div class="history-item">
+        <div class="history-dot" style="background:${color};"><i class="fas ${icon}"></i></div>
+        <div class="history-content">
+          <div class="history-text">${esc(log.aktivitas)}</div>
+          <div class="history-ref">${esc(log.judul||'')}</div>
+        </div>
+        <div class="history-time">${log.waktu}</div>
+      </div>`;
+    }).join('');
+  }).withFailureHandler(() => {
+    c.innerHTML = '<div class="empty-state"><i class="fas fa-clock"></i><h3>Gagal Memuat</h3></div>';
+  }).getUserActivityLog(currentUser.email, 50);
 }
 
 // =============================================

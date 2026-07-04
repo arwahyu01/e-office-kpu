@@ -304,6 +304,23 @@
   .monitoring-grid { grid-template-columns:1fr; }
 }
 
+/* ---- HISTORY / KEGIATAN SAYA ---- */
+.history-item {
+  display:flex; align-items:flex-start; gap:14px;
+  padding:16px 0; border-bottom:1px solid #f1f5f9;
+}
+.history-item:last-child { border-bottom:none; }
+.history-dot {
+  width:32px; height:32px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; margin-top:2px;
+}
+.history-dot i { font-size:12px; color:#fff; }
+.history-content { flex:1; min-width:0; }
+.history-text { font-size:14px; font-weight:600; color:#0f172a; }
+.history-ref { font-size:13px; color:#64748b; margin-top:2px; }
+.history-time { font-size:11px; color:#94a3b8; white-space:nowrap; margin-top:2px; }
+
 /* ---- FLOATING ACTION BUTTON ---- */
 .fab {
   position:fixed; bottom:32px; right:32px;

@@ -1172,6 +1172,71 @@ function getMonitoringData() {
 }
 
 // =============================================
+// USER ACTIVITY LOG — KEGIATAN SAYA
+// =============================================
+function getUserActivityLog(userEmail, limit) {
+  try {
+    ensureAgendaSheets();
+    const sh = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.MASTER_ACTIVITY_LOG);
+    if (!sh || sh.getLastRow() < 2) return { success: true, data: [] };
+
+    const data = sh.getDataRange().getValues();
+    const pegawaiMap = getPegawaiMapByEmail();
+    const peg = pegawaiMap[userEmail ? userEmail.toLowerCase().trim() : ''] || null;
+    const email = userEmail ? userEmail.toLowerCase().trim() : '';
+
+    // Ambil daftar judul agenda
+    const agSh = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.MASTER_AGENDA);
+    const agRows = agSh ? agSh.getDataRange().getValues() : [];
+    const agendaMap = {};
+    for (let i = 1; i < agRows.length; i++) {
+      agendaMap[agRows[i][0]] = agRows[i][2] || '';
+    }
+
+    const result = [];
+    for (let i = data.length - 1; i >= 1; i--) {
+      const logEmail = String(data[i][1] || "").trim().toLowerCase();
+      if (logEmail !== email) continue;
+      var aktivitas = String(data[i][2] || "").trim();
+      var ref = String(data[i][3] || "").trim();
+      var waktu = "";
+      try {
+        waktu = Utilities.formatDate(new Date(data[i][4]), AGENDA_TIMEZONE, "dd MMM yyyy HH:mm");
+      } catch (e) { waktu = String(data[i][4] || ""); }
+
+      // Human-readable aktivitas
+      var aktivitasLabel = aktivitas;
+      var labelMap = {
+        'BUAT_AGENDA': 'Membuat agenda baru',
+        'UPDATE_AGENDA': 'Memperbarui agenda',
+        'HAPUS_AGENDA': 'Menghapus agenda',
+        'BUAT_WORKFLOW': 'Menambahkan tahapan workflow',
+        'UPDATE_WORKFLOW': 'Memperbarui tahapan workflow',
+        'HAPUS_WORKFLOW': 'Menghapus tahapan workflow',
+        'BUAT_PROGRESS': 'Menambahkan progress',
+        'UPDATE_PROGRESS': 'Memperbarui progress',
+        'UPLOAD_EVIDENCE': 'Mengupload evidence'
+      };
+      if (labelMap[aktivitas]) aktivitasLabel = labelMap[aktivitas];
+
+      result.push({
+        userEmail: logEmail,
+        userNama: peg ? peg.nama : logEmail,
+        aktivitas: aktivitasLabel,
+        referensi: ref,
+        judul: agendaMap[ref] || '',
+        waktu: waktu
+      });
+      if (limit && result.length >= limit) break;
+    }
+
+    return { success: true, data: result };
+  } catch (err) {
+    return { success: false, message: err.message, data: [] };
+  }
+}
+
+// =============================================
 // ASSIGNMENT SUMMARY FOR LKH
 // =============================================
 function getMyAssignments(userEmail) {
