@@ -1080,6 +1080,98 @@ function getProgressSelesaiForLKH(userEmail) {
 }
 
 // =============================================
+// MONITORING — EKSEKUTIF DASHBOARD
+// =============================================
+function getMonitoringData() {
+  try {
+    ensureAgendaSheets();
+    const sh = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.MASTER_AGENDA);
+    if (sh.getLastRow() < 2) return { success: true, stats: {}, subbag: [], prioritas: [], sumber: [], overdue: [] };
+
+    const rows = sh.getDataRange().getValues();
+    const pegawaiMap = getPegawaiMapByEmail();
+    const now = new Date();
+
+    let total=0, rencana=0, berjalan=0, selesai=0, overdueCount=0;
+    const subbagMap = {};
+    const prioritasMap = { MENDESAK:0, TINGGI:0, SEDANG:0, RENDAH:0 };
+    const sumberMap = {};
+    const overdueList = [];
+
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      const status = String(row[7] || "");
+      const prioritas = String(row[6] || "SEDANG");
+      const sumber = String(row[3] || "LAINNYA");
+      const subbag = String(row[5] || "Tanpa Subbag");
+
+      total++;
+      if (status === "RENCANA") rencana++;
+      else if (status === "BERJALAN") berjalan++;
+      else if (status === "SELESAI") selesai++;
+
+      // Overdue check
+      const tglSelesai = row[12];
+      let isOverdue = false;
+      if (tglSelesai && status !== "SELESAI") {
+        const d = new Date(String(tglSelesai) + "T23:59:59");
+        if (!isNaN(d) && d < now) isOverdue = true;
+      }
+      if (isOverdue) {
+        overdueCount++;
+        const selisih = Math.floor((now - d) / (1000*60*60*24));
+        const pic = (pegawaiMap[String(row[13]).trim()] || {}).nama || String(row[13]);
+        overdueList.push({
+          id: row[0], judul: row[2], subbag, prioritas,
+          tenggat: tglSelesai, telat: selisih, pic
+        });
+      }
+
+      // Per Subbag progress
+      if (!subbagMap[subbag]) subbagMap[subbag] = { total:0, done:0, nama:subbag };
+      subbagMap[subbag].total++;
+      if (status === "SELESAI") subbagMap[subbag].done++;
+
+      // Per Prioritas
+      if (prioritasMap[prioritas] !== undefined) prioritasMap[prioritas]++;
+
+      // Per Sumber
+      if (!sumberMap[sumber]) sumberMap[sumber] = 0;
+      sumberMap[sumber]++;
+    }
+
+    // Sort overdue by most late
+    overdueList.sort((a,b) => b.telat - a.telat);
+
+    // Format subbag progress
+    const subbagArr = Object.values(subbagMap).map(s => ({
+      subbag: s.nama,
+      persentase: s.total > 0 ? Math.round((s.done / s.total) * 100) : 0,
+      total: s.total,
+      done: s.done
+    })).sort((a,b) => a.persentase - b.persentase);
+
+    // Format prioritas
+    const prioritasArr = Object.entries(prioritasMap).map(([label, count]) => ({ label, count }));
+
+    // Format sumber
+    const sumberArr = Object.entries(sumberMap).map(([label, count]) => ({ label:label.charAt(0)+label.slice(1).toLowerCase(), count }))
+      .sort((a,b) => b.count - a.count);
+
+    return {
+      success: true,
+      stats: { total, rencana, berjalan, selesai, overdue: overdueCount },
+      subbag: subbagArr,
+      prioritas: prioritasArr,
+      sumber: sumberArr,
+      overdue: overdueList
+    };
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+
+// =============================================
 // ASSIGNMENT SUMMARY FOR LKH
 // =============================================
 function getMyAssignments(userEmail) {

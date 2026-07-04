@@ -26,6 +26,7 @@
             </div>
             <nav class="sidebar-nav">
                 <button class="nav-item active" onclick="switchSection('dashboard',this)"><i class="fas fa-chart-pie"></i><span>Beranda</span></button>
+                <button class="nav-item" id="navMonitoring" onclick="switchSection('monitoring',this)" style="display:none;"><i class="fas fa-gauge-high"></i><span>Monitoring</span></button>
                 <a href="https://script.google.com/macros/s/AKfycbxejATwEFa6KmgBqjxFGiA2L_mEJGG0-CaHGsaIyxedRz5_vGA-QiAIhSE-mYwXFY_E/exec" target="_top" class="nav-item"><i class="fas fa-grid-2"></i><span>E-OFFICE</span></a>
                 <a href="#" class="nav-item" onclick="logout();return false;"><i class="fas fa-arrow-right-from-bracket"></i><span>Logout</span></a>
             </nav>
@@ -60,6 +61,47 @@
             </div><div class="filter-info"><span id="countView">0</span> agenda</div></div>
             <div class="table-container"><table><thead><tr><th>Judul</th><th>Sumber</th><th>PIC</th><th>Prioritas</th><th>Status</th><th>Progress</th><th>Tenggat</th><th>Aksi</th></tr></thead><tbody id="agendaTableBody"></tbody></table></div>
             <button class="fab" onclick="openWizard()" title="Buat Agenda Baru"><i class="fas fa-plus"></i></button>
+        </section>
+
+        <!-- ============ MONITORING ============ -->
+        <section id="section-monitoring" class="content-section" style="display:none;">
+            <div class="hero-section">
+                <h1>Monitoring Agenda</h1>
+                <p>Ringkasan eksekutif seluruh aktivitas dan kinerja pegawai</p>
+            </div>
+
+            <div class="stats-grid" id="monitoringStats">
+                <div class="stat-card"><div class="stat-icon" style="background:#e0e7ff;color:#4338ca;"><i class="fas fa-clipboard-list"></i></div><div class="stat-info"><h3 id="monTotal">0</h3><p>Total Agenda</p></div></div>
+                <div class="stat-card"><div class="stat-icon" style="background:#dbeafe;color:#2563eb;"><i class="fas fa-spinner"></i></div><div class="stat-info"><h3 id="monBerjalan">0</h3><p>Sedang Berjalan</p></div></div>
+                <div class="stat-card"><div class="stat-icon" style="background:#d1fae5;color:#059669;"><i class="fas fa-check-circle"></i></div><div class="stat-info"><h3 id="monSelesai">0</h3><p>Selesai</p></div></div>
+                <div class="stat-card"><div class="stat-icon" style="background:#fee2e2;color:#dc2626;"><i class="fas fa-exclamation-triangle"></i></div><div class="stat-info"><h3 id="monOverdue">0</h3><p>Terlambat</p></div></div>
+            </div>
+
+            <div class="monitoring-grid">
+                <!-- OVERDUE -->
+                <div class="monitoring-card">
+                    <div class="monitoring-card-header"><h3><i class="fas fa-clock" style="color:#dc2626;"></i> Agenda Terlambat</h3></div>
+                    <div class="monitoring-card-body" id="monitoringOverdue"><p style="color:#94a3b8;font-size:13px;">Tidak ada agenda terlambat.</p></div>
+                </div>
+
+                <!-- PRIORITY DISTRIBUTION -->
+                <div class="monitoring-card">
+                    <div class="monitoring-card-header"><h3><i class="fas fa-signal"></i> Prioritas</h3></div>
+                    <div class="monitoring-card-body" id="monitoringPrioritas"><p style="color:#94a3b8;font-size:13px;">Memuat...</p></div>
+                </div>
+
+                <!-- SUBBAG PROGRESS -->
+                <div class="monitoring-card">
+                    <div class="monitoring-card-header"><h3><i class="fas fa-building"></i> Progress per Subbagian</h3></div>
+                    <div class="monitoring-card-body" id="monitoringSubbag"><p style="color:#94a3b8;font-size:13px;">Memuat...</p></div>
+                </div>
+
+                <!-- SUMBER -->
+                <div class="monitoring-card">
+                    <div class="monitoring-card-header"><h3><i class="fas fa-tag"></i> Sumber Agenda</h3></div>
+                    <div class="monitoring-card-body" id="monitoringSumber"><p style="color:#94a3b8;font-size:13px;">Memuat...</p></div>
+                </div>
+            </div>
         </section>
 
         <!-- ============ DETAIL ============ -->
@@ -436,7 +478,7 @@ function logout() { localStorage.removeItem(SESSION_KEY); redirectToLogin(); }
 function showLoading(m) { const el=document.getElementById('loading'); el.querySelector('.loading-text').textContent=m||'Memuat...'; el.style.display='flex'; }
 function hideLoading() { document.getElementById('loading').style.display='none'; }
 
-function initApp() { hideLoading(); loadPegawai(); loadList(); loadDashboardStats(); }
+function initApp() { hideLoading(); loadPegawai(); loadList(); loadDashboardStats(); initMonitoring(); }
 
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
 
@@ -447,6 +489,7 @@ function switchSection(id, btn) {
   const t=document.getElementById('section-'+id);
   if (t) t.style.display='block';
   if (id==='dashboard') { loadDashboardStats(); loadList(); }
+  if (id==='monitoring') loadMonitoring();
 }
 
 // =============================================
@@ -776,6 +819,93 @@ function confirmDelete(id) {
 }
 
 function refreshAll() { loadDashboardStats(); loadList(); }
+
+// =============================================
+// MONITORING
+// =============================================
+function initMonitoring() {
+  const role = (currentUser?.level || '').toUpperCase();
+  const allowed = ['ADMIN','SEKRETARIS','PIMPINAN','KOMISIONER'];
+  document.getElementById('navMonitoring').style.display = allowed.includes(role) ? '' : 'none';
+}
+
+function loadMonitoring() {
+  ['monitoringOverdue','monitoringPrioritas','monitoringSubbag','monitoringSumber'].forEach(id => {
+    document.getElementById(id).innerHTML = '<div class="monitoring-loading"><div class="skeleton skeleton-line w60"></div><div class="skeleton skeleton-line w80"></div><div class="skeleton skeleton-line"></div></div>';
+  });
+  google.script.run.withSuccessHandler(r => {
+    if (!r.success) return;
+    const s = r.stats;
+    document.getElementById('monTotal').textContent = s.total||0;
+    document.getElementById('monBerjalan').textContent = s.berjalan||0;
+    document.getElementById('monSelesai').textContent = s.selesai||0;
+    document.getElementById('monOverdue').textContent = s.overdue||0;
+    renderMonitoringOverdue(r.overdue||[]);
+    renderMonitoringPrioritas(r.prioritas||[]);
+    renderMonitoringSubbag(r.subbag||[]);
+    renderMonitoringSumber(r.sumber||[]);
+  }).withFailureHandler(() => {}).getMonitoringData();
+}
+
+function renderMonitoringOverdue(list) {
+  const c = document.getElementById('monitoringOverdue');
+  if (!list.length) { c.innerHTML = '<p style="color:#059669;font-size:13px;"><i class="fas fa-check-circle"></i> Tidak ada agenda terlambat.</p>'; return; }
+  c.innerHTML = list.map(a => {
+    const pc = a.prioritas==='MENDESAK'?'badge-prioritas-mendesak':a.prioritas==='TINGGI'?'badge-prioritas-tinggi':a.prioritas==='SEDANG'?'badge-prioritas-sedang':'badge-prioritas-rendah';
+    return `<div class="monitoring-overdue-item">
+      <div class="monitoring-overdue-left">
+        <div class="monitoring-overdue-judul">${esc(a.judul)}</div>
+        <div class="monitoring-overdue-meta">${esc(a.subbag)} · ${esc(a.pic)}</div>
+      </div>
+      <div class="monitoring-overdue-right">
+        <span class="badge ${pc}">${a.prioritas}</span>
+        <span class="monitoring-overdue-telat">${a.telat} hari</span>
+        <button class="btn-agenda-view" onclick="viewDetail('${a.id}')" title="Detail"><i class="fas fa-eye"></i></button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderMonitoringPrioritas(list) {
+  const c = document.getElementById('monitoringPrioritas');
+  const total = list.reduce((s,i) => s+i.count, 0) || 1;
+  const colors = {MENDESAK:'#dc2626',TINGGI:'#ea580c',SEDANG:'#ca8a04',RENDAH:'#0284c7'};
+  c.innerHTML = list.map(i => {
+    const pct = Math.round((i.count/total)*100);
+    return `<div class="monitoring-bar-item">
+      <div class="monitoring-bar-label"><span>${i.label}</span><span>${i.count}</span></div>
+      <div class="monitoring-bar-track"><div class="monitoring-bar-fill" style="width:${pct}%;background:${colors[i.label]||'#94a3b8'};"></div></div>
+    </div>`;
+  }).join('');
+}
+
+function renderMonitoringSubbag(list) {
+  const c = document.getElementById('monitoringSubbag');
+  if (!list.length) { c.innerHTML = '<p style="color:#94a3b8;font-size:13px;">Belum ada data.</p>'; return; }
+  c.innerHTML = list.map(s => {
+    const cls = s.persentase >= 80 ? 'selesai' : s.persentase >= 40 ? 'tinggi' : s.persentase > 0 ? 'sedang' : 'rendah';
+    return `<div class="monitoring-subbag-item">
+      <div class="monitoring-subbag-top">
+        <span class="monitoring-subbag-nama">${esc(s.subbag)}</span>
+        <span class="monitoring-subbag-pct">${s.persentase}%</span>
+      </div>
+      <div class="monitoring-bar-track"><div class="monitoring-bar-fill ${cls}" style="width:${s.persentase}%;"></div></div>
+      <div class="monitoring-subbag-bottom"><span>${s.done} selesai</span><span>${s.total} agenda</span></div>
+    </div>`;
+  }).join('');
+}
+
+function renderMonitoringSumber(list) {
+  const c = document.getElementById('monitoringSumber');
+  const total = list.reduce((s,i) => s+i.count, 0) || 1;
+  c.innerHTML = list.map(i => {
+    const pct = Math.round((i.count/total)*100);
+    return `<div class="monitoring-bar-item">
+      <div class="monitoring-bar-label"><span>${esc(i.label)}</span><span>${i.count}</span></div>
+      <div class="monitoring-bar-track"><div class="monitoring-bar-fill" style="width:${pct}%;background:#6366f1;"></div></div>
+    </div>`;
+  }).join('');
+}
 
 // =============================================
 // TOGGLE CARD (COLLAPSIBLE)

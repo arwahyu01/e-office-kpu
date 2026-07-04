@@ -213,7 +213,7 @@
 - **`.gitignore`**: File ignores untuk OS dan log
 
 ### Planned
-- v2.9 — Notifikasi email assignment / reminder rapat
+- v2.13 — Notifikasi email assignment / reminder rapat
 - v2.10 — Template notulen multiple (Coktas/Pleno/Rakor/Bimtek/Sosialisasi)
 - v2.11 — Agenda: folder per subbag + upload evidence ke Drive
 - v3.0 — Approval workflow
@@ -311,7 +311,7 @@
 
 ---
 
-## v2.12.0 — Menu Redesign + Collapsible Cards + Per-Card Loading (2026-07-04)
+## v2.12.0 — Menu Redesign + Monitoring Eksekutif + Collapsible Cards + Per-Card Loading (2026-07-04)
 
 ### Perubahan
 
@@ -350,6 +350,17 @@
 - `.detail-card-body` / `.detail-card-body.hidden` — collapsible dengan transisi
 - `.skeleton`, `.skeleton-line`, `.skeleton-grid` — shimmer loader
 - `.fab` — floating action button
+
+#### 7. Monitoring Eksekutif (backend_agenda.gs, agenda.html, style_agenda.html)
+- **[New] `getMonitoringData()`** — backend endpoint agregasi data untuk pimpinan:
+  - Statistik: total, berjalan, selesai, overdue
+  - **Overdue Priority List**: daftar agenda terlambat diurutkan paling parah (telat X hari) + badge prioritas + tombol detail
+  - **Progress per Subbag**: bar chart horizontal dengan persentase + count selesai/total, warna merah/kuning/biru/hijau
+  - **Distribusi Prioritas**: bar chart MENDESAK/TINGGI/SEDANG/RENDAH
+  - **Distribusi Sumber**: bar chart RAPAT/SURAT_TUGAS/PIMPINAN/RUTIN/dll
+- **[New] Sidebar "Monitoring"** — hanya muncul untuk role ADMIN, SEKRETARIS, PIMPINAN, KOMISIONER
+- **[New] `initMonitoring()`** — show/hide nav item berdasarkan `currentUser.level`
+- **[New] 4 monitoring cards** layout 2x2 grid, skeleton loading per card
 
 ---
 
