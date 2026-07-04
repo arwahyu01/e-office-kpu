@@ -26,9 +26,10 @@
             </div>
             <nav class="sidebar-nav">
                 <button class="nav-item active" onclick="switchSection('dashboard',this)"><i class="fas fa-chart-pie"></i><span>Beranda</span></button>
-                <button class="nav-item" onclick="switchSection('history',this)"><i class="fas fa-clock-rotate-left"></i><span>Kegiatan Saya</span></button>
                 <button class="nav-item" onclick="switchSection('kalender',this)"><i class="fas fa-calendar"></i><span>Kalender</span></button>
-                <a href="https://script.google.com/macros/s/AKfycbxejATwEFa6KmgBqjxFGiA2L_mEJGG0-CaHGsaIyxedRz5_vGA-QiAIhSE-mYwXFY_E/exec" target="_top" class="nav-item"><i class="fas fa-grid-2"></i><span>E-OFFICE</span></a>
+                <button class="nav-item" onclick="switchSection('history',this)"><i class="fas fa-clock-rotate-left"></i><span>Kegiatan Saya</span></button>
+                <div class="nav-divider"></div>
+                <a href="https://script.google.com/macros/s/AKfycbxejATwEFa6KmgBqjxFGiA2L_mEJGG0-CaHGsaIyxedRz5_vGA-QiAIhSE-mYwXFY_E/exec" target="_top" class="nav-item"><i class="fas fa-th"></i><span>E-OFFICE</span></a>
                 <a href="#" class="nav-item" onclick="logout();return false;"><i class="fas fa-arrow-right-from-bracket"></i><span>Logout</span></a>
             </nav>
         </div>
@@ -1273,7 +1274,7 @@ function buildKalRightPanel(selectedDateStr) {
   html += '<button class="btn-icon" onclick="openKalEventModal(\'' + selectedDateStr + '\')" title="Tambah"><i class="fas fa-plus-circle"></i></button>';
   html += '</div>';
   if (!sorted.length) {
-    html += '<div class="kal-right-empty"><i class="fas fa-calendar-check"></i><p>Tidak ada kegiatan</p><button class="btn-primary" onclick="openKalEventModal(\'' + selectedDateStr + '\')"><i class="fas fa-plus"></i> Tambah Kegiatan</button></div>';
+    html += '<div class="kal-right-empty"><i class="fas fa-calendar-check"></i><p>Tidak ada kegiatan</p></div>';
   } else {
     html += '<div class="kal-timeline">';
     sorted.forEach(function(e) { html += kalTimelineItemHtml(e); });
