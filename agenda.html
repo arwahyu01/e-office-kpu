@@ -25,10 +25,8 @@
                 <div class="logo"><div class="logo-icon"><i class="fas fa-diagram-project"></i></div><div class="logo-text">AGENDA <span>KPU SIAK</span></div></div>
             </div>
             <nav class="sidebar-nav">
-                <button class="nav-item active" onclick="switchSection('dashboard',this)"><i class="fas fa-chart-pie"></i><span>Dashboard</span></button>
-                <button class="nav-item" onclick="switchSection('daftar',this)"><i class="fas fa-list"></i><span>Daftar Agenda</span></button>
-                <button class="nav-item" onclick="openWizard()"><i class="fas fa-plus-circle"></i><span>Buat Agenda</span></button>
-                <a href="https://script.google.com/macros/s/AKfycbxejATwEFa6KmgBqjxFGiA2L_mEJGG0-CaHGsaIyxedRz5_vGA-QiAIhSE-mYwXFY_E/exec?page=agenda" target="_top" class="nav-item"><i class="fas fa-calendar-alt"></i><span>E-OFFICE</span></a>
+                <button class="nav-item active" onclick="switchSection('dashboard',this)"><i class="fas fa-chart-pie"></i><span>Beranda</span></button>
+                <a href="https://script.google.com/macros/s/AKfycbxejATwEFa6KmgBqjxFGiA2L_mEJGG0-CaHGsaIyxedRz5_vGA-QiAIhSE-mYwXFY_E/exec" target="_top" class="nav-item"><i class="fas fa-grid-2"></i><span>E-OFFICE</span></a>
                 <a href="#" class="nav-item" onclick="logout();return false;"><i class="fas fa-arrow-right-from-bracket"></i><span>Logout</span></a>
             </nav>
         </div>
@@ -56,22 +54,12 @@
                 <div class="stat-card"><div class="stat-icon" style="background:#fee2e2;color:#dc2626;"><i class="fas fa-exclamation-triangle"></i></div><div class="stat-info"><h3 id="statOverdue">0</h3><p>Terlambat</p></div></div>
             </div>
             <div class="filter-bar"><div class="filter-group" style="display:flex;gap:10px;flex-wrap:wrap;">
-                <select id="filterStatus" class="filter-select" onchange="loadList('dashboard')"><option value="">Semua Status</option><option value="RENCANA">Belum Mulai</option><option value="BERJALAN">Sedang Dikerjakan</option><option value="SELESAI">Selesai</option></select>
-                <select id="filterSubbag" class="filter-select" onchange="loadList('dashboard')"><option value="">Semua Subbagian</option></select>
+                <select id="filterStatus" class="filter-select" onchange="loadList()"><option value="">Semua Status</option><option value="RENCANA">Belum Mulai</option><option value="BERJALAN">Sedang Dikerjakan</option><option value="SELESAI">Selesai</option></select>
+                <select id="filterSubbag" class="filter-select" onchange="loadList()"><option value="">Semua Subbagian</option></select>
                 <button class="btn-primary" onclick="openWizard()"><i class="fas fa-plus"></i> Agenda Baru</button>
             </div><div class="filter-info"><span id="countView">0</span> agenda</div></div>
             <div class="table-container"><table><thead><tr><th>Judul</th><th>Sumber</th><th>PIC</th><th>Prioritas</th><th>Status</th><th>Progress</th><th>Tenggat</th><th>Aksi</th></tr></thead><tbody id="agendaTableBody"></tbody></table></div>
-        </section>
-
-        <!-- ============ DAFTAR ============ -->
-        <section id="section-daftar" class="content-section" style="display:none;">
-            <div class="page-header"><h1>Daftar Agenda</h1><p>Seluruh agenda dan tindak lanjut</p></div>
-            <div class="filter-bar"><div class="filter-group" style="display:flex;gap:10px;flex-wrap:wrap;">
-                <select id="filterStatus2" class="filter-select" onchange="loadList('daftar')"><option value="">Semua Status</option><option value="RENCANA">Belum Mulai</option><option value="BERJALAN">Sedang Dikerjakan</option><option value="SELESAI">Selesai</option></select>
-                <select id="filterSubbag2" class="filter-select" onchange="loadList('daftar')"><option value="">Semua Subbagian</option></select>
-                <button class="btn-primary" onclick="openWizard()"><i class="fas fa-plus"></i> Agenda Baru</button>
-            </div></div>
-            <div class="table-container"><table><thead><tr><th>Judul</th><th>Sumber</th><th>PIC</th><th>Prioritas</th><th>Status</th><th>Progress</th><th>Tenggat</th><th>Aksi</th></tr></thead><tbody id="agendaTableBody2"></tbody></table></div>
+            <button class="fab" onclick="openWizard()" title="Buat Agenda Baru"><i class="fas fa-plus"></i></button>
         </section>
 
         <!-- ============ DETAIL ============ -->
@@ -448,7 +436,7 @@ function logout() { localStorage.removeItem(SESSION_KEY); redirectToLogin(); }
 function showLoading(m) { const el=document.getElementById('loading'); el.querySelector('.loading-text').textContent=m||'Memuat...'; el.style.display='flex'; }
 function hideLoading() { document.getElementById('loading').style.display='none'; }
 
-function initApp() { hideLoading(); loadPegawai(); loadList('dashboard'); loadDashboardStats(); }
+function initApp() { hideLoading(); loadPegawai(); loadList(); loadDashboardStats(); }
 
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
 
@@ -458,8 +446,7 @@ function switchSection(id, btn) {
   if (btn) btn.classList.add('active');
   const t=document.getElementById('section-'+id);
   if (t) t.style.display='block';
-  if (id==='dashboard') { loadDashboardStats(); loadList('dashboard'); }
-  if (id==='daftar') loadList('daftar');
+  if (id==='dashboard') { loadDashboardStats(); loadList(); }
 }
 
 // =============================================
@@ -484,7 +471,7 @@ function populateDropdowns() {
   renderAnggotaCheckboxes();
   const anggota=document.getElementById('fAnggota');
   if (anggota) { anggota.innerHTML=''; pegawaiList.forEach(p => anggota.innerHTML+=`<option value="${p.email}">${p.nama} (${p.subbag||'-'})</option>`); }
-  const subIds=['filterSubbag','filterSubbag2','fSubbag'];
+  const subIds=['filterSubbag','fSubbag'];
   subIds.forEach(id => {
     const s=document.getElementById(id); if (!s) return;
     s.innerHTML='<option value="">'+(id==='fSubbag'?'-':'Semua Subbagian')+'</option>';
@@ -509,25 +496,23 @@ function loadDashboardStats() {
 // =============================================
 // LIST AGENDA
 // =============================================
-function loadList(source) {
+function loadList() {
   showLoading('Memuat agenda...');
-  const prefix = source==='daftar' ? '2' : '';
-  const status = document.getElementById('filterStatus'+prefix).value;
-  const subbag = document.getElementById('filterSubbag'+prefix).value;
-  const tbodyId = source==='daftar' ? 'agendaTableBody2' : 'agendaTableBody';
+  const status = document.getElementById('filterStatus').value;
+  const subbag = document.getElementById('filterSubbag').value;
 
   google.script.run.withSuccessHandler(r => {
     hideLoading();
     currentAgendaList = (r.success && r.data) ? r.data : [];
-    renderTable(currentAgendaList, tbodyId);
-    if (source!=='daftar') document.getElementById('countView').textContent = currentAgendaList.length;
+    renderTable(currentAgendaList, 'agendaTableBody');
+    document.getElementById('countView').textContent = currentAgendaList.length;
     if (r.stats) {
       document.getElementById('statTotal').textContent=r.stats.total||0;
       document.getElementById('statBerjalan').textContent=r.stats.berjalan||0;
       document.getElementById('statSelesai').textContent=r.stats.selesai||0;
       document.getElementById('statOverdue').textContent=r.stats.overdue||0;
     }
-  }).withFailureHandler(() => { hideLoading(); renderTable([], tbodyId); })
+  }).withFailureHandler(() => { hideLoading(); renderTable([], 'agendaTableBody'); })
   .getListAgenda({ userEmail:currentUser.email, role:currentUser.level, status, subbag });
 }
 
@@ -790,7 +775,7 @@ function confirmDelete(id) {
   }});
 }
 
-function refreshAll() { loadDashboardStats(); loadList('dashboard'); loadList('daftar'); }
+function refreshAll() { loadDashboardStats(); loadList(); }
 
 // =============================================
 // TOGGLE CARD (COLLAPSIBLE)

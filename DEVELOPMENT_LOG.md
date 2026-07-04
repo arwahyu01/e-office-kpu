@@ -311,29 +311,45 @@
 
 ---
 
-## v2.12.0 — Collapsible Detail Cards + Per-Card Skeleton Loading (2026-07-04)
+## v2.12.0 — Menu Redesign + Collapsible Cards + Per-Card Loading (2026-07-04)
 
 ### Perubahan
 
-#### 1. Collapsible Cards (agenda.html, style_agenda.html)
-- Setiap section di halaman detail agenda (Informasi Agenda, Penugasan, Workflow & Progress, Integrasi LKH, Riwayat Aktivitas) kini dapat di-**minimize/expand** dengan klik header
-- Setiap card memiliki header clickable dengan ikon chevron yang berotasi saat collapsed
+#### 1. Sidebar Navigasi (agenda.html)
+- **[Hapus] Daftar Agenda**: redundant — fungsinya sama persis dengan Dashboard (tabel agenda)
+- **[Hapus] Buat Agenda dari nav**: bukan navigasi, tapi action. Dipindah ke FAB
+- **[Ubah] Dashboard → Beranda**: label lebih profesional
+- **[Ubah] Link E-OFFICE**: langsung ke halaman utama (`/exec` tanpa `?page=agenda`)
+- **Sidebar sekarang**: Beranda | E-OFFICE | Logout — bersih, tidak redundant
+
+#### 2. Floating Action Button (agenda.html, style_agenda.html)
+- **[New] FAB Buat Agenda**: tombol merah (+) pojok kanan bawah, fixed position
+- Gradient merah, shadow, hover scale 1.1x, active scale 0.95x
+
+#### 3. Simplifikasi Kode (agenda.html)
+- **[Hapus] `section-daftar`**: seluruh blok HTML Daftar Agenda dihapus
+- **[Hapus] `filterStatus2` / `filterSubbag2` / `agendaTableBody2`**: filter dan tabel duplikat
+- **[Ubah] `loadList()`**: parameter `source` dihapus — cukup satu fungsi tanpa branching
+- **[Ubah] `switchSection()`**: parameter `daftar` dihapus
+- **[Ubah] `refreshAll()` / `initApp()`**: panggil `loadList()` tanpa argumen
+
+#### 4. Collapsible Detail Cards (agenda.html, style_agenda.html)
+- Setiap section di halaman detail (Informasi Agenda, Penugasan, Workflow & Progress, Integrasi LKH, Riwayat Aktivitas) kini dapat di-minimize/expand dengan klik header
+- Header clickable dengan ikon chevron yang berotasi saat collapsed
 - Fungsi `toggleCard(headerEl)` — toggle class `collapsed` pada header dan `hidden` pada body
-- CSS transition smooth untuk max-height & opacity
 
-#### 2. Per-Card Skeleton Loading (agenda.html, style_agenda.html)
-- **Hapus** full-page loading overlay (`showLoading` / `hideLoading`) saat membuka detail agenda
-- **Ganti** dengan skeleton shimmer animation per card container
-- `showDetailSkeletons()` — inject skeleton placeholder ke `assignmentContainer`, `workflowContainer`, `lkhIntegrationContainer`, `activityLogContainer`
+#### 5. Per-Card Skeleton Loading (agenda.html, style_agenda.html)
+- **[Hapus]** full-page loading overlay saat membuka detail — diganti skeleton shimmer per container
+- `showDetailSkeletons()` — inject skeleton placeholder ke tiap container data
 - `@keyframes shimmer` — animasi loading horizontal 1.2s infinite
-- Halaman detail langsung tampil tanpa blocking — skeleton muncul saat data dimuat
-- Saat data tiba (`renderDetail()`), skeleton otomatis diganti konten asli
+- Halaman detail langsung tampil tanpa blocking
 
-#### 3. CSS Baru (style_agenda.html)
-- `.detail-card-header` — flexbox header dengan cursor pointer, hover state
+#### 6. CSS Baru (style_agenda.html)
+- `.detail-card-header` — flexbox header, cursor pointer, hover state
 - `.detail-card-header.collapsed .card-toggle` — rotate chevron -180deg
 - `.detail-card-body` / `.detail-card-body.hidden` — collapsible dengan transisi
-- `.skeleton`, `.skeleton-line`, `.skeleton-grid` — shimmer loader classes
+- `.skeleton`, `.skeleton-line`, `.skeleton-grid` — shimmer loader
+- `.fab` — floating action button
 
 ---
 
