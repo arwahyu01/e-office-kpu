@@ -426,6 +426,8 @@
 .kal-empty:hover { background:#fafafa; }
 .kal-today { background:#fef2f2; }
 .kal-selected { background:#fef2f2; box-shadow:inset 0 0 0 2px #dc2626; border-radius:4px; }
+.kal-week-range { background:#fef2f2; }
+.kal-week-range:hover { background:#fee2e2; }
 .kal-day-num {
   display:inline-flex; width:26px; height:26px; align-items:center; justify-content:center;
   font-size:13px; font-weight:700; color:#334155; border-radius:50%; margin-bottom:4px;
@@ -469,6 +471,16 @@
 .kal-right-empty i { font-size:40px; color:#e2e8f0; margin-bottom:12px; display:block; }
 .kal-right-empty p { margin:0 0 16px; font-size:14px; }
 .kal-right-empty .btn-primary { font-family:inherit; }
+
+/* Day group in timeline */
+.kal-day-group { margin-bottom:8px; }
+.kal-day-group-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:8px 0 6px; margin-bottom:4px;
+  border-bottom:1px solid #e5e7eb;
+}
+.kal-day-group-label { font-size:12px; font-weight:700; color:#334155; text-transform:uppercase; }
+.kal-day-group-count { font-size:11px; color:#94a3b8; font-weight:600; }
 
 /* Timeline */
 .kal-timeline {
