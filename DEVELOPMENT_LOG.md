@@ -311,6 +311,32 @@
 
 ---
 
+## v2.12.0 — Collapsible Detail Cards + Per-Card Skeleton Loading (2026-07-04)
+
+### Perubahan
+
+#### 1. Collapsible Cards (agenda.html, style_agenda.html)
+- Setiap section di halaman detail agenda (Informasi Agenda, Penugasan, Workflow & Progress, Integrasi LKH, Riwayat Aktivitas) kini dapat di-**minimize/expand** dengan klik header
+- Setiap card memiliki header clickable dengan ikon chevron yang berotasi saat collapsed
+- Fungsi `toggleCard(headerEl)` — toggle class `collapsed` pada header dan `hidden` pada body
+- CSS transition smooth untuk max-height & opacity
+
+#### 2. Per-Card Skeleton Loading (agenda.html, style_agenda.html)
+- **Hapus** full-page loading overlay (`showLoading` / `hideLoading`) saat membuka detail agenda
+- **Ganti** dengan skeleton shimmer animation per card container
+- `showDetailSkeletons()` — inject skeleton placeholder ke `assignmentContainer`, `workflowContainer`, `lkhIntegrationContainer`, `activityLogContainer`
+- `@keyframes shimmer` — animasi loading horizontal 1.2s infinite
+- Halaman detail langsung tampil tanpa blocking — skeleton muncul saat data dimuat
+- Saat data tiba (`renderDetail()`), skeleton otomatis diganti konten asli
+
+#### 3. CSS Baru (style_agenda.html)
+- `.detail-card-header` — flexbox header dengan cursor pointer, hover state
+- `.detail-card-header.collapsed .card-toggle` — rotate chevron -180deg
+- `.detail-card-body` / `.detail-card-body.hidden` — collapsible dengan transisi
+- `.skeleton`, `.skeleton-line`, `.skeleton-grid` — shimmer loader classes
+
+---
+
 ## v2.11.0 — Refactor Progress: PJ + Anggota + Target per Progress (2026-07-04)
 
 ### Perubahan

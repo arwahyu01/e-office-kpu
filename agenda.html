@@ -88,45 +88,72 @@
                 </div>
             </div>
 
+            <!-- INFORMASI AGENDA -->
             <div class="detail-section">
-                <div class="info-grid">
-                    <div class="info-item"><span class="label">Status</span><span id="detailStatus" class="value">-</span></div>
-                    <div class="info-item"><span class="label">Prioritas</span><span id="detailPrioritas" class="value">-</span></div>
-                    <div class="info-item"><span class="label">Pembuat</span><span id="detailPembuat" class="value">-</span></div>
-                    <div class="info-item"><span class="label">Subbagian</span><span id="detailSubbag" class="value">-</span></div>
-                    <div class="info-item"><span class="label">Sumber</span><span id="detailSumber" class="value">-</span></div>
-                    <div class="info-item"><span class="label">Jenis</span><span id="detailJenis" class="value">-</span></div>
-                    <div class="info-item"><span class="label">Tanggal Mulai</span><span id="detailTglMulai" class="value">-</span></div>
-                    <div class="info-item"><span class="label">Tenggat</span><span id="detailTenggat" class="value">-</span></div>
+                <div class="detail-card-header" onclick="toggleCard(this)">
+                    <h3><i class="fas fa-info-circle"></i> Informasi Agenda</h3>
+                    <i class="fas fa-chevron-up card-toggle"></i>
                 </div>
-                <div style="margin-top:16px;"><span class="label">Deskripsi</span><p id="detailDeskripsi" style="margin-top:4px;color:#475569;font-size:14px;line-height:1.6;">-</p></div>
-                <div style="margin-top:16px;"><span class="label">Dasar Agenda</span><p id="detailDasar" style="margin-top:4px;color:#475569;font-size:14px;">-</p></div>
-                <div style="margin-top:16px;"><span class="label">Output yang Diharapkan</span><p id="detailOutput" style="margin-top:4px;color:#475569;font-size:14px;">-</p></div>
+                <div class="detail-card-body">
+                    <div class="info-grid">
+                        <div class="info-item"><span class="label">Status</span><span id="detailStatus" class="value">-</span></div>
+                        <div class="info-item"><span class="label">Prioritas</span><span id="detailPrioritas" class="value">-</span></div>
+                        <div class="info-item"><span class="label">Pembuat</span><span id="detailPembuat" class="value">-</span></div>
+                        <div class="info-item"><span class="label">Subbagian</span><span id="detailSubbag" class="value">-</span></div>
+                        <div class="info-item"><span class="label">Sumber</span><span id="detailSumber" class="value">-</span></div>
+                        <div class="info-item"><span class="label">Jenis</span><span id="detailJenis" class="value">-</span></div>
+                        <div class="info-item"><span class="label">Tanggal Mulai</span><span id="detailTglMulai" class="value">-</span></div>
+                        <div class="info-item"><span class="label">Tenggat</span><span id="detailTenggat" class="value">-</span></div>
+                    </div>
+                    <div style="margin-top:16px;"><span class="label">Deskripsi</span><p id="detailDeskripsi" style="margin-top:4px;color:#475569;font-size:14px;line-height:1.6;">-</p></div>
+                    <div style="margin-top:16px;"><span class="label">Dasar Agenda</span><p id="detailDasar" style="margin-top:4px;color:#475569;font-size:14px;">-</p></div>
+                    <div style="margin-top:16px;"><span class="label">Output yang Diharapkan</span><p id="detailOutput" style="margin-top:4px;color:#475569;font-size:14px;">-</p></div>
+                </div>
             </div>
 
             <!-- ASSIGNMENT -->
             <div class="detail-section">
-                <h3><i class="fas fa-users"></i> Penugasan</h3>
-                <div id="assignmentContainer"><div class="empty-state"><i class="fas fa-user-plus"></i><h3>Tidak Ada Penugasan</h3></div></div>
+                <div class="detail-card-header" onclick="toggleCard(this)">
+                    <h3><i class="fas fa-users"></i> Penugasan</h3>
+                    <i class="fas fa-chevron-up card-toggle"></i>
+                </div>
+                <div class="detail-card-body">
+                    <div id="assignmentContainer"><div class="empty-state"><i class="fas fa-user-plus"></i><h3>Tidak Ada Penugasan</h3></div></div>
+                </div>
             </div>
 
             <!-- WORKFLOW + PROGRESS -->
             <div class="detail-section">
-                <h3><i class="fas fa-diagram-project"></i> Workflow & Progress</h3>
-                <div id="workflowContainer"><div class="empty-state"><i class="fas fa-layer-group"></i><h3>Belum Ada Workflow</h3><p>Tambahkan workflow untuk agenda ini</p></div></div>
+                <div class="detail-card-header" onclick="toggleCard(this)">
+                    <h3><i class="fas fa-diagram-project"></i> Workflow & Progress</h3>
+                    <i class="fas fa-chevron-up card-toggle"></i>
+                </div>
+                <div class="detail-card-body">
+                    <div id="workflowContainer"><div class="empty-state"><i class="fas fa-layer-group"></i><h3>Belum Ada Workflow</h3><p>Tambahkan workflow untuk agenda ini</p></div></div>
+                </div>
             </div>
 
             <!-- INTEGRASI LKH -->
             <div class="detail-section">
-                <h3><i class="fas fa-file-alt"></i> Integrasi LKH</h3>
-                <p style="font-size:13px;color:#64748b;margin-bottom:12px;">Progress yang sudah selesai dapat dijadikan Laporan Kinerja Harian (LKH).</p>
-                <div id="lkhIntegrationContainer"><p style="font-size:13px;color:#94a3b8;">Memuat data...</p></div>
+                <div class="detail-card-header" onclick="toggleCard(this)">
+                    <h3><i class="fas fa-file-alt"></i> Integrasi LKH</h3>
+                    <i class="fas fa-chevron-up card-toggle"></i>
+                </div>
+                <div class="detail-card-body">
+                    <p style="font-size:13px;color:#64748b;margin-bottom:12px;">Progress yang sudah selesai dapat dijadikan Laporan Kinerja Harian (LKH).</p>
+                    <div id="lkhIntegrationContainer"><p style="font-size:13px;color:#94a3b8;">Memuat data...</p></div>
+                </div>
             </div>
 
             <!-- ACTIVITY LOG -->
             <div class="detail-section">
-                <h3><i class="fas fa-history"></i> Riwayat Aktivitas</h3>
-                <div id="activityLogContainer"><div class="empty-state"><i class="fas fa-clock"></i><h3>Belum Ada Aktivitas</h3></div></div>
+                <div class="detail-card-header" onclick="toggleCard(this)">
+                    <h3><i class="fas fa-history"></i> Riwayat Aktivitas</h3>
+                    <i class="fas fa-chevron-up card-toggle"></i>
+                </div>
+                <div class="detail-card-body">
+                    <div id="activityLogContainer"><div class="empty-state"><i class="fas fa-clock"></i><h3>Belum Ada Aktivitas</h3></div></div>
+                </div>
             </div>
         </section>
     </main>
@@ -766,18 +793,38 @@ function confirmDelete(id) {
 function refreshAll() { loadDashboardStats(); loadList('dashboard'); loadList('daftar'); }
 
 // =============================================
+// TOGGLE CARD (COLLAPSIBLE)
+// =============================================
+function toggleCard(headerEl) {
+  const body = headerEl.nextElementSibling;
+  if (!body || !body.classList.contains('detail-card-body')) return;
+  headerEl.classList.toggle('collapsed');
+  body.classList.toggle('hidden');
+}
+
+// =============================================
+// SKELETON LOADING PER CARD
+// =============================================
+function showDetailSkeletons() {
+  const skel = '<div class="skeleton skeleton-line w60"></div><div class="skeleton skeleton-line w80"></div><div class="skeleton skeleton-line"></div>';
+  ['assignmentContainer','workflowContainer','lkhIntegrationContainer','activityLogContainer'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = skel;
+  });
+}
+
+// =============================================
 // DETAIL AGENDA
 // =============================================
 function viewDetail(id) {
-  showLoading('Memuat detail...');
   currentDetailId = id;
+  document.querySelectorAll('.content-section').forEach(s=>s.style.display='none');
+  document.getElementById('section-detail').style.display='block';
+  showDetailSkeletons();
   google.script.run.withSuccessHandler(r => {
-    hideLoading();
     if (!r.success) { Swal.fire('Error',r.message,'error'); return; }
-    document.querySelectorAll('.content-section').forEach(s=>s.style.display='none');
-    document.getElementById('section-detail').style.display='block';
     renderDetail(r);
-  }).withFailureHandler(e => { hideLoading(); Swal.fire('Error',e.message,'error'); }).getDetailAgenda(id);
+  }).withFailureHandler(e => { Swal.fire('Error',e.message,'error'); }).getDetailAgenda(id);
 }
 
 function renderDetail(r) {
