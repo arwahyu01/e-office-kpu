@@ -102,6 +102,33 @@
                     <div class="monitoring-card-body" id="monitoringSumber"><p style="color:#94a3b8;font-size:13px;">Memuat...</p></div>
                 </div>
             </div>
+
+            <!-- ALL AGENDAS TABLE -->
+            <div class="monitoring-card" style="margin-top:20px;">
+                <div class="monitoring-card-header">
+                    <h3><i class="fas fa-list"></i> Seluruh Agenda</h3>
+                    <span style="font-size:12px;color:#94a3b8;font-weight:500;" id="monTotalAgenda">0 agenda</span>
+                </div>
+                <div class="monitoring-card-body" style="padding:0;">
+                    <div class="table-container" style="border:none;box-shadow:none;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Judul</th>
+                                    <th>Subbag</th>
+                                    <th>PIC</th>
+                                    <th>Prioritas</th>
+                                    <th>Status</th>
+                                    <th>Progress</th>
+                                    <th>Tenggat</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="monitoringTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </section>
 
         <!-- ============ DETAIL ============ -->
@@ -833,6 +860,8 @@ function loadMonitoring() {
   ['monitoringOverdue','monitoringPrioritas','monitoringSubbag','monitoringSumber'].forEach(id => {
     document.getElementById(id).innerHTML = '<div class="monitoring-loading"><div class="skeleton skeleton-line w60"></div><div class="skeleton skeleton-line w80"></div><div class="skeleton skeleton-line"></div></div>';
   });
+  document.getElementById('monitoringTableBody').innerHTML = '<tr><td colspan="8"><div style="padding:24px;text-align:center;"><div class="skeleton skeleton-line w60" style="margin:0 auto;"></div><div class="skeleton skeleton-line w80" style="margin:4px auto 0;"></div></div></td></tr>';
+
   google.script.run.withSuccessHandler(r => {
     if (!r.success) return;
     const s = r.stats;
@@ -845,6 +874,35 @@ function loadMonitoring() {
     renderMonitoringSubbag(r.subbag||[]);
     renderMonitoringSumber(r.sumber||[]);
   }).withFailureHandler(() => {}).getMonitoringData();
+
+  google.script.run.withSuccessHandler(r => {
+    document.getElementById('monTotalAgenda').textContent = (r.data||[]).length + ' agenda';
+    renderMonitoringTable(r.data||[]);
+  }).withFailureHandler(() => {}).getListAgenda({ userEmail:currentUser.email, role:currentUser.level, status:'', subbag:'' });
+}
+
+function renderMonitoringTable(list) {
+  const tbody = document.getElementById('monitoringTableBody');
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><i class="fas fa-inbox"></i><h3>Belum Ada Agenda</h3></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(a => {
+    const pc = getPrioritasClass(a.prioritas);
+    const sb = getStatusBadge(a);
+    const pct = a.progressPersentase||0;
+    const pcls = pct>=100?'selesai':pct>=50?'tinggi':pct>0?'sedang':'rendah';
+    return `<tr>
+      <td><div class="agenda-title-cell">${esc(a.judul)}</div><div class="agenda-subtitle-cell">${a.nomorAgenda||''}</div></td>
+      <td style="font-size:13px;">${esc(a.subbagian||'-')}</td>
+      <td style="font-size:13px;">${esc(a.picNama||a.createdByNama||'-')}</td>
+      <td><span class="badge ${pc}">${a.prioritas||'-'}</span></td>
+      <td>${sb}</td>
+      <td style="min-width:120px;"><div style="display:flex;align-items:center;gap:8px;"><div class="progress-bar-container" style="flex:1;"><div class="progress-bar-fill ${pcls}" style="width:${pct}%"></div></div><span style="font-size:12px;font-weight:700;color:#64748b;white-space:nowrap;">${pct}%</span></div></td>
+      <td style="font-size:13px;color:${a.isOverdue?'#dc2626':'#64748b'};font-weight:${a.isOverdue?'700':'500'};">${a.tanggalSelesai||'-'}${a.isOverdue?' <i class="fas fa-exclamation-circle"></i>':''}</td>
+      <td><div class="agenda-actions"><button class="btn-agenda-view" onclick="viewDetail('${a.id}')" title="Detail"><i class="fas fa-eye"></i></button></div></td>
+    </tr>`;
+  }).join('');
 }
 
 function renderMonitoringOverdue(list) {
