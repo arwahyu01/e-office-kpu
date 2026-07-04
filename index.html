@@ -1569,23 +1569,52 @@
             document.getElementById('notulenNotulis').value = draft.info.notulis || '';
             document.getElementById('notulenUndangan').value = draft.info.undangan || '';
 
+            // === RESET JALANNYA RAPAT ===
+            var pembContainer = document.getElementById('pembahasanContainer');
+            // Rebuild empty state first (in case it was destroyed by innerHTML = '')
+            if (!document.getElementById('pembahasanEmptyState')) {
+                pembContainer.innerHTML = '<div class="empty-state" id="pembahasanEmptyState">' +
+                    '<i class="fas fa-comment-dots"></i>' +
+                    '<h3>Belum Ada Catatan</h3>' +
+                    '<p>Klik "Tambah" untuk mulai mencatat jalannya rapat</p>' +
+                    '</div>';
+            }
             if (draft.jalannyaRapat && draft.jalannyaRapat.length) {
-                document.getElementById('pembahasanContainer').innerHTML = '';
                 document.getElementById('pembahasanEmptyState').style.display = 'none';
                 draft.jalannyaRapat.forEach(function (j) {
                     tambahPembahasanFromData(j.pembicara, j.pokokBahasan);
                 });
+            } else {
+                // Hanya bersihkan item, pertahankan empty state
+                pembContainer.querySelectorAll('.pembahasan-item').forEach(function (el) { el.remove(); });
+                document.getElementById('pembahasanEmptyState').style.display = 'block';
             }
 
+            // === RESET POIN RAPAT ===
+            var poinContainer = document.getElementById('notulenPoinContainer');
+            if (!document.getElementById('notulenEmptyState')) {
+                poinContainer.innerHTML = '<div class="empty-state" id="notulenEmptyState">' +
+                    '<i class="fas fa-list"></i>' +
+                    '<h3>Belum Ada Poin</h3>' +
+                    '<p>Klik "Tambah Poin" untuk mencatat hasil rapat</p>' +
+                    '</div>';
+            }
             if (draft.poinList && draft.poinList.length) {
-                document.getElementById('notulenPoinContainer').innerHTML = '';
                 document.getElementById('notulenEmptyState').style.display = 'none';
                 draft.poinList.forEach(function (p) {
                     tambahPoinFromData(p.isi, p.tindakLanjut, p.assignSubbag, p.agendaId);
                 });
+            } else {
+                poinContainer.querySelectorAll('.notulen-poin-item').forEach(function (el) { el.remove(); });
+                document.getElementById('notulenEmptyState').style.display = 'block';
             }
 
-            if (draft.pesertaList) resumePeserta(draft.pesertaList);
+            // === RESET PESERTA ===
+            _selectedPeserta = [];
+            if (draft.pesertaList && Array.isArray(draft.pesertaList) && draft.pesertaList.length) {
+                _selectedPeserta = draft.pesertaList.slice(); // deep copy
+            }
+            renderPesertaChips();
 
             aktifkanStep(notulenCurrentStep);
         }
@@ -2518,31 +2547,35 @@
                         Swal.fire('Error', 'Gagal memuat data notulen', 'error');
                         return;
                     }
-                    var n = res.data;
+                    try {
+                        var n = res.data;
 
-                    // Pre-fill draft di localStorage
-                    var draft = {
-                        step: 1,
-                        info: {
-                            tanggal: n.tanggal || '',
-                            jenis: n.jenis || '',
-                            judul: n.judul || '',
-                            pimpinan: n.pimpinan || '',
-                            notulis: n.notulis || '',
-                            undangan: ''
-                        },
-                        jalannyaRapat: (n.jalannyaList || []).map(function (j) {
-                            return { pembicara: j.pembicara, pokokBahasan: j.pokokBahasan };
-                        }),
-                        poinList: (n.poinList || []).map(function (p) {
-                            return { isi: p.isi, tindakLanjut: p.tindakLanjut, assignSubbag: p.assignSubbag, agendaId: p.agendaId };
-                        }),
-                        pesertaList: n.pesertaList || []
-                    };
-                    saveDraftToLS(draft);
+                        var draft = {
+                            step: 1,
+                            info: {
+                                tanggal: n.tanggal || '',
+                                jenis: n.jenis || '',
+                                judul: n.judul || '',
+                                pimpinan: n.pimpinan || '',
+                                notulis: n.notulis || '',
+                                undangan: n.undanganLink || ''
+                            },
+                            jalannyaRapat: (n.jalannyaList || []).map(function (j) {
+                                return { pembicara: j.pembicara, pokokBahasan: j.pokokBahasan };
+                            }),
+                            poinList: (n.poinList || []).map(function (p) {
+                                return { isi: p.isi, tindakLanjut: p.tindakLanjut, assignSubbag: p.assignSubbag, agendaId: p.agendaId };
+                            }),
+                            pesertaList: n.pesertaList || []
+                        };
 
-                    showNotulenView('form', true);
-                    resumeDraft(draft);
+                        saveDraftToLS(draft);
+                        showNotulenView('form', true);
+                        resumeDraft(draft);
+                    } catch (err) {
+                        console.error('editNotulen error:', err);
+                        Swal.fire('Error', 'Gagal memproses data: ' + err.message, 'error');
+                    }
                 })
                 .withFailureHandler(function (err) {
                     hideLoading();
