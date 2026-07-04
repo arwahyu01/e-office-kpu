@@ -311,6 +311,40 @@
 
 ---
 
+## v2.13.0 — Kalender Kegiatan (2026-07-04)
+
+### Perubahan
+
+#### 1. Backend (backend_agenda.gs)
+- **[New] Sheet KALENDER_EVENT**: 8 kolom — ID, USER_EMAIL, JUDUL, DESKRIPSI, TANGGAL_MULAI, TANGGAL_SELESAI, WARNA, CREATED_AT
+- **[New] `getCalendarData()`**: Ambil agenda assignment + manual events di bulan/tahun tertentu
+- **[New] `createCalendarEvent()`**: Buat event manual
+- **[New] `updateCalendarEvent()`**: Edit event manual (judul, tanggal, deskripsi, warna)
+- **[New] `deleteCalendarEvent()`**: Hapus event manual
+
+#### 2. Frontend — Kalender Grid (agenda.html, style_agenda.html)
+- **[New] Nav item "Kalender"**: sidebar navigasi baru di antara "Kegiatan Saya" dan "E-OFFICE"
+- **[New] Kalender grid**: 7-kolom grid dengan header hari, cell hari, dot indicator
+- **[New] Navigasi bulan**: Prev/Next month, "Hari Ini" button, judul bulan+tahun
+- **[New] Dot indicators**: Warna otomatis — agenda (hijau=selesai, biru=berjalan, merah=terlambat), manual (warna user)
+- **[New] "Hari Ini" highlight**: Cell today diberi latar merah + angka putih
+- **[New] List modal**: Klik tanggal → daftar kegiatan (agenda + manual) dengan tombol aksi lihat/edit
+
+#### 3. Frontend — Event CRUD (agenda.html)
+- **[New] Modal form**: Tambah/Edit kegiatan dengan judul, tanggal, tanggal selesai, deskripsi, warna picker
+- **[New] Warna picker**: 6 warna pilihan (indigo, biru, hijau, kuning, merah, pink) — visual circle selector
+- **[New] Hapus event**: Tombol hapus dengan konfirmasi SweetAlert2
+
+#### 4. CSS (style_agenda.html)
+- `.kalender-toolbar` — flex toolbar dengan nav + tombol tambah
+- `.kalender-grid`, `.kal-header-row`, `.kal-row`, `.kal-cell` — grid layout
+- `.kal-day-num`, `.kal-today` — styling hari + highlight hari ini
+- `.kal-dot`, `.kal-more` — dot indicators
+- `.kal-list-item`, `.kal-list-content` — list modal styling
+- `.kal-warna-picker`, `.kal-warna-item` — color picker circles
+
+---
+
 ## v2.12.0 — Menu Redesign + Monitoring Eksekutif + Collapsible Cards + Per-Card Loading (2026-07-04)
 
 ### Perubahan

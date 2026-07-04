@@ -334,6 +334,60 @@
 .fab:hover { transform:scale(1.1); box-shadow:0 12px 28px rgba(220,38,38,0.45); }
 .fab:active { transform:scale(0.95); }
 
+/* ---- KALENDER ---- */
+.kalender-toolbar {
+  display:flex; align-items:center; gap:4px; margin-bottom:16px; flex-wrap:wrap;
+}
+.kalender-title {
+  font-size:18px; font-weight:700; color:#0f172a; margin:0 12px; min-width:200px; text-align:center;
+}
+.kalender-grid {
+  background:#fff; border-radius:18px; box-shadow:0 4px 12px rgba(0,0,0,0.04); overflow:hidden;
+}
+.kal-header-row, .kal-row { display:grid; grid-template-columns:repeat(7,1fr); }
+.kal-header-cell {
+  padding:12px 8px; text-align:center; font-size:12px; font-weight:700; color:#64748b;
+  text-transform:uppercase; background:#f8fafc; border-bottom:1px solid #f1f5f9;
+}
+.kal-cell {
+  min-height:100px; padding:6px 8px; border-right:1px solid #f1f5f9;
+  border-bottom:1px solid #f1f5f9; cursor:pointer; transition:background 0.15s;
+  position:relative;
+}
+.kal-cell:hover { background:#fafafa; }
+.kal-empty { cursor:default; background:#fafafa; }
+.kal-empty:hover { background:#fafafa; }
+.kal-today { background:#fef2f2; }
+.kal-day-num {
+  display:inline-flex; width:28px; height:28px; align-items:center; justify-content:center;
+  font-size:13px; font-weight:700; color:#334155; border-radius:50%;
+}
+.kal-today .kal-day-num { background:#dc2626; color:#fff; }
+.kal-dots { display:flex; flex-wrap:wrap; gap:3px; margin-top:4px; }
+.kal-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+.kal-more { font-size:10px; color:#94a3b8; font-weight:700; margin-left:2px; }
+
+/* Kalender list modal */
+.kal-list-item {
+  display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid #f1f5f9;
+}
+.kal-list-item:last-child { border-bottom:none; }
+.kal-list-content { flex:1; min-width:0; }
+.kal-list-judul { font-size:14px; font-weight:600; color:#0f172a; }
+.kal-list-item .btn-agenda-view, .kal-list-item .btn-agenda-edit {
+  width:30px; height:30px; border-radius:8px; border:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; font-size:12px; flex-shrink:0;
+}
+
+/* Warna picker */
+.kal-warna-picker { display:flex; gap:8px; margin-top:4px; }
+.kal-warna-item {
+  width:28px; height:28px; border-radius:50%; cursor:pointer;
+  border:3px solid transparent; transition:all 0.15s;
+}
+.kal-warna-item:hover { transform:scale(1.15); }
+.kal-warna-item.selected { border-color:#334155; transform:scale(1.15); }
+
 /* ---- RESPONSIVE ---- */
 @media (max-width:768px) {
   .info-grid { grid-template-columns:1fr 1fr; }
@@ -343,10 +397,14 @@
   .wizard-steps { flex-wrap:wrap; gap:12px; }
   .wizard-step { min-width:80px; }
   .assignment-options { grid-template-columns:1fr 1fr; }
+  .kal-cell { min-height:72px; font-size:12px; }
 }
 
 @media (max-width:480px) {
   .info-grid { grid-template-columns:1fr; }
   .assignment-options { grid-template-columns:1fr; }
+  .kalender-title { min-width:auto; }
+  .kal-cell { min-height:56px; }
+  .kal-header-cell { font-size:10px; padding:8px 4px; }
 }
 </style>

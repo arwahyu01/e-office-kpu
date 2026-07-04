@@ -17,7 +17,8 @@ const AGENDA_SHEETS = {
   MASTER_PROGRESS: "MASTER_PROGRESS",
   MASTER_EVIDENCE: "MASTER_EVIDENCE",
   MASTER_ASSIGNMENT: "MASTER_ASSIGNMENT",
-  MASTER_ACTIVITY_LOG: "MASTER_ACTIVITY_LOG"
+  MASTER_ACTIVITY_LOG: "MASTER_ACTIVITY_LOG",
+  KALENDER_EVENT: "KALENDER_EVENT"
 };
 
 const AGENDA_HEADERS = {
@@ -46,6 +47,9 @@ const AGENDA_HEADERS = {
   ],
   MASTER_ACTIVITY_LOG: [
     "ID","USER_EMAIL","AKTIVITAS","REFERENSI","WAKTU"
+  ],
+  KALENDER_EVENT: [
+    "ID","USER_EMAIL","JUDUL","DESKRIPSI","TANGGAL_MULAI","TANGGAL_SELESAI","WARNA","CREATED_AT"
   ]
 };
 
@@ -1174,6 +1178,122 @@ function getMonitoringData(statusFilter, subbagFilter) {
       sumber: sumberArr,
       overdue: overdueList
     };
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+
+// =============================================
+// KALENDER KEGIATAN
+// =============================================
+function getCalendarData(userEmail, bulan, tahun) {
+  try {
+    ensureAgendaSheets();
+    var result = { success: true, agenda: [], manual: [] };
+
+    // 1. Ambil agenda yg di-assign ke user
+    var list = getListAgenda({ userEmail: userEmail, role: 'USER', status: '', subbag: '' });
+    if (list.success && list.data) {
+      var filterBulan = parseInt(bulan);
+      var filterTahun = parseInt(tahun);
+      list.data.forEach(function(a) {
+        var tglMulai = a.tanggalMulai || '';
+        var tglSelesai = a.tanggalSelesai || '';
+        var match = false;
+        // Cek apakah agenda jatuh di bulan/tahun yg diminta
+        if (tglMulai) {
+          var parts = String(tglMulai).split('-');
+          if (parts.length === 3 && parseInt(parts[0]) === filterTahun && parseInt(parts[1]) === filterBulan) match = true;
+        }
+        if (!match && tglSelesai) {
+          var parts2 = String(tglSelesai).split('-');
+          if (parts2.length === 3 && parseInt(parts2[0]) === filterTahun && parseInt(parts2[1]) === filterBulan) match = true;
+        }
+        if (match) {
+          result.agenda.push({
+            id: a.id, judul: a.judul, tanggalMulai: tglMulai,
+            tanggalSelesai: tglSelesai, status: a.status,
+            prioritas: a.prioritas, sumber: 'agenda',
+            picNama: a.picNama || a.createdByNama || ''
+          });
+        }
+      });
+    }
+
+    // 2. Ambil manual events dari KALENDER_EVENT
+    var sh = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.KALENDER_EVENT);
+    if (sh && sh.getLastRow() >= 2) {
+      var data = sh.getDataRange().getValues();
+      var email = (userEmail || '').toLowerCase().trim();
+      for (var i = 1; i < data.length; i++) {
+        if (String(data[i][1] || '').toLowerCase().trim() !== email) continue;
+        // Cek apakah event di bulan ini
+        var tgl = String(data[i][4] || '');
+        if (tgl) {
+          var parts = tgl.split('-');
+          if (parts.length === 3 && parseInt(parts[0]) === parseInt(tahun) && parseInt(parts[1]) === parseInt(bulan)) {
+            result.manual.push({
+              id: data[i][0], judul: data[i][2], deskripsi: data[i][3] || '',
+              tanggalMulai: data[i][4] || '', tanggalSelesai: data[i][5] || '',
+              warna: data[i][6] || '#6366f1', sumber: 'manual'
+            });
+          }
+        }
+      }
+    }
+
+    return result;
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+
+function createCalendarEvent(data) {
+  try {
+    if (!data.judul || !data.tanggal) return { success: false, message: 'Judul dan tanggal wajib diisi' };
+    ensureAgendaSheets();
+    var sh = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.KALENDER_EVENT);
+    sh.appendRow([
+      Utilities.getUuid(), data.userEmail || '', data.judul,
+      data.deskripsi || '', data.tanggal, data.tanggalSelesai || data.tanggal,
+      data.warna || '#6366f1', new Date()
+    ]);
+    return { success: true, message: 'Event berhasil ditambahkan' };
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+
+function updateCalendarEvent(data) {
+  try {
+    if (!data.id) return { success: false, message: 'ID tidak valid' };
+    var sh = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.KALENDER_EVENT);
+    var rows = sh.getDataRange().getValues();
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][0] === data.id) {
+        var r = i + 1;
+        if (data.judul) sh.getRange(r, 3).setValue(data.judul);
+        if (data.deskripsi !== undefined) sh.getRange(r, 4).setValue(data.deskripsi);
+        if (data.tanggal) sh.getRange(r, 5).setValue(data.tanggal);
+        if (data.tanggalSelesai) sh.getRange(r, 6).setValue(data.tanggalSelesai);
+        if (data.warna) sh.getRange(r, 7).setValue(data.warna);
+        return { success: true, message: 'Event diperbarui' };
+      }
+    }
+    return { success: false, message: 'Event tidak ditemukan' };
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+
+function deleteCalendarEvent(id, userEmail) {
+  try {
+    var sh = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.KALENDER_EVENT);
+    var rows = sh.getDataRange().getValues();
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i][0] === id) { sh.deleteRow(i + 1); return { success: true }; }
+    }
+    return { success: false, message: 'Event tidak ditemukan' };
   } catch (err) {
     return { success: false, message: err.message };
   }

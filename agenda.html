@@ -27,6 +27,7 @@
             <nav class="sidebar-nav">
                 <button class="nav-item active" onclick="switchSection('dashboard',this)"><i class="fas fa-chart-pie"></i><span>Beranda</span></button>
                 <button class="nav-item" onclick="switchSection('history',this)"><i class="fas fa-clock-rotate-left"></i><span>Kegiatan Saya</span></button>
+                <button class="nav-item" onclick="switchSection('kalender',this)"><i class="fas fa-calendar"></i><span>Kalender</span></button>
                 <a href="https://script.google.com/macros/s/AKfycbxejATwEFa6KmgBqjxFGiA2L_mEJGG0-CaHGsaIyxedRz5_vGA-QiAIhSE-mYwXFY_E/exec" target="_top" class="nav-item"><i class="fas fa-grid-2"></i><span>E-OFFICE</span></a>
                 <a href="#" class="nav-item" onclick="logout();return false;"><i class="fas fa-arrow-right-from-bracket"></i><span>Logout</span></a>
             </nav>
@@ -81,6 +82,22 @@
             </div><div class="filter-info"><span id="countView">0</span> agenda</div></div>
             <div class="table-container"><table><thead><tr><th>Judul</th><th>Sumber</th><th>PIC</th><th>Prioritas</th><th>Status</th><th>Progress</th><th>Tenggat</th><th>Aksi</th></tr></thead><tbody id="agendaTableBody"></tbody></table></div>
             <button class="fab" onclick="openWizard()" title="Buat Agenda Baru"><i class="fas fa-plus"></i></button>
+        </section>
+
+        <!-- ============ KALENDER ============ -->
+        <section id="section-kalender" class="content-section" style="display:none;">
+            <div class="hero-section">
+                <h1>Kalender Kegiatan</h1>
+                <p>Semua agenda dan kegiatan pribadi dalam tampilan kalender</p>
+            </div>
+            <div class="kalender-toolbar">
+                <button class="btn-secondary" onclick="kalPrevMonth()"><i class="fas fa-chevron-left"></i></button>
+                <h2 id="kalenderTitle" class="kalender-title">Januari 2026</h2>
+                <button class="btn-secondary" onclick="kalNextMonth()"><i class="fas fa-chevron-right"></i></button>
+                <button class="btn-secondary" onclick="kalToday()" style="margin-left:8px;">Hari Ini</button>
+                <button class="btn-primary" onclick="openKalEventModal()" style="margin-left:auto;"><i class="fas fa-plus"></i> Tambah</button>
+            </div>
+            <div class="kalender-grid" id="kalenderGrid"></div>
         </section>
 
         <!-- ============ KEGIATAN SAYA ============ -->
@@ -437,6 +454,54 @@
     </div>
 </div>
 
+<!-- ========== KALENDER EVENT MODAL ========== -->
+<div id="modalKalEvent" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:460px;">
+        <div class="modal-header">
+            <h2 id="modalKalTitle"><b>Tambah Kegiatan</b></h2>
+            <button class="close-btn" onclick="closeKalEventModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <input type="hidden" id="kalEventId">
+        <div class="form-group"><label>Judul <span style="color:#dc2626;">*</span></label>
+            <input type="text" id="fKalJudul" class="form-control" placeholder="Nama kegiatan"></div>
+        <div class="form-group" style="margin-top:12px;"><label>Tanggal <span style="color:#dc2626;">*</span></label>
+            <input type="date" id="fKalTanggal" class="form-control"></div>
+        <div class="form-group" style="margin-top:12px;"><label>Tanggal Selesai <span style="color:#94a3b8;">(opsional)</span></label>
+            <input type="date" id="fKalTanggalSelesai" class="form-control"></div>
+        <div class="form-group" style="margin-top:12px;"><label>Deskripsi</label>
+            <textarea id="fKalDeskripsi" class="form-control" rows="2" placeholder="Catatan kegiatan"></textarea></div>
+        <div class="form-group" style="margin-top:12px;"><label>Warna</label>
+            <div class="kal-warna-picker" id="kalWarnaPicker">
+                <div class="kal-warna-item selected" data-warna="#6366f1" style="background:#6366f1;" onclick="pilihWarna(this)"></div>
+                <div class="kal-warna-item" data-warna="#3b82f6" style="background:#3b82f6;" onclick="pilihWarna(this)"></div>
+                <div class="kal-warna-item" data-warna="#10b981" style="background:#10b981;" onclick="pilihWarna(this)"></div>
+                <div class="kal-warna-item" data-warna="#f59e0b" style="background:#f59e0b;" onclick="pilihWarna(this)"></div>
+                <div class="kal-warna-item" data-warna="#ef4444" style="background:#ef4444;" onclick="pilihWarna(this)"></div>
+                <div class="kal-warna-item" data-warna="#ec4899" style="background:#ec4899;" onclick="pilihWarna(this)"></div>
+            </div>
+            <input type="hidden" id="fKalWarna" value="#6366f1">
+        </div>
+        <div style="display:flex;gap:8px;margin-top:20px;">
+            <button class="btn-secondary" id="btnHapusEvent" onclick="hapusKalEvent()" style="display:none;color:#dc2626;"><i class="fas fa-trash"></i> Hapus</button>
+            <div style="margin-left:auto;display:flex;gap:8px;">
+                <button class="btn-secondary" onclick="closeKalEventModal()">Batal</button>
+                <button class="btn-primary" onclick="simpanKalEvent()"><i class="fas fa-save"></i> Simpan</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== KALENDER EVENT LIST MODAL ========== -->
+<div id="modalKalList" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:440px;">
+        <div class="modal-header">
+            <h2 id="modalKalListTitle"><b>Kegiatan</b></h2>
+            <button class="close-btn" onclick="closeKalListModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="kalListContainer"><p style="color:#94a3b8;font-size:13px;">Tidak ada kegiatan.</p></div>
+    </div>
+</div>
+
 <!-- ========== LKH MODAL ========== -->
 <div id="modalLKH" class="modal" style="display:none;">
     <div class="modal-content" style="max-width:600px;max-height:80vh;overflow-y:auto;">
@@ -484,6 +549,7 @@ function switchSection(id, btn) {
   if (t) t.style.display='block';
   if (id==='dashboard') { loadDashboardStats(); loadList(); loadAnalyticsIfPimpinan(); }
   if (id==='history') loadHistory();
+  if (id==='kalender') loadKalender();
 }
 
 // =============================================
@@ -928,6 +994,150 @@ function loadHistory() {
   }).withFailureHandler(() => {
     c.innerHTML = '<div class="empty-state"><i class="fas fa-clock"></i><h3>Gagal Memuat</h3></div>';
   }).getUserActivityLog(currentUser.email, 50);
+}
+
+// =============================================
+// KALENDER
+// =============================================
+var kalBulan = 0, kalTahun = 0, kalData = { agenda: [], manual: [] };
+
+function loadKalender() {
+  var now = new Date();
+  kalBulan = now.getMonth() + 1;
+  kalTahun = now.getFullYear();
+  renderKalender();
+}
+
+function renderKalender() {
+  document.getElementById('kalenderGrid').innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;"><i class="fas fa-spinner fa-spin fa-2x"></i><p style="margin-top:8px;">Memuat...</p></div>';
+  google.script.run.withSuccessHandler(function(r) { kalData = r; buildKalender(); })
+  .withFailureHandler(function() { document.getElementById('kalenderGrid').innerHTML = '<p style="text-align:center;color:#dc2626;padding:40px;">Gagal memuat kalender.</p>'; })
+  .getCalendarData(currentUser.email, kalBulan, kalTahun);
+}
+
+function buildKalender() {
+  document.getElementById('kalenderTitle').textContent = namaBulan(kalBulan) + ' ' + kalTahun;
+  var firstDay = new Date(kalTahun, kalBulan - 1, 1).getDay();
+  var daysInMonth = new Date(kalTahun, kalBulan, 0).getDate();
+  var today = new Date();
+  var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+  var eventsMap = {};
+  (kalData.agenda||[]).forEach(function(e) { if (e.tanggalMulai) { if (!eventsMap[e.tanggalMulai]) eventsMap[e.tanggalMulai] = []; eventsMap[e.tanggalMulai].push(e); } });
+  (kalData.manual||[]).forEach(function(e) { if (e.tanggalMulai) { if (!eventsMap[e.tanggalMulai]) eventsMap[e.tanggalMulai] = []; eventsMap[e.tanggalMulai].push(e); } });
+  var hari = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  var html = '<div class="kal-header-row">';
+  hari.forEach(function(h) { html += '<div class="kal-header-cell">' + h + '</div>'; });
+  html += '</div>';
+  var day = 1;
+  for (var row = 0; row < 6; row++) {
+    if (day > daysInMonth) break;
+    html += '<div class="kal-row">';
+    for (var col = 0; col < 7; col++) {
+      if ((row === 0 && col < firstDay) || day > daysInMonth) {
+        html += '<div class="kal-cell kal-empty"></div>';
+      } else {
+        var dateStr = kalTahun + '-' + String(kalBulan).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+        var isToday = dateStr === todayStr;
+        var events = eventsMap[dateStr] || [];
+        html += '<div class="kal-cell' + (isToday?' kal-today':'') + '" onclick="kalListDate(\'' + dateStr + '\')">';
+        html += '<span class="kal-day-num">' + day + '</span><div class="kal-dots">';
+        var maxDots = Math.min(events.length, 3);
+        for (var d = 0; d < maxDots; d++) {
+          var ev = events[d];
+          var warna = ev.sumber === 'agenda' ? (ev.status === 'SELESAI' ? '#10b981' : ev.status === 'BERJALAN' ? '#3b82f6' : '#dc2626') : (ev.warna || '#6366f1');
+          html += '<span class="kal-dot" style="background:' + warna + ';" title="' + esc(ev.judul) + '"></span>';
+        }
+        if (events.length > 3) html += '<span class="kal-more">+' + (events.length-3) + '</span>';
+        html += '</div></div>';
+        day++;
+      }
+    }
+    html += '</div>';
+  }
+  document.getElementById('kalenderGrid').innerHTML = html;
+}
+
+function kalPrevMonth() { kalBulan--; if (kalBulan < 1) { kalBulan = 12; kalTahun--; } renderKalender(); }
+function kalNextMonth() { kalBulan++; if (kalBulan > 12) { kalBulan = 1; kalTahun++; } renderKalender(); }
+function kalToday() { var now = new Date(); kalBulan = now.getMonth() + 1; kalTahun = now.getFullYear(); renderKalender(); }
+function namaBulan(b) { return ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][b-1]||''; }
+
+function kalListDate(dateStr) {
+  var events = [];
+  (kalData.agenda||[]).forEach(function(e) { if (e.tanggalMulai === dateStr) events.push(e); });
+  (kalData.manual||[]).forEach(function(e) { if (e.tanggalMulai === dateStr) events.push(e); });
+  if (!events.length) { Swal.fire('Tidak Ada Kegiatan','Tidak ada kegiatan di tanggal ini.','info'); return; }
+  var parts = dateStr.split('-');
+  var tgl = parts[2] + ' ' + namaBulan(parseInt(parts[1])) + ' ' + parts[0];
+  document.getElementById('modalKalListTitle').innerHTML = '<b>Kegiatan ' + tgl + '</b>';
+  var c = document.getElementById('kalListContainer');
+  c.innerHTML = events.map(function(e) {
+    var icon = e.sumber === 'agenda' ? 'fa-calendar-check' : 'fa-plus-circle';
+    var warna = e.sumber === 'agenda' ? (e.status === 'SELESAI' ? '#10b981' : e.status === 'BERJALAN' ? '#3b82f6' : '#dc2626') : (e.warna || '#6366f1');
+    var label = e.sumber === 'agenda' ? (e.judul + ' <span style="font-size:11px;color:#94a3b8;">— ' + esc(e.picNama||'') + '</span>') : esc(e.judul);
+    var aksi = e.sumber === 'agenda'
+      ? '<button class="btn-agenda-view" onclick="closeKalListModal();viewDetail(\'' + e.id + '\')"><i class="fas fa-eye"></i></button>'
+      : '<button class="btn-agenda-edit" onclick="closeKalListModal();editKalEvent(\'' + e.id + '\')"><i class="fas fa-edit"></i></button>';
+    return '<div class="kal-list-item"><i class="fas ' + icon + '" style="color:' + warna + ';font-size:16px;"></i><div class="kal-list-content"><div class="kal-list-judul">' + label + '</div></div>' + aksi + '</div>';
+  }).join('');
+  document.getElementById('modalKalList').style.display = 'flex';
+}
+function closeKalListModal() { document.getElementById('modalKalList').style.display = 'none'; }
+
+function openKalEventModal() {
+  document.getElementById('modalKalTitle').textContent = 'Tambah Kegiatan';
+  document.getElementById('kalEventId').value = '';
+  document.getElementById('fKalJudul').value = '';
+  document.getElementById('fKalTanggal').value = '';
+  document.getElementById('fKalTanggalSelesai').value = '';
+  document.getElementById('fKalDeskripsi').value = '';
+  document.getElementById('fKalWarna').value = '#6366f1';
+  document.getElementById('btnHapusEvent').style.display = 'none';
+  document.querySelectorAll('#kalWarnaPicker .kal-warna-item').forEach(function(i) { i.classList.remove('selected'); });
+  var first = document.querySelector('#kalWarnaPicker .kal-warna-item');
+  if (first) first.classList.add('selected');
+  document.getElementById('modalKalEvent').style.display = 'flex';
+}
+function closeKalEventModal() { document.getElementById('modalKalEvent').style.display = 'none'; }
+
+function editKalEvent(id) {
+  var ev = null;
+  (kalData.manual||[]).forEach(function(e) { if (e.id === id) ev = e; });
+  if (!ev) return;
+  document.getElementById('modalKalTitle').textContent = 'Edit Kegiatan';
+  document.getElementById('kalEventId').value = ev.id;
+  document.getElementById('fKalJudul').value = ev.judul;
+  document.getElementById('fKalTanggal').value = ev.tanggalMulai;
+  document.getElementById('fKalTanggalSelesai').value = ev.tanggalSelesai || '';
+  document.getElementById('fKalDeskripsi').value = ev.deskripsi || '';
+  document.getElementById('fKalWarna').value = ev.warna || '#6366f1';
+  document.getElementById('btnHapusEvent').style.display = '';
+  document.querySelectorAll('#kalWarnaPicker .kal-warna-item').forEach(function(i) {
+    i.classList.toggle('selected', i.getAttribute('data-warna') === (ev.warna||'#6366f1'));
+  });
+  document.getElementById('modalKalEvent').style.display = 'flex';
+}
+function pilihWarna(el) {
+  document.querySelectorAll('#kalWarnaPicker .kal-warna-item').forEach(function(i) { i.classList.remove('selected'); });
+  el.classList.add('selected');
+  document.getElementById('fKalWarna').value = el.getAttribute('data-warna');
+}
+function simpanKalEvent() {
+  var id = document.getElementById('kalEventId').value;
+  var judul = document.getElementById('fKalJudul').value.trim();
+  var tanggal = document.getElementById('fKalTanggal').value;
+  if (!judul) { Swal.fire('Validasi','Judul wajib diisi','warning'); return; }
+  if (!tanggal) { Swal.fire('Validasi','Tanggal wajib diisi','warning'); return; }
+  var payload = { judul: judul, tanggal: tanggal, tanggalSelesai: document.getElementById('fKalTanggalSelesai').value, deskripsi: document.getElementById('fKalDeskripsi').value.trim(), warna: document.getElementById('fKalWarna').value, userEmail: currentUser.email };
+  if (id) payload.id = id;
+  google.script.run.withSuccessHandler(function(r) { if (r.success) { closeKalEventModal(); renderKalender(); Swal.fire('Berhasil',id?'Event diperbarui':'Event ditambahkan','success'); } else Swal.fire('Gagal',r.message,'error'); })
+  .withFailureHandler(function(e) { Swal.fire('Error',e.message,'error'); })[id ? 'updateCalendarEvent' : 'createCalendarEvent'](payload);
+}
+function hapusKalEvent() {
+  var id = document.getElementById('kalEventId').value;
+  if (!id) return;
+  Swal.fire({title:'Hapus Kegiatan?',icon:'warning',showCancelButton:true,confirmButtonColor:'#dc2626',confirmButtonText:'Ya',cancelButtonText:'Batal'})
+  .then(function(r) { if (r.isConfirmed) { google.script.run.withSuccessHandler(function(r2) { if (r2.success) { closeKalEventModal(); renderKalender(); Swal.fire('Berhasil','Kegiatan dihapus','success'); } else Swal.fire('Gagal',r2.message,'error'); }).withFailureHandler(function(e) { Swal.fire('Error',e.message,'error'); }).deleteCalendarEvent(id, currentUser.email); }});
 }
 
 // =============================================
