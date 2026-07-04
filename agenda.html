@@ -75,8 +75,8 @@
                 </div>
             </div>
             <div class="filter-bar"><div class="filter-group" style="display:flex;gap:10px;flex-wrap:wrap;">
-                <select id="filterStatus" class="filter-select" onchange="loadList()"><option value="">Semua Status</option><option value="RENCANA">Belum Mulai</option><option value="BERJALAN">Sedang Dikerjakan</option><option value="SELESAI">Selesai</option></select>
-                <select id="filterSubbag" class="filter-select" onchange="loadList()"><option value="">Semua Subbagian</option></select>
+                <select id="filterStatus" class="filter-select" onchange="filterChange()"><option value="">Semua Status</option><option value="RENCANA">Belum Mulai</option><option value="BERJALAN">Sedang Dikerjakan</option><option value="SELESAI">Selesai</option></select>
+                <select id="filterSubbag" class="filter-select" onchange="filterChange()"><option value="">Semua Subbagian</option></select>
                 <button class="btn-primary" onclick="openWizard()"><i class="fas fa-plus"></i> Agenda Baru</button>
             </div><div class="filter-info"><span id="countView">0</span> agenda</div></div>
             <div class="table-container"><table><thead><tr><th>Judul</th><th>Sumber</th><th>PIC</th><th>Prioritas</th><th>Status</th><th>Progress</th><th>Tenggat</th><th>Aksi</th></tr></thead><tbody id="agendaTableBody"></tbody></table></div>
@@ -812,6 +812,7 @@ function confirmDelete(id) {
   }});
 }
 
+function filterChange() { loadList(); loadAnalyticsIfPimpinan(); }
 function refreshAll() { loadDashboardStats(); loadList(); }
 
 // =============================================
@@ -830,13 +831,15 @@ function loadAnalyticsIfPimpinan() {
   ids.forEach(id => {
     document.getElementById(id).innerHTML = '<div class="monitoring-loading"><div class="skeleton skeleton-line w60"></div><div class="skeleton skeleton-line w80"></div><div class="skeleton skeleton-line"></div></div>';
   });
+  const status = document.getElementById('filterStatus').value;
+  const subbag = document.getElementById('filterSubbag').value;
   google.script.run.withSuccessHandler(r => {
     if (!r.success) return;
     renderAnalyticsOverdue(r.overdue||[]);
     renderAnalyticsPrioritas(r.prioritas||[]);
     renderAnalyticsSubbag(r.subbag||[]);
     renderAnalyticsSumber(r.sumber||[]);
-  }).withFailureHandler(() => {}).getMonitoringData();
+  }).withFailureHandler(() => {}).getMonitoringData(status, subbag);
 }
 
 function renderAnalyticsOverdue(list) {

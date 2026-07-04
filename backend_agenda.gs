@@ -1082,7 +1082,7 @@ function getProgressSelesaiForLKH(userEmail) {
 // =============================================
 // MONITORING — EKSEKUTIF DASHBOARD
 // =============================================
-function getMonitoringData() {
+function getMonitoringData(statusFilter, subbagFilter) {
   try {
     ensureAgendaSheets();
     const sh = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.MASTER_AGENDA);
@@ -1091,6 +1091,10 @@ function getMonitoringData() {
     const rows = sh.getDataRange().getValues();
     const pegawaiMap = getPegawaiMapByEmail();
     const now = new Date();
+
+    // Normalize filters
+    statusFilter = (statusFilter || "").trim();
+    subbagFilter = (subbagFilter || "").trim();
 
     let total=0, rencana=0, berjalan=0, selesai=0, overdueCount=0;
     const subbagMap = {};
@@ -1104,6 +1108,10 @@ function getMonitoringData() {
       const prioritas = String(row[6] || "SEDANG");
       const sumber = String(row[3] || "LAINNYA");
       const subbag = String(row[5] || "Tanpa Subbag");
+
+      // Apply filters
+      if (statusFilter && status !== statusFilter) continue;
+      if (subbagFilter && subbag !== subbagFilter) continue;
 
       total++;
       if (status === "RENCANA") rencana++;
