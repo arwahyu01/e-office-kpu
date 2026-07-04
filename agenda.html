@@ -130,16 +130,57 @@
 
         <!-- ============ KEGIATAN SAYA ============ -->
         <section id="section-history" class="content-section" style="display:none;">
-            <div class="hero-section">
-                <h1>Kegiatan Saya</h1>
-                <p>Riwayat seluruh aktivitas yang telah Anda lakukan</p>
-            </div>
-            <div class="detail-section">
-                <div class="detail-card-header" onclick="toggleCard(this)">
-                    <h3><i class="fas fa-clock-rotate-left"></i> Riwayat Aktivitas</h3>
-                    <i class="fas fa-chevron-up card-toggle"></i>
+            <!-- Hero Greeting -->
+            <div class="my-hero" id="myHero">
+                <div class="my-hero-bg"></div>
+                <div class="my-hero-content">
+                    <div class="my-hero-avatar"><i class="fas fa-user-tie"></i></div>
+                    <div class="my-hero-text">
+                        <h1 id="myGreeting">Selamat Bekerja!</h1>
+                        <p id="mySubGreeting">Teruslah berkarya dan wujudkan prestasi terbaik.</p>
+                        <span class="my-hero-role" id="myUserRole">—</span>
+                    </div>
                 </div>
-                <div class="detail-card-body" id="historyContainer"><div class="empty-state"><i class="fas fa-clock"></i><h3>Belum Ada Aktivitas</h3></div></div>
+            </div>
+
+            <!-- Stat Cards -->
+            <div class="my-stats-grid" id="myStatsGrid">
+                <div class="my-stat-card" data-delay="0">
+                    <div class="my-stat-icon" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);"><i class="fas fa-tasks"></i></div>
+                    <div class="my-stat-info"><span class="my-stat-number" data-target="0">0</span><span class="my-stat-label">Total Kegiatan</span></div>
+                </div>
+                <div class="my-stat-card" data-delay="100">
+                    <div class="my-stat-icon" style="background:linear-gradient(135deg,#10b981,#059669);"><i class="fas fa-check-circle"></i></div>
+                    <div class="my-stat-info"><span class="my-stat-number" data-target="0">0</span><span class="my-stat-label">Selesai</span></div>
+                </div>
+                <div class="my-stat-card" data-delay="200">
+                    <div class="my-stat-icon" style="background:linear-gradient(135deg,#f59e0b,#d97706);"><i class="fas fa-spinner"></i></div>
+                    <div class="my-stat-info"><span class="my-stat-number" data-target="0">0</span><span class="my-stat-label">Dalam Progres</span></div>
+                </div>
+                <div class="my-stat-card" data-delay="300">
+                    <div class="my-stat-icon" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);"><i class="fas fa-paperclip"></i></div>
+                    <div class="my-stat-info"><span class="my-stat-number" data-target="0">0</span><span class="my-stat-label">Lampiran</span></div>
+                </div>
+            </div>
+
+            <!-- Achievement Banner -->
+            <div class="my-achievement" id="myAchievement" style="display:none;">
+                <i class="fas fa-rocket"></i>
+                <span id="myAchievementText">Pencapaian terbaikmu minggu ini!</span>
+            </div>
+
+            <!-- Timeline -->
+            <div class="my-timeline-section">
+                <div class="my-timeline-header">
+                    <h2><i class="fas fa-clock-rotate-left"></i> Riwayat Aktivitas</h2>
+                    <span class="my-timeline-count" id="myActivityCount">0 kegiatan</span>
+                </div>
+                <div id="myTimeline" class="my-timeline-container">
+                    <div class="my-timeline-loading">
+                        <div class="skeleton skeleton-line w60" style="margin:0 auto;"></div>
+                        <div class="skeleton skeleton-line w80" style="margin:4px auto 0;"></div>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -986,31 +1027,142 @@ function renderAnalyticsSumber(list) {
 }
 
 // =============================================
-// KEGIATAN SAYA
+// KEGIATAN SAYA — DRAMATIC DASHBOARD
 // =============================================
 function loadHistory() {
-  const c = document.getElementById('historyContainer');
-  c.innerHTML = '<div style="padding:20px;text-align:center;"><div class="skeleton skeleton-line w60" style="margin:0 auto;"></div><div class="skeleton skeleton-line w80" style="margin:4px auto 0;"></div><div class="skeleton skeleton-line w40" style="margin:4px auto 0;"></div></div>';
-  google.script.run.withSuccessHandler(r => {
-    if (!r.success || !r.data || !r.data.length) {
-      c.innerHTML = '<div class="empty-state"><i class="fas fa-clock"></i><h3>Belum Ada Aktivitas</h3><p>Setiap perubahan yang Anda lakukan akan tercatat di sini.</p></div>';
-      return;
-    }
-    c.innerHTML = r.data.map(log => {
-      const icon = log.aktivitas==='BUAT_AGENDA'?'fa-plus-circle':log.aktivitas==='UPDATE_AGENDA'||log.aktivitas==='HAPUS_AGENDA'?'fa-pen-circle':'fa-circle';
-      const color = log.aktivitas==='BUAT_AGENDA'?'#059669':log.aktivitas==='HAPUS_AGENDA'?'#dc2626':'#3b82f6';
-      return `<div class="history-item">
-        <div class="history-dot" style="background:${color};"><i class="fas ${icon}"></i></div>
-        <div class="history-content">
-          <div class="history-text">${esc(log.aktivitas)}</div>
-          <div class="history-ref">${esc(log.judul||'')}</div>
-        </div>
-        <div class="history-time">${log.waktu}</div>
-      </div>`;
-    }).join('');
-  }).withFailureHandler(() => {
-    c.innerHTML = '<div class="empty-state"><i class="fas fa-clock"></i><h3>Gagal Memuat</h3></div>';
-  }).getUserActivityLog(currentUser.email, 50);
+  google.script.run.withSuccessHandler(function(r) {
+    if (!r.success) { document.getElementById('myTimeline').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><h3>Gagal Memuat</h3></div>'; return; }
+    renderMyDashboard(r);
+  }).withFailureHandler(function() {
+    document.getElementById('myTimeline').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><h3>Gagal Memuat</h3></div>';
+  }).getMyActivityDashboard(currentUser.email);
+}
+
+function renderMyDashboard(d) {
+  // ── Greeting ──
+  var now = new Date();
+  var hour = now.getHours();
+  var greet = hour < 10 ? 'Selamat Pagi' : hour < 15 ? 'Selamat Siang' : hour < 18 ? 'Selamat Sore' : 'Selamat Malam';
+  document.getElementById('myGreeting').textContent = greet + ', ' + (d.userNama || 'Pengguna') + '!';
+  var s = d.stats || { total: 0, membuat: 0, mengupdate: 0, menghapus: 0, workflow: 0, progress: 0, evidence: 0, mingguIni: 0 };
+  var msg = s.mingguIni > 0 ? s.mingguIni + ' aktivitas minggu ini. Terus semangat!' : 'Belum ada aktivitas minggu ini. Yuk, mulai sesuatu!';
+  document.getElementById('mySubGreeting').textContent = msg;
+  document.getElementById('myUserRole').textContent = d.userRole || 'Pegawai KPU Siak';
+
+  // ── Stat Cards (animated count-up) ──
+  var cards = document.querySelectorAll('.my-stat-number');
+  var targets = [s.total, s.progress, (s.workflow + s.membuat), d.totalEvidence || 0];
+  cards.forEach(function(el, i) {
+    el.setAttribute('data-target', targets[i] || 0);
+    el.textContent = '0';
+    animateNumber(el, targets[i] || 0, 800 + i * 200);
+  });
+
+  // ── Achievement banner ──
+  var ach = document.getElementById('myAchievement');
+  if (s.mingguIni >= 10) { ach.style.display = 'flex'; document.getElementById('myAchievementText').textContent = '🔥 Luar biasa! ' + s.mingguIni + ' aktivitas minggu ini!'; }
+  else if (s.mingguIni >= 5) { ach.style.display = 'flex'; document.getElementById('myAchievementText').textContent = '⭐ Produktif! ' + s.mingguIni + ' aktivitas dalam seminggu.'; }
+  else if (s.total >= 50) { ach.style.display = 'flex'; document.getElementById('myAchievementText').textContent = '🏆 Veteran! Total ' + s.total + ' aktivitas tercatat.'; }
+  else { ach.style.display = 'none'; }
+
+  // ── Activity count ──
+  var acts = d.activities || [];
+  document.getElementById('myActivityCount').textContent = acts.length + ' kegiatan';
+
+  // ── Timeline grouped by day ──
+  if (!acts.length) {
+    document.getElementById('myTimeline').innerHTML = '<div class="empty-state" style="padding:40px;"><i class="fas fa-clock"></i><h3>Belum Ada Aktivitas</h3><p>Setiap perubahan yang Anda lakukan akan tercatat di sini.</p></div>';
+    return;
+  }
+  var groups = {};
+  var todayStr = fmtDate(now);
+  var yesterday = new Date(now); yesterday.setDate(yesterday.getDate() - 1);
+  var yesterdayStr = fmtDate(yesterday);
+  acts.forEach(function(a) {
+    var key = dateToDayKey(a.waktu);
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(a);
+  });
+  var dayKeys = Object.keys(groups).sort().reverse();
+  var html = '';
+  dayKeys.forEach(function(dk, idx) {
+    var label = dk === todayStr ? 'Hari Ini' : dk === yesterdayStr ? 'Kemarin' : dk;
+    html += '<div class="my-day-group" style="animation-delay:' + (idx * 80) + 'ms;">';
+    html += '<div class="my-day-header"><span class="my-day-label">' + label + '</span><span class="my-day-count">' + groups[dk].length + ' kegiatan</span></div>';
+    groups[dk].forEach(function(a) {
+      html += myActivityCard(a);
+    });
+    html += '</div>';
+  });
+  document.getElementById('myTimeline').innerHTML = html;
+}
+
+function myActivityCard(a) {
+  var iconMap = {
+    'BUAT_AGENDA': 'fa-plus-circle', 'UPDATE_AGENDA': 'fa-pen-circle',
+    'HAPUS_AGENDA': 'fa-trash-can', 'BUAT_WORKFLOW': 'fa-diagram-project',
+    'UPDATE_WORKFLOW': 'fa-diagram-project', 'HAPUS_WORKFLOW': 'fa-diagram-project',
+    'BUAT_PROGRESS': 'fa-circle-check', 'UPDATE_PROGRESS': 'fa-rotate',
+    'UPLOAD_EVIDENCE': 'fa-paperclip'
+  };
+  var colorMap = {
+    'BUAT_AGENDA': '#059669', 'UPDATE_AGENDA': '#3b82f6',
+    'HAPUS_AGENDA': '#dc2626', 'BUAT_WORKFLOW': '#8b5cf6',
+    'UPDATE_WORKFLOW': '#8b5cf6', 'HAPUS_WORKFLOW': '#dc2626',
+    'BUAT_PROGRESS': '#059669', 'UPDATE_PROGRESS': '#f59e0b',
+    'UPLOAD_EVIDENCE': '#8b5cf6'
+  };
+  var icon = iconMap[a.aktivitas] || 'fa-circle';
+  var color = colorMap[a.aktivitas] || '#6366f1';
+  var label = a.aktivitasLabel || a.aktivitas;
+  var hasEvidence = a.evidenceCount > 0;
+
+  var h = '<div class="my-activity-card">';
+  h += '<div class="my-activity-icon" style="background:' + color + ';"><i class="fas ' + icon + '"></i></div>';
+  h += '<div class="my-activity-body">';
+  h += '<div class="my-activity-top">';
+  h += '<span class="my-activity-label">' + esc(label) + '</span>';
+  h += '<span class="my-activity-time">' + esc(a.waktu || '') + '</span>';
+  h += '</div>';
+  if (a.judul) h += '<div class="my-activity-title">' + esc(a.judul) + '</div>';
+  h += '<div class="my-activity-actions">';
+  if (a.referensi && a.aktivitas.indexOf('AGENDA') >= 0) {
+    h += '<button class="btn-timeline" onclick="viewDetail(\'' + a.referensi + '\')"><i class="fas fa-eye"></i> Detail</button>';
+  }
+  h += '<button class="btn-timeline btn-timeline-outline" onclick="viewDetail(\'' + a.referensi + '\')"><i class="fas fa-file-alt"></i> Notulen</button>';
+  h += '<button class="btn-timeline btn-timeline-outline" onclick="viewDetail(\'' + a.referensi + '\')"><i class="fas fa-check-circle"></i> LKH</button>';
+  if (hasEvidence) {
+    h += '<span class="my-evidence-badge"><i class="fas fa-paperclip"></i> ' + a.evidenceCount + '</span>';
+  }
+  h += '</div></div></div>';
+  return h;
+}
+
+function animateNumber(el, target, duration) {
+  var start = 0, current = 0;
+  var step = Math.max(1, Math.ceil(target / (duration / 16)));
+  var timer = setInterval(function() {
+    current += step;
+    if (current >= target) { current = target; clearInterval(timer); }
+    el.textContent = current;
+  }, 16);
+}
+
+function dateToDayKey(waktuStr) {
+  if (!waktuStr) return fmtDate(new Date());
+  var parts = waktuStr.split(' ');
+  // Format: "04 Jul 2026 09:30" → parts = ["04","Jul","2026","09:30"]
+  if (parts.length >= 3) {
+    var months = {'Jan':1,'Feb':2,'Mar':3,'Apr':4,'Mei':5,'Jun':6,'Jul':7,'Agu':8,'Sep':9,'Okt':10,'Nov':11,'Des':12};
+    var day = parts[0];
+    var mon = months[parts[1]] || 1;
+    var yr = parts[2];
+    return yr + '-' + String(mon).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+  }
+  return fmtDate(new Date());
+}
+  }
+  return fmtDate(new Date());
 }
 
 // =============================================

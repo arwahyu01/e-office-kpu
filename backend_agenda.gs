@@ -1365,6 +1365,144 @@ function getUserActivityLog(userEmail, limit) {
 }
 
 // =============================================
+// MY ACTIVITY DASHBOARD — KEGIATAN SAYA (DRAMATIC)
+// =============================================
+function getMyActivityDashboard(userEmail) {
+  try {
+    ensureAgendaSheets();
+    var ss = getAgendaSpreadsheet();
+    var email = (userEmail || '').toLowerCase().trim();
+    var pegawaiMap = getPegawaiMapByEmail();
+    var peg = pegawaiMap[email] || null;
+    var userNama = peg ? peg.nama : email;
+    var userRole = peg ? peg.jabatan : '';
+
+    // 1. Stats from activity log
+    var logSh = ss.getSheetByName(AGENDA_SHEETS.MASTER_ACTIVITY_LOG);
+    var logData = logSh && logSh.getLastRow() >= 2 ? logSh.getDataRange().getValues() : [];
+    var stats = { total: 0, membuat: 0, mengupdate: 0, menghapus: 0, workflow: 0, progress: 0, evidence: 0, mingguIni: 0 };
+    // 2. Build activity list
+    var activities = [];
+    var agendaMap = {};
+    try {
+      var agSh = ss.getSheetByName(AGENDA_SHEETS.MASTER_AGENDA);
+      if (agSh && agSh.getLastRow() >= 2) {
+        var agRows = agSh.getDataRange().getValues();
+        for (var ai = 1; ai < agRows.length; ai++) agendaMap[agRows[ai][0]] = agRows[ai][2] || '';
+      }
+    } catch(e) {}
+
+    // Evidence map: count evidence per agenda ID
+    var evCountMap = {};
+    try {
+      var evSh = ss.getSheetByName(AGENDA_SHEETS.MASTER_EVIDENCE);
+      if (evSh && evSh.getLastRow() >= 2) {
+        var evRows = evSh.getDataRange().getValues();
+        for (var evi = 1; evi < evRows.length; evi++) {
+          var progressId = String(evRows[evi][1] || '').trim();
+          if (!evCountMap[progressId]) evCountMap[progressId] = 0;
+          evCountMap[progressId]++;
+        }
+      }
+    } catch(e) {}
+
+    // Progress → agenda ID mapping
+    var progressAgendaMap = {};
+    try {
+      var progSh = ss.getSheetByName(AGENDA_SHEETS.MASTER_PROGRESS);
+      if (progSh && progSh.getLastRow() >= 2) {
+        var progRows = progSh.getDataRange().getValues();
+        for (var pi = 1; pi < progRows.length; pi++) {
+          var workflowId = String(progRows[pi][1] || '').trim();
+          progressAgendaMap[progRows[pi][0]] = workflowId; // progressId → workflowId
+        }
+      }
+    } catch(e) {}
+    // workflowId → agendaId
+    var workflowAgendaMap = {};
+    try {
+      var wfSh = ss.getSheetByName(AGENDA_SHEETS.MASTER_WORKFLOW);
+      if (wfSh && wfSh.getLastRow() >= 2) {
+        var wfRows = wfSh.getDataRange().getValues();
+        for (var wi = 1; wi < wfRows.length; wi++) {
+          workflowAgendaMap[wfRows[wi][0]] = String(wfRows[wi][1] || '').trim();
+        }
+      }
+    } catch(e) {}
+
+    var oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+    for (var i = logData.length - 1; i >= 1; i--) {
+      if (String(logData[i][1] || '').toLowerCase().trim() !== email) continue;
+      stats.total++;
+      var rawAktivitas = String(logData[i][2] || '').trim();
+      if (rawAktivitas === 'BUAT_AGENDA') stats.membuat++;
+      else if (rawAktivitas === 'UPDATE_AGENDA' || rawAktivitas === 'HAPUS_AGENDA') {
+        if (rawAktivitas === 'UPDATE_AGENDA') stats.mengupdate++;
+        else stats.menghapus++;
+      }
+      else if (rawAktivitas.indexOf('WORKFLOW') >= 0) stats.workflow++;
+      else if (rawAktivitas.indexOf('PROGRESS') >= 0) stats.progress++;
+      else if (rawAktivitas.indexOf('EVIDENCE') >= 0) stats.evidence++;
+
+      try {
+        var logDate = new Date(logData[i][4]);
+        if (logDate >= oneWeekAgo) stats.mingguIni++;
+      } catch(e) {}
+
+      var refId = String(logData[i][3] || '').trim();
+      var judul = agendaMap[refId] || '';
+      var waktu = '';
+      try { waktu = Utilities.formatDate(new Date(logData[i][4]), AGENDA_TIMEZONE, "dd MMM yyyy HH:mm"); } catch(e) { waktu = String(logData[i][4] || ''); }
+
+      // Evidence count for this activity's agenda
+      var evCount = 0;
+      if (rawAktivitas.indexOf('EVIDENCE') >= 0) {
+        // count all evidence for the same progress
+        Object.keys(evCountMap).forEach(function(k) { evCount += evCountMap[k]; });
+      }
+
+      activities.push({
+        aktivitas: rawAktivitas, aktivitasLabel: getActivityLabel(rawAktivitas),
+        referensi: refId, judul: judul, waktu: waktu, evidenceCount: evCount
+      });
+      if (activities.length >= 50) break;
+    }
+
+    // Total evidence count
+    var totalEvidence = 0;
+    Object.keys(evCountMap).forEach(function(k) { totalEvidence += evCountMap[k]; });
+
+    return {
+      success: true,
+      userNama: userNama,
+      userRole: userRole,
+      stats: stats,
+      activities: activities,
+      totalEvidence: totalEvidence
+    };
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+
+function getActivityLabel(raw) {
+  var map = {
+    'BUAT_AGENDA': 'Membuat agenda baru',
+    'UPDATE_AGENDA': 'Memperbarui agenda',
+    'HAPUS_AGENDA': 'Menghapus agenda',
+    'BUAT_WORKFLOW': 'Menambahkan tahapan',
+    'UPDATE_WORKFLOW': 'Memperbarui tahapan',
+    'HAPUS_WORKFLOW': 'Menghapus tahapan',
+    'BUAT_PROGRESS': 'Melaporkan progress',
+    'UPDATE_PROGRESS': 'Memperbarui progress',
+    'UPLOAD_EVIDENCE': 'Mengunggah lampiran'
+  };
+  return map[raw] || raw;
+}
+
+// =============================================
 // ASSIGNMENT SUMMARY FOR LKH
 // =============================================
 function getMyAssignments(userEmail) {
