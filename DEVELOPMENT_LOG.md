@@ -502,3 +502,88 @@
 - **NOTULEN sheet columns (14)**: ID, TANGGAL, JENIS, JUDUL, PIMPINAN, NOTULIS, JALANNYA_COUNT, POIN_COUNT, CREATED_AT, DRIVE_URL, UNDANGAN_LINK, STATUS, PESERTA_JSON, SIGNED_PDF_URL
 - **CSS for step wizard & notulen badges** is in `style.html`
 - **Menu navigation** uses `switchMenu()` SPA pattern in `index.html`
+
+---
+
+## v2.15.0 — 5 Jul 2026 (Sederhanakan Jenis Kegiatan jadi 10 Kategori Aktivitas)
+
+- **[Ubah] Dropdown Jenis Kegiatan**: Dari 23 opsi spesifik jadi **10 Kategori Aktivitas** (RAPAT, BIMTEK, SOSIALISASI, VERIFIKASI, PERJALANAN_DINAS, KEPEGAWAIAN, PENGEMBANGAN, LAYANAN, ADMINISTRASI, LAINNYA)
+- **[Ubah] `jenisToHasilType()`**: Mapping baru — RAPAT/VERIFIKASI/SOSIALISASI/PERJALANAN/KEPEGAWAIAN/PENGEMBANGAN → Laporan; sisanya → Dokumen
+- **[New] `getKategoriLabel()`**: Helper frontend + backend untuk display label dengan emoji
+- **[Ubah] Default create agenda**: `"UMUM"` → `"LAINNYA"`
+- **[Ubah] `notulen.gs`**: Mapping `'PLENO'` → `'RAPAT'`, `'UMUM'` → `'LAINNYA'`
+- **[Fix] Validasi**: Dropdown 10 kategori + placeholder "Pilih Kategori Aktivitas"
+- **[Fix] Detail display**: Tampilkan label kategori dengan emoji di card detail
+
+## v2.16.0 — 5 Jul 2026 (Quick-Select Peserta Notulen + Sort by NO)
+
+- **[New] `getDataPegawai()`**: Tambah field `subbag`, `hakAkses`, `no` (nomor urut dari MASTER_PEGAWAI)
+- **[New] Quick-select buttons**: Semua Pegawai, Komisioner & Sekretariat, per Subbag (4 subbag)
+- **[New] Handler functions**: `pilihSemuaPegawai()`, `pilihKomisionerDanSekretariat()`, `pilihSubbag(subbag)`
+- **[Fix] Nama subbag**: Disesuaikan data aktual — `Teknis Penyelenggara Pemilu dan Hukum`, `Partisipasi Hubungan Masyarakat dan Sumber Daya Manusia`
+- **[Ubah] Sort peserta**: Dari abjad → **NO MASTER_PEGAWAI** via `sortPesertaByJabatan()`
+- **[New] `getJabatanPriority()`**: Partial match — KETUA, WAKIL KETUA, ANGGOTA, SEKRETARIS, KEPALA/KASUBBAG
+- **[Fix] Sorting diterapkan** di render chips, detail, dan AI context
+- **[Fix] AI prompt**: Keputusan Rapat dipisah jadi list bullet, bukan paragraf terakhir
+- **[Fix] `aiResult.peserta`**: Ditimpa data urut dari database (AI tidak patuh urutan)
+- **[Fix] Komisioner dipisah**: Tidak ikut pilih Subbag, ikut "Komisioner & Sekretariat" / cari manual
+
+## v2.17.0 — 5 Jul 2026 (Fitur Edit Profil Pegawai)
+
+- **[New] `updateProfil()` di Code.gs**: Update Nama, NIP, Jabatan, Gol, Subbag (dropdown), Email, Atasan (dropdown), Password (hash)
+- **[New] Modal Edit Profil** di `index.html`: Form lengkap + cache pegawai via `getPegawaiDropdown()`
+- **[New] `loadSubbagOptions()` / `loadAtasanOptions()`**: Isi dropdown Subbag & Atasan
+- **[Fix] Simpan profil**: Refresh `loadUserProfile()` + localStorage
+- **[Fix] Modal close**: Fungsi `closeModal(id)` generic — tombol × dan Batal berfungsi
+- **[Fix] Atasan auto-select**: `loadAtasanOptions()` terima `selectedEmail`; cari atasan di cache via `nip_atasan`/`nama_atasan`
+- **[Fix] Filter subbag komisioner**: `loadSubbagOptions()` filter `hakAkses !== 'KOMISIONER'`
+- **[Fix] `getPegawaiDropdown()`**: Tambah return field `hakAkses`
+
+## v2.18.0 — 5 Jul 2026 (Card Modern + Skeleton Loading Beranda Agenda)
+
+- **[Ubah] Tabel → Card grid**: Dari `<table>` 8 kolom jadi kartu modern (responsive grid 1-3 kolom)
+- **[New] `.agenda-card`**: Shadow, hover lift, border halus — judul, badge, PIC, progress, tenggat, aksi
+- **[New] Skeleton cards**: 6 skeleton card (shimmer) saat load — **tanpa overlay full-page**
+- **[Hapus] `showLoading()` dari `loadList()`**: Tidak tutup halaman dengan overlay
+- **[Hapus] `showLoading()` dari `loadPegawai()`**: Load pegawai silently
+- **[New] `getSkeletonCards(n)`**: Generate n skeleton card HTML
+- **[New] `renderAgendaGrid(list)`**: Render kartu ke `#agendaGrid` — gantikan `renderTable()`
+- **[New] Animasi `cardFadeIn`**: Fade + slide up saat kartu muncul
+- **[Ubah] CSS `style_agenda.html`**: `.agenda-grid`, `.agenda-card`, `.agenda-skeleton`
+
+### Files Changed (v2.15–v2.18)
+- `agenda.html` — dropdown 10 kategori, validasi, getKategoriLabel, quick-select peserta, sort peserta, renderAgendaGrid, skeleton cards
+- `backend_agenda.gs` — `jenisToHasilType()`, `getKategoriLabel()`, `getPegawaiDropdown()` (+hakAkses)
+- `notulen.gs` — mapping PLENO→RAPAT/UMUM→LAINNYA, AI prompt Keputusan Rapat bullet, sort AI context, override `aiResult.peserta`
+- `index.html` — quick-select buttons, sort chips/detail, modal Edit Profil, `closeModal()`, `loadSubbagOptions()`, `loadAtasanOptions()`
+- `Code.gs` — `updateProfil()` update Nama/NIP/Jabatan/Gol/Subbag/Email/Atasan/Password
+- `style_agenda.html` — CSS card grid, skeleton cards, responsive breakpoints
+
+### Git Log (v2.15–v2.18)
+```
+98cd583 v2.15.0: sederhanakan Jenis Kegiatan jadi 10 Kategori Aktivitas
+f68e839 v2.16.0: quick-select peserta notulen
+86936af fix: perbaiki nama subbag & komisioner+sekretariat select semua
+19356db fix: pilihSubbag include komisioner via mapping divisi
+1609e4b revert: pilihSubbag hanya pegawai subbag saja
+44a00b6 sort peserta by jabatan (Ketua → Anggota → Kasubbag → staff)
+ce2d2f9 sort peserta by NO MASTER_PEGAWAI (bukan abjad)
+0ad1f8a fix: jabatan priority partial match (Sekretaris, Kepala Subbagian)
+764f726 prompt: AI wajib ikut urutan peserta dari data
+89cc710 replace peserta langsung dari database (AI tidak patuh)
+8701140 pisahkan Keputusan Rapat jadi list bullet
+9c2cf29 v2.17.0: fitur edit profil pegawai
+435790c fix: close modal + atasan otomatis terpilih
+e7a03f8 filter subbag komisioner dari dropdown edit profil
+ed2b664 ganti table agenda jadi card + skeleton loading
+```
+
+## Updated Context (v2.18)
+
+- **Jenis Kegiatan**: 10 Kategori Aktivitas (RAPAT, BIMTEK, SOSIALISASI, VERIFIKASI, PERJALANAN_DINAS, KEPEGAWAIAN, PENGEMBANGAN, LAYANAN, ADMINISTRASI, LAINNYA) — detail ditulis di Uraian
+- **Peserta notulen**: Diurutkan berdasarkan NO MASTER_PEGAWAI (bukan abjad). Quick-select via tombol Semua/Komisioner+Sekretariat/per Subbag
+- **AI notula**: `aiResult.peserta` ditimpa dari database (override). Keputusan Rapat dipisah jadi list bullet
+- **Edit profil**: Modal di index.html — update Nama, NIP, Jabatan, Gol, Subbag, Email, Atasan, Password ke MASTER_PEGAWAI
+- **Profile fields**: `nip_atasan`, `nama_atasan` digunakan untuk auto-select atasan di dropdown
+- **Komisioner**: hakAkses = KOMISIONER, subbag berisi "DIVISI ...". Tidak ikut dropdown Subbag di edit profil
+- **Beranda agenda**: Card grid dengan skeleton loading — tanpa overlay full-page saat load data
