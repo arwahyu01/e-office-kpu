@@ -139,7 +139,7 @@ function getPegawaiMapByEmail() {
 function getPegawaiDropdown() {
   return getAllPegawai().map(p => ({
     email: p.email, nama: p.nama, nip: p.nip,
-    jabatan: p.jabatan, subbag: p.subbag
+    jabatan: p.jabatan, subbag: p.subbag, hakAkses: p.hakAkses
   }));
 }
 

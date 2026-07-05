@@ -3421,7 +3421,7 @@
         function loadSubbagOptions(selectId, selected) {
             var sel = document.getElementById(selectId);
             if (!sel) return;
-            var subbags = [...new Set(_editPegawaiCache.map(function(p) { return p.subbag; }).filter(Boolean))];
+            var subbags = [...new Set(_editPegawaiCache.filter(function(p) { return p.hakAkses !== 'KOMISIONER'; }).map(function(p) { return p.subbag; }).filter(Boolean))];
             sel.innerHTML = '<option value="">Pilih Subbag</option>';
             subbags.sort().forEach(function(sb) {
                 sel.innerHTML += '<option value="' + sb + '" ' + (sb === selected ? 'selected' : '') + '>' + sb + '</option>';
