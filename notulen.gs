@@ -116,7 +116,18 @@ PEMBAHASAN PER AGENDA — untuk setiap agenda yang dibahas, tulis:
    - Hasil atau keputusan yang disepakati
    Hubungkan antar agenda dengan kalimat transisi alami.
 
-KESIMPULAN — jika ada poin keputusan dalam data, susun secara rapi.
+KESIMPULAN — tulis beberapa kalimat ringkasan hasil rapat secara naratif.
+
+KEPUTUSAN RAPAT — setelah kesimpulan, buat daftar terpisah dengan format seperti ini:
+
+Keputusan Rapat
+- [isi keputusan 1]
+- [isi keputusan 2]
+- [isi keputusan 3]
+
+Gunakan data dari poin/keputusan jika tersedia. Jika tidak ada, simpulkan dari pembahasan.
+Format ini WAJIB: diawali baris "Keputusan Rapat" lalu tiap keputusan dengan tanda "- " (strip spasi).
+JANGAN gabung ke paragraf terakhir — pisahkan jelas.
 
 PENUTUP — sampaikan penutupan rapat secara ringkas.
 
@@ -135,10 +146,12 @@ Memasuki agenda pertama, pembahasan mengenai penetapan Daftar Pemilih Tetap (DPT
 
 Selanjutnya, agenda kedua membahas distribusi logistik pemilu. Kepala Subbagian Logistik melaporkan bahwa seluruh logistik untuk 850 TPS telah selesai diproduksi dan siap didistribusikan. Namun demikian, masih terdapat kendala terkait akses jalan menuju tiga kecamatan yang berada di wilayah pesisir. Terkait hal tersebut, diputuskan bahwa distribusi logistik untuk wilayah pesisir akan dilaksanakan lebih awal pada H-7, sedangkan wilayah daratan pada H-3 sebelum pemungutan suara. Bapak Dailin Fajri Sormin selaku Anggota KPU Divisi SDM menambahkan perlunya koordinasi dengan pemerintah kecamatan setempat untuk memastikan keamanan logistik.
 
-Berdasarkan seluruh rangkaian pembahasan, ditetapkan beberapa hal sebagai berikut:
-1. Pencermatan dan penetapan DPT final dilaksanakan pada 20 Desember 2024 melalui pleno terbuka.
-2. Distribusi logistik untuk wilayah pesisir dimulai pada H-7 dan wilayah daratan pada H-3.
-3. Seluruh PPK wajib menyampaikan laporan kesiapan masing-masing kecamatan paling lambat 15 Desember 2024.
+Berdasarkan seluruh rangkaian pembahasan, rapat ini menghasilkan beberapa keputusan strategis untuk ditindaklanjuti oleh masing-masing bidang terkait.
+
+Keputusan Rapat
+- Pencermatan dan penetapan DPT final dilaksanakan pada 20 Desember 2024 melalui pleno terbuka.
+- Distribusi logistik untuk wilayah pesisir dimulai pada H-7 dan wilayah daratan pada H-3.
+- Seluruh PPK wajib menyampaikan laporan kesiapan masing-masing kecamatan paling lambat 15 Desember 2024.
 
 Rapat ditutup oleh Ketua KPU Kabupaten Siak pada pukul 12.15 WIB. Ketua KPU Kabupaten Siak menyampaikan apresiasi atas partisipasi aktif seluruh peserta dan berharap seluruh keputusan dapat dilaksanakan dengan baik. Rapat ditutup dengan doa bersama.
 
