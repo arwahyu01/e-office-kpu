@@ -129,7 +129,7 @@
             </div>
         </section>
 
-        <!-- ============ KEGIATAN SAYA ============ -->
+        <!-- ============ KEGIATAN SAYA / CAPAIAN PERIODE ============ -->
         <section id="section-history" class="content-section" style="display:none;">
             <!-- Hero Greeting -->
             <div class="my-hero" id="myHero">
@@ -138,10 +138,18 @@
                     <div class="my-hero-avatar"><i class="fas fa-user-tie"></i></div>
                     <div class="my-hero-text">
                         <h1 id="myGreeting">Selamat Bekerja!</h1>
-                        <p id="mySubGreeting">Teruslah berkarya dan wujudkan prestasi terbaik.</p>
+                        <p id="mySubGreeting">Pantau capaian kerja setiap periode.</p>
                         <span class="my-hero-role" id="myUserRole">—</span>
                     </div>
                 </div>
+            </div>
+
+            <!-- Period Navigation -->
+            <div class="period-bar">
+                <button class="btn-icon" onclick="navigatePeriod(-1)" title="Periode sebelumnya"><i class="fas fa-chevron-left"></i></button>
+                <span class="period-label" id="periodLabel">—</span>
+                <button class="btn-icon" onclick="navigatePeriod(1)" title="Periode berikutnya"><i class="fas fa-chevron-right"></i></button>
+                <button class="btn-today" onclick="goToCurrentPeriod()">Periode Saat Ini</button>
             </div>
 
             <!-- Stat Cards -->
@@ -164,14 +172,22 @@
                 </div>
             </div>
 
-            <!-- Achievement Banner -->
-            <div class="my-achievement" id="myAchievement" style="display:none;">
-                <i class="fas fa-rocket"></i>
-                <span id="myAchievementText">Pencapaian terbaikmu minggu ini!</span>
+            <!-- Capaian (Gabungan) -->
+            <div class="my-timeline-section" style="margin-top:20px;">
+                <div class="my-timeline-header">
+                    <h2><i class="fas fa-trophy"></i> Capaian</h2>
+                    <span class="my-timeline-count" id="achievementCount">0</span>
+                </div>
+                <div id="achievementList" class="my-timeline-container">
+                    <div class="my-timeline-loading">
+                        <div class="skeleton skeleton-line w60" style="margin:0 auto;"></div>
+                        <div class="skeleton skeleton-line w80" style="margin:4px auto 0;"></div>
+                    </div>
+                </div>
             </div>
 
             <!-- Timeline -->
-            <div class="my-timeline-section">
+            <div class="my-timeline-section" style="margin-top:20px;">
                 <div class="my-timeline-header">
                     <h2><i class="fas fa-clock-rotate-left"></i> Riwayat Aktivitas</h2>
                     <span class="my-timeline-count" id="myActivityCount">0 kegiatan</span>
@@ -241,18 +257,6 @@
                 </div>
                 <div class="detail-card-body">
                     <div id="workflowContainer"><div class="empty-state"><i class="fas fa-layer-group"></i><h3>Belum Ada Workflow</h3><p>Tambahkan workflow untuk agenda ini</p></div></div>
-                </div>
-            </div>
-
-            <!-- INTEGRASI LKH -->
-            <div class="detail-section">
-                <div class="detail-card-header" onclick="toggleCard(this)">
-                    <h3><i class="fas fa-file-alt"></i> Integrasi LKH</h3>
-                    <i class="fas fa-chevron-up card-toggle"></i>
-                </div>
-                <div class="detail-card-body">
-                    <p style="font-size:13px;color:#64748b;margin-bottom:12px;">Progress yang sudah selesai dapat dijadikan Laporan Kinerja Harian (LKH).</p>
-                    <div id="lkhIntegrationContainer"><p style="font-size:13px;color:#94a3b8;">Memuat data...</p></div>
                 </div>
             </div>
 
@@ -626,24 +630,10 @@
     </div>
 </div>
 
-<!-- ========== LKH MODAL ========== -->
-<div id="modalLKH" class="modal" style="display:none;">
-    <div class="modal-content" style="max-width:600px;max-height:80vh;overflow-y:auto;">
-        <div class="modal-header"><h2><b>Jadikan LKH</b></h2><button class="close-btn" onclick="closeModalLKH()"><i class="fas fa-times"></i></button></div>
-        <p style="font-size:13px;color:#64748b;margin-bottom:16px;">Pilih progress yang sudah selesai untuk dijadikan Laporan Kinerja Harian (LKH). Progress akan dikirim ke modul LKH tanpa perlu mengetik ulang.</p>
-        <div id="lkhProgressList"><p style="color:#94a3b8;font-size:13px;">Memuat data...</p></div>
-        <div class="wizard-footer" style="margin-top:20px;">
-            <button class="btn-secondary" onclick="closeModalLKH()">Tutup</button>
-            <button class="btn-primary" onclick="submitLKH()"><i class="fas fa-file-alt"></i> Jadikan LKH</button>
-        </div>
-    </div>
-</div>
-
 <script>
 const SESSION_KEY = 'userProfile';
 let currentUser = null, currentDetailId = null, currentAgendaList = [];
 let pegawaiList = [], subbagList = [], wizardStep = 1;
-let lkhSelectedProgress = [];
 
 document.addEventListener('DOMContentLoaded', () => { checkSession(); if (currentUser) initApp(); });
 
@@ -847,7 +837,7 @@ function getDasarFileUrl() {
 }
 
 function openWizard() {
-  wizardStep = 1; lkhSelectedProgress = [];
+  wizardStep = 1;
   document.getElementById('wizardEditId').value = '';
   document.getElementById('wizardTitle').textContent = 'Buat Agenda Baru';
   // Reset form
@@ -1009,75 +999,172 @@ function refreshAll() { loadDashboardStats(); loadList(); }
 // =============================================
 // KEGIATAN SAYA — DRAMATIC DASHBOARD
 // =============================================
+var periodMonth = null, periodYear = null;
+
+function getCurrentPeriodMonth() {
+  var n = new Date();
+  return n.getDate() >= 21 ? n.getMonth() + 2 : n.getMonth() + 1;
+}
+function getCurrentPeriodYear() {
+  var n = new Date();
+  if (n.getDate() >= 21) return n.getMonth() === 11 ? n.getFullYear() + 1 : n.getFullYear();
+  return n.getFullYear();
+}
+
 function loadHistory() {
+  if (periodMonth === null) { periodMonth = getCurrentPeriodMonth(); periodYear = getCurrentPeriodYear(); }
+  document.getElementById('periodLabel').textContent = 'Memuat...';
   google.script.run.withSuccessHandler(function(r) {
-    if (!r.success) { document.getElementById('myTimeline').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><h3>Gagal Memuat</h3></div>'; return; }
+    if (!r.success) {
+      document.getElementById('myTimeline').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><h3>Gagal Memuat</h3></div>';
+      document.getElementById('completedList').innerHTML = '';
+      return;
+    }
     renderMyDashboard(r);
   }).withFailureHandler(function() {
     document.getElementById('myTimeline').innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><h3>Gagal Memuat</h3></div>';
-  }).getMyActivityDashboard(currentUser.email);
+  }).getMyActivityDashboard(currentUser.email, periodYear, periodMonth);
+}
+
+function navigatePeriod(dir) {
+  periodMonth += dir;
+  if (periodMonth > 12) { periodMonth = 1; periodYear++; }
+  else if (periodMonth < 1) { periodMonth = 12; periodYear--; }
+  loadHistory();
+}
+
+function goToCurrentPeriod() {
+  periodMonth = getCurrentPeriodMonth();
+  periodYear = getCurrentPeriodYear();
+  loadHistory();
 }
 
 function renderMyDashboard(d) {
-  // ── Greeting ──
   var now = new Date();
   var hour = now.getHours();
   var greet = hour < 10 ? 'Selamat Pagi' : hour < 15 ? 'Selamat Siang' : hour < 18 ? 'Selamat Sore' : 'Selamat Malam';
   document.getElementById('myGreeting').textContent = greet + ', ' + (d.userNama || 'Pengguna') + '!';
-  var s = d.stats || { total: 0, membuat: 0, mengupdate: 0, menghapus: 0, workflow: 0, progress: 0, evidence: 0, mingguIni: 0 };
-  var msg = s.mingguIni > 0 ? s.mingguIni + ' aktivitas minggu ini. Terus semangat!' : 'Belum ada aktivitas minggu ini. Yuk, mulai sesuatu!';
-  document.getElementById('mySubGreeting').textContent = msg;
+  document.getElementById('mySubGreeting').textContent = 'Periode ' + (d.period ? d.period.label : '') + ' — ' + (d.stats.total || 0) + ' aktivitas tercatat.';
   document.getElementById('myUserRole').textContent = d.userRole || 'Pegawai KPU Siak';
+  document.getElementById('periodLabel').textContent = d.period ? d.period.label : '—';
 
-  // ── Stat Cards (animated count-up) ──
+  var s = d.stats || {};
   var cards = document.querySelectorAll('.my-stat-number');
-  var targets = [s.total, s.membuat, s.progress, d.totalEvidence || 0];
+  var targets = [s.total || 0, s.membuat || 0, s.progress || 0, s.evidence || 0];
   cards.forEach(function(el, i) {
-    el.setAttribute('data-target', targets[i] || 0);
+    el.setAttribute('data-target', targets[i]);
     el.textContent = '0';
-    animateNumber(el, targets[i] || 0, 800 + i * 200);
+    animateNumber(el, targets[i], 800 + i * 200);
   });
 
-  // ── Achievement banner ──
-  var ach = document.getElementById('myAchievement');
-  if (s.mingguIni >= 10) { ach.style.display = 'flex'; document.getElementById('myAchievementText').textContent = '🔥 Luar biasa! ' + s.mingguIni + ' aktivitas minggu ini!'; }
-  else if (s.mingguIni >= 5) { ach.style.display = 'flex'; document.getElementById('myAchievementText').textContent = '⭐ Produktif! ' + s.mingguIni + ' aktivitas dalam seminggu.'; }
-  else if (s.total >= 50) { ach.style.display = 'flex'; document.getElementById('myAchievementText').textContent = '🏆 Veteran! Total ' + s.total + ' aktivitas tercatat.'; }
-  else { ach.style.display = 'none'; }
+  renderAchievements(d.completedAgendas || [], d.completedProgress || []);
+  renderActivityTimeline(d.activities || []);
+}
 
-  // ── Activity count ──
-  var acts = d.activities || [];
+function parseDateStr(s) {
+  var m = {'Jan':0,'Feb':1,'Mar':2,'Apr':3,'Mei':4,'Jun':5,'Jul':6,'Agu':7,'Sep':8,'Okt':9,'Nov':10,'Des':11};
+  var p = (s || '').split(' ');
+  if (p.length >= 3) return new Date(parseInt(p[2]), m[p[1]]||0, parseInt(p[0]));
+  return new Date(0);
+}
+
+function renderAchievements(agendas, progressItems) {
+  var combined = [];
+  (agendas || []).forEach(function(a) {
+    combined.push({ type:'agenda', sortDate:parseDateStr(a.tanggalSelesai),
+      id:a.id, judul:a.judul, sumber:a.sumber, prioritas:a.prioritas,
+      tanggalSelesai:a.tanggalSelesai, evidenceCount:a.evidenceCount });
+  });
+  (progressItems || []).forEach(function(p) {
+    combined.push({ type:'progress', sortDate:parseDateStr(p.tanggalSelesai),
+      id:p.id, judul:p.namaProgress, agendaJudul:p.judulAgenda,
+      sumber:p.sumber, tanggalSelesai:p.tanggalSelesai,
+      evidenceCount:p.evidenceCount, agendaId:p.agendaId });
+  });
+  combined.sort(function(a, b) { return b.sortDate - a.sortDate; });
+
+  document.getElementById('achievementCount').textContent = combined.length + ' capaian';
+  var el = document.getElementById('achievementList');
+  if (!combined.length) {
+    el.innerHTML = '<div class="empty-state" style="padding:30px;"><i class="fas fa-trophy" style="font-size:32px;color:#e2e8f0;"></i><h3>Belum Ada Capaian</h3><p>Tidak ada agenda atau tugas selesai di periode ini.</p></div>';
+    return;
+  }
+  var h = '';
+  combined.forEach(function(item) {
+    if (item.type === 'agenda') {
+      var priorClass = 'badge-prioritas-' + (item.prioritas || '').toLowerCase();
+      var srcClass = 'sumber-badge ' + (item.sumber || '').toLowerCase();
+      h += '<div class="workflow-card completed" style="margin-bottom:10px;padding:14px 16px;">';
+      h += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">';
+      h += '<div style="flex:1;min-width:0;">';
+      h += '<div class="agenda-title-cell"><i class="fas fa-check-circle" style="color:#059669;margin-right:6px;"></i>' + esc(item.judul) + '</div>';
+      h += '<div style="font-size:11px;color:#94a3b8;margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">';
+      h += '<span class="' + srcClass + '">' + esc(item.sumber) + '</span>';
+      h += '<span class="' + priorClass + '" style="padding:1px 8px;border-radius:999px;font-size:10px;font-weight:700;">' + esc(item.prioritas) + '</span>';
+      h += '<span style="font-size:10px;color:#94a3b8;">Agenda</span>';
+      h += '</div></div>';
+      h += '<div style="text-align:right;flex-shrink:0;">';
+      h += '<div style="font-size:11px;color:#94a3b8;">' + item.tanggalSelesai + '</div>';
+      if (item.evidenceCount > 0) {
+        h += '<div style="margin-top:6px;"><span class="my-evidence-badge"><i class="fas fa-paperclip"></i> ' + item.evidenceCount + '</span></div>';
+      }
+      h += '</div></div>';
+      h += '<div style="margin-top:10px;display:flex;gap:6px;">';
+      h += '<button class="btn-timeline" onclick="viewDetail(\'' + item.id + '\')"><i class="fas fa-eye"></i> Detail</button>';
+      h += '</div></div>';
+    } else {
+      h += '<div class="workflow-card" style="margin-bottom:10px;padding:14px 16px;border-left:4px solid #8b5cf6;">';
+      h += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">';
+      h += '<div style="flex:1;min-width:0;">';
+      h += '<div style="font-size:13px;font-weight:700;color:#0f172a;"><i class="fas fa-tasks" style="color:#8b5cf6;margin-right:6px;"></i>' + esc(item.judul) + '</div>';
+      if (item.agendaJudul) h += '<div style="font-size:11px;color:#64748b;margin-top:3px;"><i class="fas fa-link" style="font-size:10px;margin-right:4px;color:#94a3b8;"></i>' + esc(item.agendaJudul) + '</div>';
+      h += '</div>';
+      h += '<div style="text-align:right;flex-shrink:0;">';
+      h += '<div style="font-size:11px;color:#94a3b8;">' + item.tanggalSelesai + '</div>';
+      if (item.evidenceCount > 0) {
+        h += '<div style="margin-top:4px;"><span class="my-evidence-badge"><i class="fas fa-paperclip"></i> ' + item.evidenceCount + '</span></div>';
+      }
+      h += '</div></div>';
+      if (item.agendaId) {
+        h += '<div style="margin-top:8px;display:flex;gap:6px;">';
+        h += '<button class="btn-timeline" onclick="viewDetail(\'' + item.agendaId + '\')"><i class="fas fa-eye"></i> Detail Agenda</button>';
+        h += '</div>';
+      }
+      h += '</div>';
+    }
+  });
+  el.innerHTML = h;
+}
+
+function renderActivityTimeline(acts) {
   document.getElementById('myActivityCount').textContent = acts.length + ' kegiatan';
-
-  // ── Timeline grouped by day ──
   if (!acts.length) {
     document.getElementById('myTimeline').innerHTML = '<div class="empty-state" style="padding:40px;"><i class="fas fa-clock"></i><h3>Belum Ada Aktivitas</h3><p>Setiap perubahan yang Anda lakukan akan tercatat di sini.</p></div>';
     return;
   }
-  var groups = {};
+  var now = new Date();
   var todayStr = fmtDate(now);
   var yesterday = new Date(now); yesterday.setDate(yesterday.getDate() - 1);
   var yesterdayStr = fmtDate(yesterday);
+  var groups = {};
   acts.forEach(function(a) {
     var key = dateToDayKey(a.waktu);
     if (!groups[key]) groups[key] = [];
     groups[key].push(a);
   });
   var dayKeys = Object.keys(groups).sort().reverse();
-  var html = '';
+  var h = '';
   dayKeys.forEach(function(dk, idx) {
     var label = dk === todayStr ? 'Hari Ini' : dk === yesterdayStr ? 'Kemarin' : dk;
-    html += '<div class="my-day-group" style="animation-delay:' + (idx * 80) + 'ms;">';
-    html += '<div class="my-day-header"><span class="my-day-label">' + label + '</span><span class="my-day-count">' + groups[dk].length + ' kegiatan</span></div>';
-    groups[dk].forEach(function(a) {
-      html += myActivityCard(a);
-    });
-    html += '</div>';
+    h += '<div class="my-day-group" style="animation-delay:' + (idx * 80) + 'ms;">';
+    h += '<div class="my-day-header"><span class="my-day-label">' + label + '</span><span class="my-day-count">' + groups[dk].length + ' kegiatan</span></div>';
+    groups[dk].forEach(function(a) { h += myActivityCard2(a); });
+    h += '</div>';
   });
-  document.getElementById('myTimeline').innerHTML = html;
+  document.getElementById('myTimeline').innerHTML = h;
 }
 
-function myActivityCard(a) {
+function myActivityCard2(a) {
   var iconMap = {
     'BUAT_AGENDA': 'fa-plus-circle', 'UPDATE_AGENDA': 'fa-pen-circle',
     'HAPUS_AGENDA': 'fa-trash-can', 'BUAT_WORKFLOW': 'fa-diagram-project',
@@ -1097,8 +1184,6 @@ function myActivityCard(a) {
   var icon = iconMap[a.aktivitas] || 'fa-circle';
   var color = colorMap[a.aktivitas] || '#6366f1';
   var label = a.aktivitasLabel || a.aktivitas;
-  var hasEvidence = a.evidenceCount > 0;
-
   var h = '<div class="my-activity-card">';
   h += '<div class="my-activity-icon" style="background:' + color + ';"><i class="fas ' + icon + '"></i></div>';
   h += '<div class="my-activity-body">';
@@ -1112,16 +1197,12 @@ function myActivityCard(a) {
     h += '<button class="btn-timeline" onclick="viewDetail(\'' + a.referensi + '\')"><i class="fas fa-eye"></i> Detail</button>';
   }
   h += '<button class="btn-timeline btn-timeline-outline" onclick="viewDetail(\'' + a.referensi + '\')"><i class="fas fa-file-alt"></i> Notulen</button>';
-  h += '<button class="btn-timeline btn-timeline-outline" onclick="viewDetail(\'' + a.referensi + '\')"><i class="fas fa-check-circle"></i> LKH</button>';
-  if (hasEvidence) {
-    h += '<span class="my-evidence-badge"><i class="fas fa-paperclip"></i> ' + a.evidenceCount + '</span>';
-  }
   h += '</div></div></div>';
   return h;
 }
 
 function animateNumber(el, target, duration) {
-  var start = 0, current = 0;
+  var current = 0;
   var step = Math.max(1, Math.ceil(target / (duration / 16)));
   var timer = setInterval(function() {
     current += step;
@@ -1133,13 +1214,9 @@ function animateNumber(el, target, duration) {
 function dateToDayKey(waktuStr) {
   if (!waktuStr) return fmtDate(new Date());
   var parts = waktuStr.split(' ');
-  // Format: "04 Jul 2026 09:30" → parts = ["04","Jul","2026","09:30"]
   if (parts.length >= 3) {
     var months = {'Jan':1,'Feb':2,'Mar':3,'Apr':4,'Mei':5,'Jun':6,'Jul':7,'Agu':8,'Sep':9,'Okt':10,'Nov':11,'Des':12};
-    var day = parts[0];
-    var mon = months[parts[1]] || 1;
-    var yr = parts[2];
-    return yr + '-' + String(mon).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+    return parts[2] + '-' + String(months[parts[1]] || 1).padStart(2,'0') + '-' + String(parts[0]).padStart(2,'0');
   }
   return fmtDate(new Date());
 }
@@ -1325,7 +1402,6 @@ function kalTimelineItemHtml(e) {
   if (isAgenda) {
     h += '<button class="btn-timeline" onclick="viewDetail(\'' + e.id + '\')"><i class="fas fa-eye"></i> Detail</button>';
     h += '<button class="btn-timeline btn-timeline-outline" onclick="viewDetail(\'' + e.id + '\')"><i class="fas fa-file-alt"></i> Notulen</button>';
-    h += '<button class="btn-timeline btn-timeline-outline" onclick="viewDetail(\'' + e.id + '\')"><i class="fas fa-check-circle"></i> LKH</button>';
     h += '<button class="btn-timeline btn-timeline-outline" onclick="viewDetail(\'' + e.id + '\')"><i class="fas fa-camera"></i> Dokumentasi</button>';
   } else {
     h += '<button class="btn-timeline" onclick="editKalEvent(\'' + e.id + '\')"><i class="fas fa-edit"></i> Edit</button>';
@@ -1592,7 +1668,7 @@ function toggleCard(headerEl) {
 // =============================================
 function showDetailSkeletons() {
   const skel = '<div class="skeleton skeleton-line w60"></div><div class="skeleton skeleton-line w80"></div><div class="skeleton skeleton-line"></div>';
-  ['assignmentContainer','workflowContainer','lkhIntegrationContainer','activityLogContainer'].forEach(id => {
+  ['assignmentContainer','workflowContainer','activityLogContainer'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.innerHTML = skel;
   });
@@ -1633,7 +1709,6 @@ function renderDetail(r) {
   renderAssignments(r.assignments||[]);
   renderWorkflows(r.workflows||[]);
   renderActivityLog(r.activityLog||[]);
-  loadLKHIntegration();
 }
 
 function backToList() {
@@ -2197,92 +2272,7 @@ function renderActivityLog(logs) {
     <span style="margin-left:auto;color:#94a3b8;font-size:11px;">${l.waktu}</span></div>`).join('');
 }
 
-// =============================================
-// INTEGRASI LKH
-// =============================================
-function loadLKHIntegration() {
-  const c = document.getElementById('lkhIntegrationContainer');
-  if (!currentDetailId) { c.innerHTML='<p style="font-size:13px;color:#94a3b8;">Detail agenda belum dimuat.</p>'; return; }
 
-  google.script.run.withSuccessHandler(r => {
-    if (!r.success || !r.data || !r.data.length) {
-      c.innerHTML = '<p style="font-size:13px;color:#94a3b8;">Belum ada progress selesai yang bisa dijadikan LKH.</p>';
-      return;
-    }
-    c.innerHTML = `<div style="font-size:13px;color:#059669;margin-bottom:8px;"><i class="fas fa-check-circle"></i> ${r.data.length} progress selesai tersedia untuk LKH:</div>
-      <button class="btn-primary" onclick="openModalLKH()" style="font-size:13px;"><i class="fas fa-file-alt"></i> Pilih & Jadikan LKH</button>`;
-    window._lkhData = r.data;
-  }).withFailureHandler(() => {
-    c.innerHTML = '<p style="font-size:13px;color:#94a3b8;">Gagal memuat data LKH.</p>';
-  }).getProgressSelesaiForLKH(currentUser.email);
-}
-
-function openModalLKH() {
-  const data = window._lkhData || [];
-  lkhSelectedProgress = [];
-  const c = document.getElementById('lkhProgressList');
-  if (!data.length) { c.innerHTML='<p style="color:#94a3b8;">Tidak ada progress selesai.</p>'; document.getElementById('modalLKH').style.display='flex'; return; }
-
-  c.innerHTML = data.map((p, i) => `
-    <label style="display:flex;align-items:start;gap:12px;padding:12px;border:1px solid #e5e7eb;border-radius:12px;margin-bottom:8px;cursor:pointer;">
-      <input type="checkbox" class="lkh-checkbox" data-index="${i}" onchange="toggleLKHSelect(${i})" style="margin-top:3px;width:18px;height:18px;accent-color:#b30000;">
-      <div>
-        <strong style="font-size:14px;">${esc(p.progressNama)}</strong>
-        <div style="font-size:12px;color:#64748b;margin-top:4px;">
-          Agenda: ${esc(p.agendaJudul)} &middot; Workflow: ${esc(p.workflowNama)}
-        </div>
-        <div style="font-size:12px;color:#059669;">Hasil Pekerjaan: ${esc(p.realisasi)}</div>
-      </div>
-    </label>`).join('');
-  document.getElementById('modalLKH').style.display='flex';
-}
-
-function toggleLKHSelect(i) {
-  const idx = lkhSelectedProgress.indexOf(i);
-  if (idx===-1) lkhSelectedProgress.push(i); else lkhSelectedProgress.splice(idx,1);
-}
-
-function closeModalLKH() { document.getElementById('modalLKH').style.display='none'; }
-
-function submitLKH() {
-  if (!lkhSelectedProgress.length) { Swal.fire('Pilih Progress','Pilih minimal satu progress untuk dijadikan LKH','warning'); return; }
-  const data = window._lkhData || [];
-  const selected = lkhSelectedProgress.map(i => data[i]).filter(Boolean);
-  if (!selected.length) return;
-
-  // Build LKH entries with smart content generation
-  const lkhEntries = selected.map(p => ({
-    tanggal: p.tanggalSelesai ? p.tanggalSelesai.substring(0,10) : new Date().toISOString().split('T')[0],
-    kegiatan: '[' + (p.agendaJenis || 'UMUM') + '] ' + (p.agendaJudul || '') + ' — ' + (p.workflowNama || '') + ' — ' + (p.progressNama || ''),
-    hasil: p.agendaJenis && ['REKAPITULASI','PELAPORAN','MONITORING','EVALUASI','RAKOR','RAPAT_INTERNAL','BRIEFING','RAPAT'].indexOf(p.agendaJenis) !== -1 ? 'Laporan' : 'Dokumen',
-    keterangan: (p.realisasi || 'Kegiatan ' + (p.progressNama || '') + ' telah terlaksana dengan baik.') + ' ' + (p.agendaJenis && ['REKAPITULASI','PELAPORAN','MONITORING','EVALUASI','RAKOR','RAPAT_INTERNAL','BRIEFING','RAPAT'].indexOf(p.agendaJenis) !== -1 ? 'Laporan telah disusun dengan baik.' : 'Dokumen telah selesai dibuat.')
-  }));
-
-  // Kirim ke LKH (gunakan fungsi yang sudah ada di Code.gs)
-  let successCount = 0;
-  showLoading('Mengirim ke LKH...');
-
-  // We call the existing Code.gs tambahAgenda for each entry
-  const sendNext = (idx) => {
-    if (idx >= lkhEntries.length) {
-      hideLoading();
-      closeModalLKH();
-      Swal.fire('Berhasil',`${successCount} LKH berhasil dibuat dari progress agenda.`,`success`);
-      return;
-    }
-    const entry = lkhEntries[idx];
-    google.script.run.withSuccessHandler(() => { successCount++; sendNext(idx+1); })
-    .withFailureHandler(() => { sendNext(idx+1); })
-    .tambahAgenda({
-      tanggal: entry.tanggal,
-      kegiatan: entry.kegiatan,
-      hasil: entry.hasil,
-      keterangan: entry.keterangan,
-      user: { email: currentUser.email, nama: currentUser.nama }
-    });
-  };
-  sendNext(0);
-}
 </script>
 </body>
 </html>

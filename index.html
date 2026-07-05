@@ -3175,11 +3175,14 @@
             currentAgendaList.forEach(item => {
                 if (!item || !item.id) return;
 
+                var srcBadge = item.sumberData === 'AGENDA'
+                  ? '<span class="sumber-badge agenda" style="font-size:9px;padding:1px 6px;">Agenda</span>'
+                  : '<span class="sumber-badge pegawai" style="font-size:9px;padding:1px 6px;">Manual</span>';
                 html += `
             <tr>
               <td>
                 <i class="fas fa-calendar-day" style="color: #b30000; margin-right: 8px;"></i>
-                ${item.tanggal || '--'}
+                ${item.tanggal || '--'} ${srcBadge}
               </td>
               <td>${item.kegiatan || ''}</td>
               <td>

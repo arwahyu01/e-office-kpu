@@ -873,13 +873,16 @@ function getFullDashboardData(filter) {
           lastDate = tgl;
         }
 
+        var sumberData = String(data[i][9] || '').trim();
+        if (!sumberData) sumberData = 'MANUAL';
         agenda.push({
           id: data[i][0],
           tanggalISO: Utilities.formatDate(tgl, CONFIG.TIMEZONE, 'yyyy-MM-dd'),
           tanggal: Utilities.formatDate(tgl, CONFIG.TIMEZONE, 'dd MMM yyyy'),
           kegiatan: data[i][5] || '',
           hasil: data[i][6] || '',
-          keterangan: data[i][7] || ''
+          keterangan: data[i][7] || '',
+          sumberData: sumberData
         });
       }
 

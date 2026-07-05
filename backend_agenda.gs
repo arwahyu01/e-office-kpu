@@ -749,7 +749,6 @@ function autoSaveLKHAll(progressId, workflowId, pjEmail, anggotaEmails, namaProg
     var allEmails = [pjEmail].concat(anggotaEmails || []).filter(Boolean);
     if (!allEmails.length) return;
 
-    // Get workflow & agenda context
     var wfSh = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.MASTER_WORKFLOW);
     var wfRows = wfSh.getDataRange().getValues();
     var agendaId = "", wfNama = "", wfTarget = "";
@@ -772,7 +771,6 @@ function autoSaveLKHAll(progressId, workflowId, pjEmail, anggotaEmails, namaProg
 
     var now = new Date();
     var tglStr = Utilities.formatDate(now, AGENDA_TIMEZONE, "yyyy-MM-dd");
-    // Ambil target dari progress (priority), fallback ke workflow target, lalu agenda jenis
     var progSh2 = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.MASTER_PROGRESS);
     var progRows2 = progSh2.getDataRange().getValues();
     var progTarget = "";
@@ -782,8 +780,8 @@ function autoSaveLKHAll(progressId, workflowId, pjEmail, anggotaEmails, namaProg
     var hasilLkh = progTarget || wfTarget || jenisToHasilType(agendaJenis || '');
     var kegiatanLkh = '[' + (agendaJenis || 'UMUM') + '] ' + (agendaJudul || '') + ' — ' + (wfNama || '') + ' — ' + namaProgress;
     var keteranganLkh = generateKeteranganLKH(hasilLkh, realisasi, namaProgress, agendaJudul);
+    var referensi = [progressId, workflowId, agendaId].filter(Boolean).join(':');
 
-    // Cari LKH_REFERENCE_ID dari MASTER_PROGRESS (untuk PJ)
     var progSh = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.MASTER_PROGRESS);
     var progRows = progSh.getDataRange().getValues();
     var lkhRefIdsStr = "";
@@ -796,29 +794,45 @@ function autoSaveLKHAll(progressId, workflowId, pjEmail, anggotaEmails, namaProg
       }
     }
     var lkhRefIds = lkhRefIdsStr ? lkhRefIdsStr.split(',') : [];
-    var existingRefIds = [];
+    var newRefIds = [];
+    var lkhData = sh.getDataRange().getValues();
 
     allEmails.forEach(function(email) {
       var peg = getPegawaiByEmail(email);
       var nama = peg ? peg.nama : email;
       var nip = peg ? peg.nip : "";
 
-      // Cari apakah sudah ada LKH untuk email ini
-      var found = false;
+      var existingLkhId = "";
       for (var j = 0; j < lkhRefIds.length; j++) {
-        if (lkhRefIds[j].indexOf(email) !== -1) { found = true; break; }
+        if (lkhRefIds[j].indexOf(email + ':') === 0) {
+          existingLkhId = lkhRefIds[j].split(':')[1];
+          break;
+        }
       }
 
-      if (!found) {
+      if (existingLkhId) {
+        for (var r = 1; r < lkhData.length; r++) {
+          if (String(lkhData[r][0] || '') === existingLkhId) {
+            var rn = r + 1;
+            sh.getRange(rn, 5).setValue(tglStr);
+            sh.getRange(rn, 6).setValue(kegiatanLkh);
+            sh.getRange(rn, 7).setValue(hasilLkh);
+            sh.getRange(rn, 8).setValue(keteranganLkh);
+            sh.getRange(rn, 9).setValue(now);
+            sh.getRange(rn, 10).setValue("AGENDA");
+            sh.getRange(rn, 11).setValue(referensi);
+            break;
+          }
+        }
+      } else {
         var lkhId = Utilities.getUuid();
-        sh.appendRow([lkhId, email, nip, nama, tglStr, kegiatanLkh, hasilLkh, keteranganLkh, now, "AGENDA"]);
-        existingRefIds.push(email + ':' + lkhId);
+        sh.appendRow([lkhId, email, nip, nama, tglStr, kegiatanLkh, hasilLkh, keteranganLkh, now, "AGENDA", referensi]);
+        newRefIds.push(email + ':' + lkhId);
       }
     });
 
-    // Simpan LKH_REFERENCE_ID ke MASTER_PROGRESS jika ada baru
-    if (existingRefIds.length && progRowNum > 0) {
-      var allRefs = lkhRefIds.concat(existingRefIds);
+    if (newRefIds.length && progRowNum > 0) {
+      var allRefs = lkhRefIds.concat(newRefIds);
       progSh.getRange(progRowNum, 13).setValue(allRefs.join(','));
     }
   } catch (err) {
@@ -901,13 +915,33 @@ function deleteProgress(id, userEmail) {
     for (let i = 1; i < rows.length; i++) {
       if (rows[i][0] === id) {
         const wfId = rows[i][1];
-        // Hapus evidence terkait
         const shEv = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.MASTER_EVIDENCE);
         if (shEv) {
           const evData = shEv.getDataRange().getValues();
           for (let j = evData.length - 1; j >= 1; j--) {
             if (evData[j][1] === id) shEv.deleteRow(j + 1);
           }
+        }
+        // Hapus LKH entry terkait
+        var lkhRefStr = String(rows[i][12] || '').trim();
+        if (lkhRefStr) {
+          try {
+            var lkhRefs = lkhRefStr.split(',');
+            var lkhSheet = SpreadsheetApp.openById(AGENDA_MASTER_SHEET_ID).getSheetByName('AGENDA');
+            if (lkhSheet && lkhSheet.getLastRow() >= 2) {
+              var lkhData = lkhSheet.getDataRange().getValues();
+              for (var li = lkhData.length - 1; li >= 1; li--) {
+                var lkhIdCell = String(lkhData[li][0] || '').trim();
+                for (var ri = 0; ri < lkhRefs.length; ri++) {
+                  var parts = lkhRefs[ri].split(':');
+                  if (parts.length === 2 && parts[1] === lkhIdCell) {
+                    lkhSheet.deleteRow(li + 1);
+                    break;
+                  }
+                }
+              }
+            }
+          } catch(e) { console.error('cleanup LKH error:', e); }
         }
         sh.deleteRow(i + 1);
         checkAndUpdateWorkflowStatus(wfId);
@@ -1140,48 +1174,6 @@ function getActivityLog(referensi, limit) {
 }
 
 // =============================================
-// INTEGRASI LKH — Progress selesai → jadikan LKH
-// =============================================
-function getProgressSelesaiForLKH(userEmail) {
-  try {
-    if (!userEmail) return { success: false, message: "Email tidak valid" };
-
-    // Ambil semua agenda yang terkait user
-    const list = getListAgenda({ userEmail, role: "USER" });
-    if (!list.success) return list;
-
-    const result = [];
-
-    list.data.forEach(agenda => {
-      if (agenda.status !== "SELESAI") return;
-      const wfs = getWorkflowByAgendaId(agenda.id);
-      wfs.forEach(wf => {
-        if (wf.status !== "SELESAI") return;
-        const progs = getProgressByWorkflowId(wf.id);
-        progs.forEach(p => {
-          if (p.status === "SELESAI" && p.realisasi) {
-            result.push({
-              agendaId: agenda.id,
-              agendaJudul: agenda.judul,
-              agendaJenis: agenda.jenis || '',
-              workflowNama: wf.namaWorkflow,
-              progressId: p.id,
-              progressNama: p.namaProgress,
-              realisasi: p.realisasi,
-              tanggalSelesai: p.updatedAt
-            });
-          }
-        });
-      });
-    });
-
-    return { success: true, data: result };
-  } catch (err) {
-    return { success: false, message: err.message };
-  }
-}
-
-// =============================================
 // KALENDER KEGIATAN
 // =============================================
 function getCalendarData(userEmail, bulan, tahun) {
@@ -1365,7 +1357,46 @@ function getUserActivityLog(userEmail, limit) {
 // =============================================
 // MY ACTIVITY DASHBOARD — KEGIATAN SAYA (DRAMATIC)
 // =============================================
-function getMyActivityDashboard(userEmail) {
+function getPeriodRange(optYear, optMonth) {
+  var now = new Date();
+  var today = now.getDate();
+  var thisMonth = now.getMonth();
+  var thisYear = now.getFullYear();
+
+  var endMonth, endYear;
+  if (optYear && optMonth !== undefined && optMonth !== null) {
+    endMonth = optMonth - 1;
+    endYear = optYear;
+  } else {
+    if (today >= 21) {
+      endMonth = thisMonth + 1;
+      endYear = thisYear;
+      if (endMonth > 11) { endMonth = 0; endYear++; }
+    } else {
+      endMonth = thisMonth;
+      endYear = thisYear;
+    }
+  }
+
+  var startMonth = endMonth - 1;
+  var startYear = endYear;
+  if (startMonth < 0) { startMonth = 11; startYear--; }
+
+  var startDate = new Date(startYear, startMonth, 21, 0, 0, 0);
+  var endDate = new Date(endYear, endMonth, 20, 23, 59, 59);
+
+  return {
+    start: startDate,
+    end: endDate,
+    startLabel: Utilities.formatDate(startDate, AGENDA_TIMEZONE, "dd MMM yyyy"),
+    endLabel: Utilities.formatDate(endDate, AGENDA_TIMEZONE, "dd MMM yyyy"),
+    periodLabel: Utilities.formatDate(startDate, AGENDA_TIMEZONE, "dd MMM") + ' - ' + Utilities.formatDate(endDate, AGENDA_TIMEZONE, "dd MMM yyyy"),
+    endMonth: endMonth + 1,
+    endYear: endYear
+  };
+}
+
+function getMyActivityDashboard(userEmail, optYear, optMonth) {
   try {
     ensureAgendaSheets();
     var ss = getAgendaSpreadsheet();
@@ -1375,22 +1406,27 @@ function getMyActivityDashboard(userEmail) {
     var userNama = peg ? peg.nama : email;
     var userRole = peg ? peg.jabatan : '';
 
-    // 1. Stats from activity log
+    var period = getPeriodRange(optYear, optMonth);
+    var periodStart = period.start;
+    var periodEnd = period.end;
+
+    // Read activity log
     var logSh = ss.getSheetByName(AGENDA_SHEETS.MASTER_ACTIVITY_LOG);
     var logData = logSh && logSh.getLastRow() >= 2 ? logSh.getDataRange().getValues() : [];
-    var stats = { total: 0, membuat: 0, mengupdate: 0, menghapus: 0, workflow: 0, progress: 0, evidence: 0, mingguIni: 0 };
-    // 2. Build activity list
+    var stats = { total: 0, membuat: 0, mengupdate: 0, menghapus: 0, workflow: 0, progress: 0, evidence: 0 };
     var activities = [];
-    var agendaMap = {};
+    var agendaMeta = {};
+
     try {
       var agSh = ss.getSheetByName(AGENDA_SHEETS.MASTER_AGENDA);
       if (agSh && agSh.getLastRow() >= 2) {
         var agRows = agSh.getDataRange().getValues();
-        for (var ai = 1; ai < agRows.length; ai++) agendaMap[agRows[ai][0]] = agRows[ai][2] || '';
+        for (var ai = 1; ai < agRows.length; ai++) {
+          agendaMeta[agRows[ai][0]] = { judul: agRows[ai][2] || '', status: agRows[ai][7] || '', sumber: agRows[ai][3] || '', prioritas: agRows[ai][6] || '' };
+        }
       }
     } catch(e) {}
 
-    // Evidence map: count evidence per agenda ID
     var evCountMap = {};
     try {
       var evSh = ss.getSheetByName(AGENDA_SHEETS.MASTER_EVIDENCE);
@@ -1404,19 +1440,17 @@ function getMyActivityDashboard(userEmail) {
       }
     } catch(e) {}
 
-    // Progress → agenda ID mapping
-    var progressAgendaMap = {};
+    var progressWorkflowMap = {};
     try {
       var progSh = ss.getSheetByName(AGENDA_SHEETS.MASTER_PROGRESS);
       if (progSh && progSh.getLastRow() >= 2) {
         var progRows = progSh.getDataRange().getValues();
         for (var pi = 1; pi < progRows.length; pi++) {
-          var workflowId = String(progRows[pi][1] || '').trim();
-          progressAgendaMap[progRows[pi][0]] = workflowId; // progressId → workflowId
+          progressWorkflowMap[progRows[pi][0]] = String(progRows[pi][1] || '').trim();
         }
       }
     } catch(e) {}
-    // workflowId → agendaId
+
     var workflowAgendaMap = {};
     try {
       var wfSh = ss.getSheetByName(AGENDA_SHEETS.MASTER_WORKFLOW);
@@ -1428,58 +1462,157 @@ function getMyActivityDashboard(userEmail) {
       }
     } catch(e) {}
 
-    var oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    var evidencePerAgenda = {};
+    Object.keys(evCountMap).forEach(function(progId) {
+      var wfId = progressWorkflowMap[progId] || '';
+      var agId = workflowAgendaMap[wfId] || '';
+      if (agId) {
+        if (!evidencePerAgenda[agId]) evidencePerAgenda[agId] = 0;
+        evidencePerAgenda[agId] += evCountMap[progId];
+      }
+    });
 
     for (var i = logData.length - 1; i >= 1; i--) {
       if (String(logData[i][1] || '').toLowerCase().trim() !== email) continue;
+      var logDate;
+      try { logDate = new Date(logData[i][4]); } catch(e) { continue; }
+      if (logDate < periodStart || logDate > periodEnd) continue;
+
       stats.total++;
       var rawAktivitas = String(logData[i][2] || '').trim();
       if (rawAktivitas === 'BUAT_AGENDA') stats.membuat++;
-      else if (rawAktivitas === 'UPDATE_AGENDA' || rawAktivitas === 'HAPUS_AGENDA') {
-        if (rawAktivitas === 'UPDATE_AGENDA') stats.mengupdate++;
-        else stats.menghapus++;
-      }
+      else if (rawAktivitas === 'UPDATE_AGENDA') stats.mengupdate++;
+      else if (rawAktivitas === 'HAPUS_AGENDA') stats.menghapus++;
       else if (rawAktivitas.indexOf('WORKFLOW') >= 0) stats.workflow++;
       else if (rawAktivitas.indexOf('PROGRESS') >= 0) stats.progress++;
       else if (rawAktivitas.indexOf('EVIDENCE') >= 0) stats.evidence++;
 
-      try {
-        var logDate = new Date(logData[i][4]);
-        if (logDate >= oneWeekAgo) stats.mingguIni++;
-      } catch(e) {}
-
       var refId = String(logData[i][3] || '').trim();
-      var judul = agendaMap[refId] || '';
+      var meta = agendaMeta[refId] || {};
       var waktu = '';
-      try { waktu = Utilities.formatDate(new Date(logData[i][4]), AGENDA_TIMEZONE, "dd MMM yyyy HH:mm"); } catch(e) { waktu = String(logData[i][4] || ''); }
-
-      // Evidence count: map progressId → agendaId, then sum per agenda
-      var evCount = 0;
-      if (rawAktivitas.indexOf('EVIDENCE') >= 0 && refId) {
-        Object.keys(evCountMap).forEach(function(k) {
-          if (k === refId) evCount += evCountMap[k];
-        });
-      }
+      try { waktu = Utilities.formatDate(logDate, AGENDA_TIMEZONE, "dd MMM yyyy HH:mm"); } catch(e) { waktu = String(logData[i][4] || ''); }
 
       activities.push({
         aktivitas: rawAktivitas, aktivitasLabel: getActivityLabel(rawAktivitas),
-        referensi: refId, judul: judul, waktu: waktu, evidenceCount: evCount
+        referensi: refId, judul: meta.judul || '', waktu: waktu
       });
       if (activities.length >= 50) break;
     }
 
-    // Total evidence count
-    var totalEvidence = 0;
-    Object.keys(evCountMap).forEach(function(k) { totalEvidence += evCountMap[k]; });
+    var userAgendaIds = {};
+    try {
+      var agSh2 = ss.getSheetByName(AGENDA_SHEETS.MASTER_AGENDA);
+      if (agSh2 && agSh2.getLastRow() >= 2) {
+        var agRows2 = agSh2.getDataRange().getValues();
+        for (var aj = 1; aj < agRows2.length; aj++) {
+          if (String(agRows2[aj][13] || '').toLowerCase().trim() === email) {
+            userAgendaIds[agRows2[aj][0]] = true;
+          }
+        }
+      }
+    } catch(e) {}
+
+    try {
+      var assignSh = ss.getSheetByName(AGENDA_SHEETS.MASTER_ASSIGNMENT);
+      if (assignSh && assignSh.getLastRow() >= 2) {
+        var assignRows = assignSh.getDataRange().getValues();
+        for (var asi = 1; asi < assignRows.length; asi++) {
+          if (String(assignRows[asi][2] || '').toLowerCase().trim() === email) {
+            userAgendaIds[assignRows[asi][1]] = true;
+          }
+        }
+      }
+    } catch(e) {}
+
+    try {
+      var wfSh2 = ss.getSheetByName(AGENDA_SHEETS.MASTER_WORKFLOW);
+      if (wfSh2 && wfSh2.getLastRow() >= 2) {
+        var wfRows2 = wfSh2.getDataRange().getValues();
+        for (var wi2 = 1; wi2 < wfRows2.length; wi2++) {
+          if (String(wfRows2[wi2][6] || '').toLowerCase().trim() === email) {
+            userAgendaIds[wfRows2[wi2][1]] = true;
+          }
+        }
+      }
+    } catch(e) {}
+
+    try {
+      var progSh2 = ss.getSheetByName(AGENDA_SHEETS.MASTER_PROGRESS);
+      if (progSh2 && progSh2.getLastRow() >= 2) {
+        var progRows2 = progSh2.getDataRange().getValues();
+        for (var pj = 1; pj < progRows2.length; pj++) {
+          if (String(progRows2[pj][8] || '').toLowerCase().trim() === email) {
+            var wfId = String(progRows2[pj][1] || '').trim();
+            var agIdPj = workflowAgendaMap[wfId] || '';
+            if (agIdPj) userAgendaIds[agIdPj] = true;
+          }
+        }
+      }
+    } catch(e) {}
+
+    var completedAgendas = [];
+    try {
+      var agSh3 = ss.getSheetByName(AGENDA_SHEETS.MASTER_AGENDA);
+      if (agSh3 && agSh3.getLastRow() >= 2) {
+        var agRows3 = agSh3.getDataRange().getValues();
+        for (var aj3 = 1; aj3 < agRows3.length; aj3++) {
+          var agId = agRows3[aj3][0];
+          var status = String(agRows3[aj3][7] || '').trim().toLowerCase();
+          if (!userAgendaIds[agId] || status !== 'selesai') continue;
+          var updatedAt;
+          try { updatedAt = new Date(agRows3[aj3][15]); } catch(e) { continue; }
+          if (updatedAt < periodStart || updatedAt > periodEnd) continue;
+
+          completedAgendas.push({
+            id: agId,
+            judul: agRows3[aj3][2] || '',
+            sumber: agRows3[aj3][3] || '',
+            prioritas: agRows3[aj3][6] || '',
+            tanggalSelesai: Utilities.formatDate(updatedAt, AGENDA_TIMEZONE, "dd MMM yyyy"),
+            evidenceCount: evidencePerAgenda[agId] || 0
+          });
+        }
+      }
+    } catch(e) {}
+
+    var completedProgress = [];
+    try {
+      var progSh3 = ss.getSheetByName(AGENDA_SHEETS.MASTER_PROGRESS);
+      if (progSh3 && progSh3.getLastRow() >= 2) {
+        var progRows3 = progSh3.getDataRange().getValues();
+        for (var pp = 1; pp < progRows3.length; pp++) {
+          var pjEmail = String(progRows3[pp][8] || '').toLowerCase().trim();
+          if (pjEmail !== email) continue;
+          var progStatus = String(progRows3[pp][4] || '').trim().toUpperCase();
+          var progPersen = Number(progRows3[pp][5] || 0);
+          if (progStatus !== 'SELESAI' && progPersen < 100) continue;
+          var progUpdated;
+          try { progUpdated = new Date(progRows3[pp][11]); } catch(e) { continue; }
+          if (progUpdated < periodStart || progUpdated > periodEnd) continue;
+          var progId = progRows3[pp][0];
+          var wfId = progressWorkflowMap[progId] || '';
+          var agId = workflowAgendaMap[wfId] || '';
+          var meta = agendaMeta[agId] || {};
+          completedProgress.push({
+            id: progId, namaProgress: progRows3[pp][3] || '',
+            agendaId: agId, judulAgenda: meta.judul || '',
+            sumber: meta.sumber || '',
+            tanggalSelesai: Utilities.formatDate(progUpdated, AGENDA_TIMEZONE, "dd MMM yyyy"),
+            evidenceCount: evCountMap[progId] || 0
+          });
+        }
+      }
+    } catch(e) {}
 
     return {
       success: true,
+      period: { start: period.startLabel, end: period.endLabel, label: period.periodLabel, endMonth: period.endMonth, endYear: period.endYear },
       userNama: userNama,
       userRole: userRole,
       stats: stats,
       activities: activities,
-      totalEvidence: totalEvidence
+      completedAgendas: completedAgendas,
+      completedProgress: completedProgress
     };
   } catch (err) {
     return { success: false, message: err.message };

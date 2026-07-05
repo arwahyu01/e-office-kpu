@@ -212,8 +212,52 @@
 - **README.md**: Dokumentasi proyek (fitur, struktur, teknologi, deployment)
 - **`.gitignore`**: File ignores untuk OS dan log
 
+## v2.14.0 — 5 Jul 2026 (Kegiatan Saya Period-Based + Auto LKH Fix + Cleanup Manual Submit)
+
+### Perubahan
+
+#### 1. Kegiatan Saya — Period-Based Achievement
+- **[New] `getPeriodRange()`** — helper backend hitung periode 21 → 20 (jika tgl ≥ 21: periode = bulan ini 21 → bulan depan 20; jika < 21: bulan lalu 21 → bulan ini 20)
+- **[Ubah] `getMyActivityDashboard()`** — sekarang terima `optYear, optMonth` untuk navigasi periode; filter aktivitas log berdasarkan rentang periode
+- **[New] Period navigasi** — prev/next + tombol "Periode Saat Ini" di frontend
+- **[New] 3-level tampilan Capaian**:
+  - **Pekerjaan Selesai** — agenda utuh yg statusnya `selesai` (user sebagai pembuat/assignment/PIC/PJ)
+  - **Tugas Selesai** — progress item dengan persentase 100% (user sebagai PJ)
+  - **Riwayat Aktivitas** — log aktivitas per periode
+- **[Ubah] Daftar capaian digabung jadi satu** — agenda selesai + progress selesai dalam 1 section "Capaian", diurutkan tanggal, jelas asal-usulnya (agenda vs tugas)
+- **Parameter relasi user ke agenda**: `CREATED_BY_EMAIL` (pembuat), `MASTER_ASSIGNMENT.EMAIL_PEGAWAI` (ditugaskan), `MASTER_WORKFLOW.PIC_EMAIL` (PIC workflow), `MASTER_PROGRESS.PJ_EMAIL` (PJ progress, trace via workflow → agenda)
+
+#### 2. Auto LKH — UPDATE instead of SKIP
+- **[Fix] `autoSaveLKHAll()`** — jika entry LKH sudah ada (deteksi via `LKH_REFERENCE_ID`), sekarang **UPDATE** baris LKH yang sama (KEGIATAN, HASIL, KETERANGAN, TANGGAL, SUMBER) — dulu hanya **skip**
+- **[New] Kolom REFERENSI** di sheet AGENDA (kolom 11) — menyimpan `progressId:workflowId:agendaId` untuk tracking dua arah
+- **[Fix] `deleteProgress()`** — cleanup otomatis: hapus entry LKH di sheet AGENDA jika `REFERENSI` cocok dengan progress yang dihapus
+
+#### 3. Hapus Manual Submit LKH dari UI Agenda
+- **[Hapus] `getProgressSelesaiForLKH()`** — backend endpoint tidak lagi digunakan
+- **[Hapus] Section "Integrasi LKH"** di detail agenda (HTML + collapsible card)
+- **[Hapus] Modal LKH** (`#modalLKH`) — pilih progress checkbox + tombol "Jadikan LKH"
+- **[Hapus] Fungsi frontend**: `loadLKHIntegration()`, `openModalLKH()`, `toggleLKHSelect()`, `closeModalLKH()`, `submitLKH()`
+- **[Hapus] Variabel `lkhSelectedProgress`**, `window._lkhData`
+- **[Hapus] Tombol "LKH"** dari timeline aktivitas saya dan kalender timeline
+
+#### 4. Dashboard LKH — Badge Sumber Data
+- **[New] Field `sumberData`** di `getFullDashboardData()` — baca dari kolom SUMBER (col 9), fallback "MANUAL"
+- **[New] Badge "Agenda" / "Manual"** di tabel LKH dashboard utama (`index.html`)
+
+#### 5. Notulen → Progress → LKH
+- **[Fix] `updateProgressFromNotulen()`** — sekarang trigger `autoSaveLKHAll()` jika status progress = SELESAI setelah update catatan
+- **[Fix] Baca 14 kolom** MASTER_PROGRESS (sebelumnya hanya 12) agar `ANGGOTA_EMAILS` terbaca
+
+### Files Changed
+- `backend_agenda.gs` — `getPeriodRange()` baru, `getMyActivityDashboard()` dirombak, `autoSaveLKHAll()` support UPDATE + REFERENSI, `deleteProgress()` cleanup LKH, hapus `getProgressSelesaiForLKH()`
+- `agenda.html` — section Kegiatan Saya dirombak (period nav, capaian gabung), hapus semua UI manual LKH
+- `style_agenda.html` — CSS `.period-bar`, `.period-label`
+- `Code.gs` — `getFullDashboardData()` tambah field `sumberData`
+- `index.html` — badge sumber data di tabel LKH
+- `notulen.gs` — `updateProgressFromNotulen()` trigger auto-save + baca 14 kolom
+
 ### Planned
-- v2.13 — Notifikasi email assignment / reminder rapat
+- v2.15 — Notifikasi email assignment / reminder rapat
 - v2.10 — Template notulen multiple (Coktas/Pleno/Rakor/Bimtek/Sosialisasi)
 - v2.11 — Agenda: folder per subbag + upload evidence ke Drive
 - v3.0 — Approval workflow

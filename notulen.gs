@@ -733,23 +733,37 @@ function updateProgressFromNotulen(agendaId, catatan, userEmail) {
     var ss = SpreadsheetApp.openById("1-xohP9CXPUIOL8Ar8L_L3xTOfs_S6fMkUj098nmyE10");
     var sh = ss.getSheetByName("MASTER_PROGRESS");
     if (!sh) return false;
-    var rows = _readSheet(sh, 12);
+    var rows = _readSheet(sh, 14);
     var wfSh = ss.getSheetByName("MASTER_WORKFLOW");
     if (!wfSh) return false;
-    var wfRows = _readSheet(wfSh, 1);
+    var wfRows = _readSheet(wfSh, 2);
     for (var i = 1; i < rows.length; i++) {
       for (var j = 1; j < wfRows.length; j++) {
         if (wfRows[j][0] === rows[i][1]) {
           var existing = rows[i][9] || '';
+          var progressId = rows[i][0];
+          var workflowId = rows[i][1];
+          var status = String(rows[i][4] || '').trim();
+          var namaProgress = rows[i][3] || '';
+          var realisasi = rows[i][7] || '';
+          var pjEmail = String(rows[i][8] || '').trim();
+          var anggotaRaw = String(rows[i][13] || '').trim();
+          var anggotaList = [];
+          try { if (anggotaRaw) anggotaList = JSON.parse(anggotaRaw); } catch(e) {}
+
           sh.getRange(i + 1, 10).setValue(existing + '\n[Notulen] ' + catatan);
           sh.getRange(i + 1, 12).setValue(new Date());
+
+          if (status === 'SELESAI' && realisasi) {
+            autoSaveLKHAll(progressId, workflowId, pjEmail, anggotaList, namaProgress, realisasi, status);
+          }
           return true;
         }
       }
     }
     return false;
   } catch (e) {
-    console.warn('Gagal update progress:', e.message);
+    console.warn('Gagal update progress:', e.getMessage());
     return false;
   }
 }
