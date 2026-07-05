@@ -854,7 +854,7 @@ function getListAgendaForNotulen() {
 function getDataPegawai() {
   try {
     return getAllPegawai().map(function(p) {
-      return { nama: p.nama, jabatan: p.jabatan, email: p.email };
+      return { nama: p.nama, jabatan: p.jabatan, email: p.email, subbag: p.subbag, hakAkses: p.hakAkses };
     }).sort(function(a, b) { return a.nama.localeCompare(b.nama); });
   } catch (err) {
     return [];

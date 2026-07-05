@@ -449,6 +449,14 @@
                             </div>
                             <div style="margin-top:18px;border-top:1px solid #e5e7eb;padding-top:18px;">
                                 <h4 style="font-size:14px;font-weight:700;margin:0 0 12px;"><i class="fas fa-users"></i> Peserta Rapat</h4>
+                                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
+                                    <button type="button" class="btn-sm-outline" onclick="pilihSemuaPegawai()" style="font-size:12px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:20px;background:#f8fafc;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#f8fafc'"><i class="fas fa-users"></i> Semua Pegawai</button>
+                                    <button type="button" class="btn-sm-outline" onclick="pilihKomisionerDanSekretariat()" style="font-size:12px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:20px;background:#f8fafc;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#f8fafc'"><i class="fas fa-gavel"></i> Komisioner & Sekretariat</button>
+                                    <button type="button" class="btn-sm-outline" onclick="pilihSubbag('Keuangan, Umum dan Logistik')" style="font-size:12px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:20px;background:#f8fafc;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#f8fafc'">📂 Keuangan, Umum & Logistik</button>
+                                    <button type="button" class="btn-sm-outline" onclick="pilihSubbag('Teknis Penyelenggara dan Hukum')" style="font-size:12px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:20px;background:#f8fafc;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#f8fafc'">📂 Teknis Penyelenggara & Hukum</button>
+                                    <button type="button" class="btn-sm-outline" onclick="pilihSubbag('Perencanaan Data dan Informasi')" style="font-size:12px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:20px;background:#f8fafc;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#f8fafc'">📂 Perencanaan Data & Informasi</button>
+                                    <button type="button" class="btn-sm-outline" onclick="pilihSubbag('Sumber Daya Manusia dan Partisipasi Masyarakat')" style="font-size:12px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:20px;background:#f8fafc;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#f8fafc'">📂 SDM & Partisipasi Masyarakat</button>
+                                </div>
                                 <div id="pesertaChipContainer" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;min-height:32px;"></div>
                                 <div style="display:flex;gap:8px;">
                                     <input type="text" id="pesertaSearch" class="form-control" style="flex:1;" placeholder="Cari pegawai..." oninput="searchPeserta(this.value)" autocomplete="off">
@@ -1868,6 +1876,54 @@
         function clearPeserta() {
             _selectedPeserta = [];
             renderPesertaChips();
+        }
+
+        function pilihSemuaPegawai() {
+            if (!_pegawaiCache.length) return;
+            _selectedPeserta = _pegawaiCache.map(function(p) {
+                return { nama: p.nama, jabatan: p.jabatan, email: p.email };
+            });
+            renderPesertaChips();
+            document.getElementById('pesertaSearch').value = '';
+            document.getElementById('pesertaDropdown').style.display = 'none';
+            simpanDraft();
+        }
+
+        function pilihKomisionerDanSekretariat() {
+            if (!_pegawaiCache.length) return;
+            var roles = ['KOMISIONER', 'SEKRETARIS', 'KASUBBAG'];
+            var list = _pegawaiCache.filter(function(p) {
+                return roles.indexOf((p.hakAkses || '').toUpperCase()) !== -1;
+            });
+            if (!list.length) {
+                Swal.fire('Informasi', 'Tidak ada data komisioner/sekreteris ditemukan.', 'info');
+                return;
+            }
+            _selectedPeserta = list.map(function(p) {
+                return { nama: p.nama, jabatan: p.jabatan, email: p.email };
+            });
+            renderPesertaChips();
+            document.getElementById('pesertaSearch').value = '';
+            document.getElementById('pesertaDropdown').style.display = 'none';
+            simpanDraft();
+        }
+
+        function pilihSubbag(subbag) {
+            if (!_pegawaiCache.length) return;
+            var list = _pegawaiCache.filter(function(p) {
+                return p.subbag === subbag;
+            });
+            if (!list.length) {
+                Swal.fire('Informasi', 'Tidak ada pegawai di subbag ' + subbag, 'info');
+                return;
+            }
+            _selectedPeserta = list.map(function(p) {
+                return { nama: p.nama, jabatan: p.jabatan, email: p.email };
+            });
+            renderPesertaChips();
+            document.getElementById('pesertaSearch').value = '';
+            document.getElementById('pesertaDropdown').style.display = 'none';
+            simpanDraft();
         }
         // ======================
         // JALANNYA RAPAT
