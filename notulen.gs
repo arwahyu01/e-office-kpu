@@ -1024,9 +1024,10 @@ function buildNotulaPrompt(notulenData) {
   if (notulenData.pesertaList && notulenData.pesertaList.length) {
     context += '\n8. Peserta:\n';
     var sortedPeserta = notulenData.pesertaList.slice().sort(function(a, b) {
-      var priority = { 'KETUA': 1, 'WAKIL KETUA': 2, 'ANGGOTA': 3, 'SEKRETARIS': 4, 'KASUBBAG': 5, 'KEPALA SUBBAG': 5, 'KEPALA': 5 };
-      var pa = priority[a.jabatan] || 99;
-      var pb = priority[b.jabatan] || 99;
+      var ja = (a.jabatan || '').toUpperCase();
+      var jb = (b.jabatan || '').toUpperCase();
+      var pa = ja === 'KETUA' ? 1 : (ja.indexOf('WAKIL') !== -1 && ja.indexOf('KETUA') !== -1) ? 2 : ja === 'ANGGOTA' ? 3 : ja.indexOf('SEKRETARIS') !== -1 ? 4 : (ja.indexOf('KEPALA') !== -1 || ja === 'KASUBBAG') ? 5 : 99;
+      var pb = jb === 'KETUA' ? 1 : (jb.indexOf('WAKIL') !== -1 && jb.indexOf('KETUA') !== -1) ? 2 : jb === 'ANGGOTA' ? 3 : jb.indexOf('SEKRETARIS') !== -1 ? 4 : (jb.indexOf('KEPALA') !== -1 || jb === 'KASUBBAG') ? 5 : 99;
       if (pa !== pb) return pa - pb;
       return (a.no || 999) - (b.no || 999);
     });

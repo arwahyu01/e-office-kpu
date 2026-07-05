@@ -1812,15 +1812,20 @@
                 .getDataPegawai();
         }
 
+        function getJabatanPriority(jabatan) {
+            var j = (jabatan || '').toUpperCase();
+            if (j === 'KETUA') return 1;
+            if (j.indexOf('WAKIL') !== -1 && j.indexOf('KETUA') !== -1) return 2;
+            if (j === 'ANGGOTA') return 3;
+            if (j.indexOf('SEKRETARIS') !== -1) return 4;
+            if (j.indexOf('KEPALA') !== -1 || j === 'KASUBBAG') return 5;
+            return 99;
+        }
+
         function sortPesertaByJabatan(list) {
-            var priority = {
-                'KETUA': 1, 'WAKIL KETUA': 2, 'ANGGOTA': 3,
-                'SEKRETARIS': 4, 'KASUBBAG': 5,
-                'KEPALA SUBBAG': 5, 'KEPALA': 5
-            };
             return list.slice().sort(function(a, b) {
-                var pa = priority[a.jabatan] || 99;
-                var pb = priority[b.jabatan] || 99;
+                var pa = getJabatanPriority(a.jabatan);
+                var pb = getJabatanPriority(b.jabatan);
                 if (pa !== pb) return pa - pb;
                 return (a.no || 999) - (b.no || 999);
             });
