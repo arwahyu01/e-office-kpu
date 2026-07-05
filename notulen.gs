@@ -88,7 +88,6 @@ Jika pimpinan rapat dari data konteks adalah nama anggota KPU, gunakan panggilan
    BENAR: "1. Ahmad (Ketua)\n2. Budi (Sekretaris)"
    SALAH: "Peserta:\n1. Ahmad (Ketua)"
    SALAH: "Peserta rapat: Ahmad, Budi"
-   PENTING: Urutkan peserta SESUAI URUTAN dalam data konteks. Jangan ubah urutan.
 
 6. "isi_notula" → NARASI RAPAT MURNI. HARUS langsung dimulai dengan narasi.
    TIDAK BOLEH ada: heading, judul, hari, tanggal, tempat, peserta, label apa pun.
@@ -941,6 +940,23 @@ function generateNotulaAI(notulenId) {
     aiResult.jabatan_atasan = _findJabatanPegawai(aiResult.atasan_langsung);
     aiResult.jabatan_notulis = _findJabatanPegawai(n.notulis);
 
+    // Timpa peserta dengan urutan dari database (AI sering ubah urutan)
+    if (n.pesertaList && n.pesertaList.length) {
+      var sortedPeserta = n.pesertaList.slice().sort(function(a, b) {
+        var ja = (a.jabatan || '').toUpperCase();
+        var jb = (b.jabatan || '').toUpperCase();
+        var pa = ja === 'KETUA' ? 1 : (ja.indexOf('WAKIL') !== -1 && ja.indexOf('KETUA') !== -1) ? 2 : ja === 'ANGGOTA' ? 3 : ja.indexOf('SEKRETARIS') !== -1 ? 4 : (ja.indexOf('KEPALA') !== -1 || ja === 'KASUBBAG') ? 5 : 99;
+        var pb = jb === 'KETUA' ? 1 : (jb.indexOf('WAKIL') !== -1 && jb.indexOf('KETUA') !== -1) ? 2 : jb === 'ANGGOTA' ? 3 : jb.indexOf('SEKRETARIS') !== -1 ? 4 : (jb.indexOf('KEPALA') !== -1 || jb === 'KASUBBAG') ? 5 : 99;
+        if (pa !== pb) return pa - pb;
+        return (a.no || 999) - (b.no || 999);
+      });
+      var pesertaText = '';
+      sortedPeserta.forEach(function(p, i) {
+        pesertaText += (i + 1) + '. ' + p.nama + ' (' + (p.jabatan || '-') + ')\n';
+      });
+      aiResult.peserta = pesertaText.trim();
+    }
+
     // Default tempat jika AI tidak menyimpulkan
     if (!aiResult.tempat) aiResult.tempat = "Aula Rapat Lt.2 KPU Kabupaten Siak";
 
@@ -1053,7 +1069,7 @@ function buildNotulaPrompt(notulenData) {
 
   return [
     { role: 'system', content: NOTULA_SYSTEM_PROMPT },
-    { role: 'user', content: 'Isi nilai placeholder berdasarkan data rapat berikut. Jangan buat struktur dokumen. Ikuti urutan peserta dari data.\n\n' + context }
+    { role: 'user', content: 'Isi nilai placeholder berdasarkan data rapat berikut. Jangan buat struktur dokumen.\n\n' + context }
   ];
 }
 
