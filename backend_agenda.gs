@@ -236,9 +236,24 @@ function deriveSumberFromDasar(dasarAgenda) {
   return map[dasarAgenda] || 'LAINNYA';
 }
 
+function getKategoriLabel(kat) {
+  var map = {
+    ADMINISTRASI: '📝 Administrasi',
+    RAPAT: '🤝 Rapat & Koordinasi',
+    PENYUSUNAN: '📄 Penyusunan Dokumen',
+    VERIFIKASI: '🔍 Verifikasi & Monitoring',
+    SOSIALISASI: '📢 Sosialisasi & Pelayanan',
+    TEKNOLOGI: '💻 Teknologi Informasi',
+    PERJALANAN: '🚗 Perjalanan Dinas',
+    KEPEGAWAIAN: '👥 Kepegawaian & SDM',
+    PENGEMBANGAN: '📚 Pengembangan Kompetensi',
+    LAINNYA: '📦 Lainnya'
+  };
+  return map[kat] || kat || '📦 Lainnya';
+}
+
 function jenisToHasilType(jenis) {
-  var docTypes = ['COKLIT','COKTAS','PLENO','PLENO_TERBUKA','BIMTEK','SOSIALISASI','WORKSHOP','FGD','DISEMINASI','PENYUSUNAN','VERIFIKASI','FASILITASI','KEHUMASAN','PELAYANAN_PUBLIK','PROTOKOL','PERSIDANGAN','UMUM','LAINNYA','COK'];
-  var laporanTypes = ['REKAPITULASI','PELAPORAN','MONITORING','EVALUASI','RAKOR','RAPAT_INTERNAL','BRIEFING','RAPAT'];
+  var laporanTypes = ['RAPAT','VERIFIKASI','SOSIALISASI','PERJALANAN','KEPEGAWAIAN','PENGEMBANGAN'];
   if (laporanTypes.indexOf(jenis) !== -1) return 'Laporan';
   return 'Dokumen';
 }
@@ -254,7 +269,7 @@ function createAgenda(data) {
   try {
     ensureAgendaSheets();
     if (!data.judul) return { success: false, message: "Judul agenda wajib diisi", field: "judul" };
-    if (!data.jenis) return { success: false, message: "Jenis kegiatan wajib dipilih", field: "jenis" };
+    if (!data.jenis) return { success: false, message: "Kategori aktivitas wajib dipilih", field: "jenis" };
     if (!data.dasarAgenda) return { success: false, message: "Dasar agenda wajib dipilih", field: "dasarAgenda" };
     if (!data.picEmail) return { success: false, message: "PIC wajib dipilih", field: "pic" };
 
@@ -266,7 +281,7 @@ function createAgenda(data) {
 
     sh.appendRow([
       id, generateNomorAgenda(), data.judul, sumber,
-      data.jenis || "UMUM", data.subbagian || "",
+      data.jenis || "LAINNYA", data.subbagian || "",
       data.prioritas || "SEDANG", "RENCANA", data.targetOutput || "",
       data.deskripsi || "", data.dasarAgenda || "",
       data.tanggalMulai || "", data.tanggalSelesai || "",
@@ -778,7 +793,7 @@ function autoSaveLKHAll(progressId, workflowId, pjEmail, anggotaEmails, namaProg
       if (progRows2[pt][0] === progressId) { progTarget = String(progRows2[pt][6] || "").trim(); break; }
     }
     var hasilLkh = progTarget || wfTarget || jenisToHasilType(agendaJenis || '');
-    var kegiatanLkh = '[' + (agendaJenis || 'UMUM') + '] ' + (agendaJudul || '') + ' — ' + (wfNama || '') + ' — ' + namaProgress;
+    var kegiatanLkh = '[' + getKategoriLabel(agendaJenis) + '] ' + (agendaJudul || '') + ' — ' + (wfNama || '') + ' — ' + namaProgress;
     var keteranganLkh = generateKeteranganLKH(hasilLkh, realisasi, namaProgress, agendaJudul);
     var referensi = [progressId, workflowId, agendaId].filter(Boolean).join(':');
 

@@ -228,7 +228,7 @@
                         <div class="info-item"><span class="label">Pembuat</span><span id="detailPembuat" class="value">-</span></div>
                         <div class="info-item"><span class="label">Subbagian</span><span id="detailSubbag" class="value">-</span></div>
                         <div class="info-item"><span class="label">Sumber</span><span id="detailSumber" class="value">-</span></div>
-                        <div class="info-item"><span class="label">Jenis</span><span id="detailJenis" class="value">-</span></div>
+                        <div class="info-item"><span class="label">Kategori</span><span id="detailJenis" class="value">-</span></div>
                         <div class="info-item"><span class="label">Tanggal Mulai</span><span id="detailTglMulai" class="value">-</span></div>
                         <div class="info-item"><span class="label">Tenggat</span><span id="detailTenggat" class="value">-</span></div>
                     </div>
@@ -292,46 +292,19 @@
         <!-- STEP 1 -->
         <div class="wizard-body" id="wizardStep1">
             <div class="form-group"><label>Judul Agenda <span style="color:#dc2626;">*</span></label><input type="text" id="fJudul" class="form-control" placeholder="Judul agenda" required></div>
-            <div class="form-group" style="margin-top:16px;"><label>Jenis Kegiatan</label>
+            <div class="form-group" style="margin-top:16px;"><label>Kategori Aktivitas <span style="color:#dc2626;">*</span></label>
                 <select id="fJenis" class="form-control">
-                    <option value="">Pilih jenis kegiatan</option>
-                    <optgroup label="🗳️ Tahapan Pemilu">
-                        <option value="COKLIT">Coklit — Pencocokan & Penelitian</option>
-                        <option value="COKTAS">Coktas — Pengawasan</option>
-                        <option value="PLENO">Pleno</option>
-                        <option value="PLENO_TERBUKA">Pleno Terbuka</option>
-                        <option value="REKAPITULASI">Rekapitulasi</option>
-                    </optgroup>
-                    <optgroup label="🤝 Rapat & Koordinasi">
-                        <option value="RAKOR">Rakor — Rapat Koordinasi</option>
-                        <option value="RAPAT_INTERNAL">Rapat Internal</option>
-                        <option value="BRIEFING">Briefing</option>
-                        <option value="EVALUASI">Evaluasi</option>
-                        <option value="FGD">FGD — Focus Group Discussion</option>
-                    </optgroup>
-                    <optgroup label="📚 Pembinaan & Diseminasi">
-                        <option value="BIMTEK">Bimtek — Bimbingan Teknis</option>
-                        <option value="SOSIALISASI">Sosialisasi</option>
-                        <option value="WORKSHOP">Workshop</option>
-                        <option value="DISEMINASI">Diseminasi</option>
-                    </optgroup>
-                    <optgroup label="📋 Administrasi & Pelaporan">
-                        <option value="PENYUSUNAN">Penyusunan</option>
-                        <option value="VERIFIKASI">Verifikasi</option>
-                        <option value="PELAPORAN">Pelaporan</option>
-                        <option value="MONITORING">Monitoring</option>
-                        <option value="FASILITASI">Fasilitasi</option>
-                    </optgroup>
-                    <optgroup label="🎯 Layanan & Protokol">
-                        <option value="KEHUMASAN">Kehumasan</option>
-                        <option value="PELAYANAN_PUBLIK">Pelayanan Publik</option>
-                        <option value="PERSIDANGAN">Persidangan</option>
-                        <option value="PROTOKOL">Protokol</option>
-                    </optgroup>
-                    <optgroup label="🔧 Lainnya">
-                        <option value="UMUM">Umum</option>
-                        <option value="LAINNYA">Lainnya</option>
-                    </optgroup>
+                    <option value="">Pilih kategori aktivitas</option>
+                    <option value="ADMINISTRASI">📝 Administrasi</option>
+                    <option value="RAPAT">🤝 Rapat & Koordinasi</option>
+                    <option value="PENYUSUNAN">📄 Penyusunan Dokumen</option>
+                    <option value="VERIFIKASI">🔍 Verifikasi & Monitoring</option>
+                    <option value="SOSIALISASI">📢 Sosialisasi & Pelayanan</option>
+                    <option value="TEKNOLOGI">💻 Teknologi Informasi</option>
+                    <option value="PERJALANAN">🚗 Perjalanan Dinas</option>
+                    <option value="KEPEGAWAIAN">👥 Kepegawaian & SDM</option>
+                    <option value="PENGEMBANGAN">📚 Pengembangan Kompetensi</option>
+                    <option value="LAINNYA">📦 Lainnya</option>
                 </select>
             </div>
             <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;">
@@ -772,6 +745,22 @@ function getStatusBadge(a) {
   return `<span class="badge ${m[a.status]||'badge-status-rencana'}">${labelMap[a.status]||a.status||'Belum Mulai'}</span>`;
 }
 
+function getKategoriLabel(val) {
+  var map = {
+    ADMINISTRASI: '📝 Administrasi',
+    RAPAT: '🤝 Rapat & Koordinasi',
+    PENYUSUNAN: '📄 Penyusunan Dokumen',
+    VERIFIKASI: '🔍 Verifikasi & Monitoring',
+    SOSIALISASI: '📢 Sosialisasi & Pelayanan',
+    TEKNOLOGI: '💻 Teknologi Informasi',
+    PERJALANAN: '🚗 Perjalanan Dinas',
+    KEPEGAWAIAN: '👥 Kepegawaian & SDM',
+    PENGEMBANGAN: '📚 Pengembangan Kompetensi',
+    LAINNYA: '📦 Lainnya'
+  };
+  return map[val] || val || '-';
+}
+
 // =============================================
 // WIZARD — 3 LANGKAH + DASAR AGENDA
 // =============================================
@@ -880,7 +869,7 @@ function wizardNext() {
     const judul = document.getElementById('fJudul').value.trim();
     if (!judul) { Swal.fire('Validasi','Judul agenda wajib diisi','warning'); return; }
     const jenis = document.getElementById('fJenis').value;
-    if (!jenis) { Swal.fire('Validasi','Jenis kegiatan wajib dipilih','warning'); return; }
+    if (!jenis) { Swal.fire('Validasi','Kategori aktivitas wajib dipilih','warning'); return; }
   }
   if (wizardStep===2) {
     const pic = document.getElementById('fPIC').value;
@@ -1697,7 +1686,7 @@ function renderDetail(r) {
   document.getElementById('detailPembuat').textContent = a.createdByNama||'-';
   document.getElementById('detailSubbag').textContent = a.subbagian||'-';
   document.getElementById('detailSumber').textContent = a.sumber||'-';
-  document.getElementById('detailJenis').textContent = a.jenis||'-';
+  document.getElementById('detailJenis').textContent = getKategoriLabel(a.jenis);
   document.getElementById('detailTglMulai').textContent = a.tanggalMulai||'-';
   document.getElementById('detailTenggat').textContent = a.tanggalSelesai||'-';
   document.getElementById('detailDeskripsi').textContent = a.deskripsi||'-';
