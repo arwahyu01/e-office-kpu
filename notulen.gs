@@ -854,7 +854,7 @@ function getListAgendaForNotulen() {
 function getDataPegawai() {
   try {
     return getAllPegawai().map(function(p) {
-      return { nama: p.nama, jabatan: p.jabatan, email: p.email, subbag: p.subbag, hakAkses: p.hakAkses };
+      return { nama: p.nama, jabatan: p.jabatan, email: p.email, subbag: p.subbag, hakAkses: p.hakAkses, no: p.no };
     }).sort(function(a, b) { return a.nama.localeCompare(b.nama); });
   } catch (err) {
     return [];
@@ -1028,7 +1028,7 @@ function buildNotulaPrompt(notulenData) {
       var pa = priority[a.jabatan] || 99;
       var pb = priority[b.jabatan] || 99;
       if (pa !== pb) return pa - pb;
-      return (a.nama || '').localeCompare(b.nama || '');
+      return (a.no || 999) - (b.no || 999);
     });
     sortedPeserta.forEach(function (p, i) {
       context += '   ' + (i + 1) + '. ' + p.nama + ' (' + (p.jabatan || '-') + ')\n';

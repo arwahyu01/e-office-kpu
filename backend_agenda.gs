@@ -105,6 +105,7 @@ function getAllPegawai() {
     for (let i = 1; i < data.length; i++) {
       if (String(data[i][10] || "").toUpperCase().trim() !== "AKTIF") continue;
       result.push({
+        no: Number(data[i][0]) || (i + 1),
         nama: String(data[i][1] || "").trim(),
         nip: String(data[i][2] || "").trim(),
         jabatan: String(data[i][3] || "").trim(),

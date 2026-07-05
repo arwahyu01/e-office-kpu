@@ -1822,7 +1822,7 @@
                 var pa = priority[a.jabatan] || 99;
                 var pb = priority[b.jabatan] || 99;
                 if (pa !== pb) return pa - pb;
-                return (a.nama || '').localeCompare(b.nama || '');
+                return (a.no || 999) - (b.no || 999);
             });
         }
 
@@ -1865,7 +1865,7 @@
             var p = _pegawaiCache.find(function (x) { return x.email === email; });
             if (!p) return;
             if (_selectedPeserta.some(function (s) { return s.email === email; })) return;
-            _selectedPeserta.push({ nama: p.nama, jabatan: p.jabatan, email: p.email });
+            _selectedPeserta.push({ nama: p.nama, jabatan: p.jabatan, email: p.email, no: p.no });
             renderPesertaChips();
             document.getElementById('pesertaSearch').value = '';
             document.getElementById('pesertaDropdown').style.display = 'none';
@@ -1895,7 +1895,7 @@
         function pilihSemuaPegawai() {
             if (!_pegawaiCache.length) return;
             _selectedPeserta = _pegawaiCache.map(function(p) {
-                return { nama: p.nama, jabatan: p.jabatan, email: p.email };
+                return { nama: p.nama, jabatan: p.jabatan, email: p.email, no: p.no };
             });
             renderPesertaChips();
             document.getElementById('pesertaSearch').value = '';
@@ -1906,7 +1906,7 @@
         function pilihKomisionerDanSekretariat() {
             if (!_pegawaiCache.length) return;
             _selectedPeserta = _pegawaiCache.map(function(p) {
-                return { nama: p.nama, jabatan: p.jabatan, email: p.email };
+                return { nama: p.nama, jabatan: p.jabatan, email: p.email, no: p.no };
             });
             renderPesertaChips();
             document.getElementById('pesertaSearch').value = '';
@@ -1924,7 +1924,7 @@
                 return;
             }
             _selectedPeserta = list.map(function(p) {
-                return { nama: p.nama, jabatan: p.jabatan, email: p.email };
+                return { nama: p.nama, jabatan: p.jabatan, email: p.email, no: p.no };
             });
             renderPesertaChips();
             document.getElementById('pesertaSearch').value = '';
