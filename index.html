@@ -1900,8 +1900,17 @@
 
         function pilihSubbag(subbag) {
             if (!_pegawaiCache.length) return;
+            var subbagToDivisi = {
+                'Keuangan, Umum dan Logistik': ['DIVISI KEUANGAN, UMUM, RUMAH TANGGA DAN LOGISTIK'],
+                'Teknis Penyelenggara Pemilu dan Hukum': ['DIVISI TEKNIS PENYELENGGARAAN', 'DIVISI HUKUM DAN PENGAWASAN'],
+                'Perencanaan Data dan Informasi': ['DIVISI PERENCANAAN. DATA DAN INFORMASI'],
+                'Partisipasi Hubungan Masyarakat dan Sumber Daya Manusia': ['DIVISI SOSIALISASI, PENDIDIKAN PEMILIH, PARTISIPASI MASYARAKAT DAN SUMBER DAYA MANUSIA']
+            };
+            var divisiList = subbagToDivisi[subbag] || [];
             var list = _pegawaiCache.filter(function(p) {
-                return p.subbag === subbag;
+                if (p.subbag === subbag) return true;
+                if (divisiList.indexOf(p.subbag) !== -1) return true;
+                return false;
             });
             if (!list.length) {
                 Swal.fire('Informasi', 'Tidak ada pegawai di subbag ' + subbag, 'info');
