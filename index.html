@@ -3412,6 +3412,10 @@
             if (el) el.textContent = value || '-';
         }
 
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+
         var _editPegawaiCache = [];
 
         function loadSubbagOptions(selectId, selected) {
@@ -3424,13 +3428,13 @@
             });
         }
 
-        function loadAtasanOptions(selectId, excludeEmail) {
+        function loadAtasanOptions(selectId, excludeEmail, selectedEmail) {
             var sel = document.getElementById(selectId);
             if (!sel) return;
             sel.innerHTML = '<option value="">Pilih Atasan</option>';
             _editPegawaiCache.forEach(function(p) {
                 if (!p.email || p.email === excludeEmail) return;
-                sel.innerHTML += '<option value="' + p.email + '">' + (p.nama || '') + ' - ' + (p.jabatan || '') + '</option>';
+                sel.innerHTML += '<option value="' + p.email + '" ' + (p.email === selectedEmail ? 'selected' : '') + '>' + (p.nama || '') + ' - ' + (p.jabatan || '') + '</option>';
             });
         }
 
@@ -3446,10 +3450,15 @@
             document.getElementById('editPassword').value = '';
             document.getElementById('editPasswordConfirm').value = '';
 
-            if (_editPegawaiCache.length) {
+            function populateAndShow(selectedAtasanEmail) {
                 loadSubbagOptions('editSubbag', profile.subbag);
-                loadAtasanOptions('editAtasan', profile.email);
+                loadAtasanOptions('editAtasan', profile.email, selectedAtasanEmail);
                 document.getElementById('modalEditProfil').style.display = 'flex';
+            }
+
+            if (_editPegawaiCache.length) {
+                var atasan = _editPegawaiCache.find(function(p) { return p.nip === profile.nip_atasan || p.nama === profile.nama_atasan; });
+                populateAndShow(atasan ? atasan.email : '');
                 return;
             }
 
@@ -3458,13 +3467,12 @@
                 .withSuccessHandler(function(list) {
                     hideLoading();
                     _editPegawaiCache = list || [];
-                    loadSubbagOptions('editSubbag', profile.subbag);
-                    loadAtasanOptions('editAtasan', profile.email);
-                    document.getElementById('modalEditProfil').style.display = 'flex';
+                    var atasan = _editPegawaiCache.find(function(p) { return p.nip === profile.nip_atasan || p.nama === profile.nama_atasan; });
+                    populateAndShow(atasan ? atasan.email : '');
                 })
                 .withFailureHandler(function() {
                     hideLoading();
-                    document.getElementById('modalEditProfil').style.display = 'flex';
+                    populateAndShow('');
                 })
                 .getPegawaiDropdown();
         }
