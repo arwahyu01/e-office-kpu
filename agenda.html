@@ -1303,16 +1303,24 @@ function rebuildGridForFilter() {
         if (ds === todayStr) cl += ' kal-today';
         if (ds === kalSelectedDate && kalViewMode==='day') cl += ' kal-selected';
         if (kalWeekRange && ds >= kalWeekRange.start && ds <= kalWeekRange.end) cl += ' kal-week-range';
+        if (evts.length) cl += ' kal-has-events';
         html += '<div class="' + cl + '" onclick="kalPilihTanggal(\'' + ds + '\')">';
         html += '<span class="kal-day-num">' + day + '</span>';
         if (evts.length) {
-          html += '<div class="kal-dots">';
-          var ac = evts.filter(function(e) { return e.sumber === 'agenda'; }).length;
-          var mc = evts.filter(function(e) { return e.sumber === 'manual'; }).length;
-          if (ac) html += '<span class="kal-dot-badge kal-dot-agenda">' + ac + ' agenda</span>';
-          if (mc) html += '<span class="kal-dot-badge kal-dot-manual">' + mc + ' pribadi</span>';
-          html += '</div>';
+          html += '<div class="kal-dots">' + getKalDotHtml(evts) + '</div>';
           html += '<div class="kal-event-label" title="' + esc(evts[0].judul) + '">' + esc(truncate(evts[0].judul, 18)) + '</div>';
+          html += '<div class="kal-tooltip">';
+          var ttlDate = parseInt(ds.split('-')[2]) + ' ' + namaBulan(parseInt(kalBulan)) + ' ' + kalTahun;
+          html += '<div class="kal-tooltip-date">' + ttlDate + '</div>';
+          evts.slice(0, 6).forEach(function(e) {
+            var c = getSubbagColor(e.subbagian);
+            html += '<div class="kal-tooltip-item" onclick="event.stopPropagation();kalPilihTanggal(\'' + ds + '\')">';
+            html += '<span class="kal-tooltip-dot" style="background:' + c.bg + ';color:' + c.text + ';">' + (e.sumber === 'agenda' ? 'A' : 'P') + '</span>';
+            html += '<span class="kal-tooltip-text">' + esc(truncate(e.judul, 35)) + '</span>';
+            html += '</div>';
+          });
+          if (evts.length > 6) html += '<div class="kal-tooltip-more">+' + (evts.length - 6) + ' lagi</div>';
+          html += '</div>';
         }
         html += '</div>';
         day++;
@@ -1371,17 +1379,55 @@ function buildKalender() {
         if (isToday) classList += ' kal-today';
         if (isSelected && kalViewMode==='day') classList += ' kal-selected';
         if (inWeekRange) classList += ' kal-week-range';
+        if (events.length) classList += ' kal-has-events';
         html += '<div class="' + classList + '" onclick="kalPilihTanggal(\'' + dateStr + '\')">';
         html += '<span class="kal-day-num">' + day + '</span>';
         if (events.length) {
-          html += '<div class="kal-dots">';
-          var agendaCount = events.filter(function(e) { return e.sumber === 'agenda'; }).length;
-          var manualCount = events.filter(function(e) { return e.sumber === 'manual'; }).length;
-          if (agendaCount) html += '<span class="kal-dot-badge kal-dot-agenda">' + agendaCount + ' agenda</span>';
-          if (manualCount) html += '<span class="kal-dot-badge kal-dot-manual">' + manualCount + ' pribadi</span>';
-          html += '</div>';
+          html += '<div class="kal-dots">' + getKalDotHtml(events) + '</div>';
           html += '<div class="kal-event-label" title="' + esc(events[0].judul) + '">' + esc(truncate(events[0].judul, 18)) + '</div>';
+          html += '<div class="kal-tooltip">';
+          var tooltipDate = parseInt(dateStr.split('-')[2]) + ' ' + namaBulan(parseInt(kalBulan)) + ' ' + kalTahun;
+          html += '<div class="kal-tooltip-date">' + tooltipDate + '</div>';
+          events.slice(0, 6).forEach(function(e) {
+            var c = getSubbagColor(e.subbagian);
+            html += '<div class="kal-tooltip-item" onclick="event.stopPropagation();kalPilihTanggal(\'' + dateStr + '\')">';
+            html += '<span class="kal-tooltip-dot" style="background:' + c.bg + ';color:' + c.text + ';">' + (e.sumber === 'agenda' ? 'A' : 'P') + '</span>';
+            html += '<span class="kal-tooltip-text">' + esc(truncate(e.judul, 35)) + '</span>';
+            html += '</div>';
+          });
+          if (events.length > 6) html += '<div class="kal-tooltip-more">+' + (events.length - 6) + ' lagi</div>';
+          html += '</div>';
         }
+        html += '</div>';
+        day++;
+      }
+    }
+    html += '</div>';
+  }
+  document.getElementById('kalenderGrid').innerHTML = html;
+}
+
+function getKalDotHtml(events) {
+  var agendaSubbags = {};
+  var manualCount = 0;
+  events.forEach(function(e) {
+    if (e.sumber === 'agenda') {
+      var sb = e.subbagian || 'Tanpa Subbag';
+      if (!agendaSubbags[sb]) agendaSubbags[sb] = 0;
+      agendaSubbags[sb]++;
+    } else {
+      manualCount++;
+    }
+  });
+  var html = '';
+  var sbKeys = Object.keys(agendaSubbags).sort();
+  sbKeys.forEach(function(sb) {
+    var c = getSubbagColor(sb);
+    html += '<span class="kal-dot-badge" style="background:' + c.bg + ';color:' + c.text + ';">' + agendaSubbags[sb] + ' ' + esc(truncate(sb, 12)) + '</span>';
+  });
+  if (manualCount) html += '<span class="kal-dot-badge kal-dot-manual">' + manualCount + ' pribadi</span>';
+  return html;
+}
         html += '</div>';
         day++;
       }
@@ -1481,7 +1527,7 @@ function kalTimelineItemHtml(e) {
   var statusLabel = isAgenda ? (e.status === 'SELESAI' ? 'Selesai' : e.status === 'BERJALAN' ? 'Berjalan' : e.status === 'RENCANA' ? 'Rencana' : (e.status || 'Terlambat')) : 'Pribadi';
   var badgeClass = isAgenda ? (e.status === 'SELESAI' ? 'bg-green' : e.status === 'BERJALAN' ? 'bg-blue' : 'bg-red') : 'bg-purple';
   var h = '';
-  h += '<div class="kal-timeline-item">';
+  h += '<div class="kal-timeline-item" onclick="kalQuickPreview(\'' + e.id + '\',\'' + e.sumber + '\')">';
   h += '<div class="kal-timeline-dot" style="background:' + warna + ';"></div>';
   h += '<div class="kal-timeline-body">';
   h += '<div class="kal-timeline-top"><span class="kal-timeline-judul">' + esc(e.judul) + '</span><span class="kal-timeline-badge ' + badgeClass + '">' + statusLabel + '</span></div>';
@@ -1492,15 +1538,73 @@ function kalTimelineItemHtml(e) {
   }
   h += '<div class="kal-timeline-actions">';
   if (isAgenda) {
-    h += '<button class="btn-timeline" onclick="viewDetail(\'' + e.id + '\')"><i class="fas fa-eye"></i> Detail</button>';
-    h += '<button class="btn-timeline btn-timeline-outline" onclick="viewDetail(\'' + e.id + '\')"><i class="fas fa-file-alt"></i> Notulen</button>';
-    h += '<button class="btn-timeline btn-timeline-outline" onclick="viewDetail(\'' + e.id + '\')"><i class="fas fa-camera"></i> Dokumentasi</button>';
+    h += '<button class="btn-timeline" onclick="event.stopPropagation();kalQuickPreview(\'' + e.id + '\',\'agenda\')"><i class="fas fa-info-circle"></i> Preview</button>';
+    h += '<button class="btn-timeline btn-timeline-outline" onclick="event.stopPropagation();viewDetail(\'' + e.id + '\')"><i class="fas fa-eye"></i> Detail</button>';
   } else {
-    h += '<button class="btn-timeline" onclick="editKalEvent(\'' + e.id + '\')"><i class="fas fa-edit"></i> Edit</button>';
-    h += '<button class="btn-timeline btn-timeline-danger" onclick="hapusKalEventById(\'' + e.id + '\')"><i class="fas fa-trash"></i></button>';
+    h += '<button class="btn-timeline" onclick="event.stopPropagation();kalQuickPreview(\'' + e.id + '\',\'manual\')"><i class="fas fa-eye"></i> Preview</button>';
+    h += '<button class="btn-timeline btn-timeline-outline" onclick="event.stopPropagation();editKalEvent(\'' + e.id + '\')"><i class="fas fa-edit"></i> Edit</button>';
+    h += '<button class="btn-timeline btn-timeline-danger" onclick="event.stopPropagation();hapusKalEventById(\'' + e.id + '\')"><i class="fas fa-trash"></i></button>';
   }
   h += '</div></div></div>';
   return h;
+}
+
+// ── Quick preview modal ──
+function kalQuickPreview(id, sumber) {
+  var eventData = null;
+  if (sumber === 'agenda') {
+    (kalData.agenda||[]).forEach(function(e) { if (e.id === id) eventData = e; });
+  } else {
+    (kalData.manual||[]).forEach(function(e) { if (e.id === id) eventData = e; });
+  }
+  if (!eventData) { Swal.fire('Error','Data tidak ditemukan','error'); return; }
+
+  var isAgenda = sumber === 'agenda';
+  var html = '<div class="kal-preview-overlay" id="kalPreviewOverlay" onclick="closeKalPreview()">';
+  html += '<div class="kal-preview-modal" onclick="event.stopPropagation()">';
+  html += '<button class="kal-preview-close" onclick="closeKalPreview()"><i class="fas fa-times"></i></button>';
+
+  if (isAgenda) {
+    var pc = eventData.prioritas || '-';
+    var pClass = pc === 'MENDESAK' ? 'badge-prioritas-mendesak' : pc === 'TINGGI' ? 'badge-prioritas-tinggi' : pc === 'SEDANG' ? 'badge-prioritas-sedang' : 'badge-prioritas-rendah';
+    var st = eventData.status === 'SELESAI' ? 'Selesai' : eventData.status === 'BERJALAN' ? 'Berjalan' : eventData.status === 'RENCANA' ? 'Belum Mulai' : 'Terlambat';
+    var stCls = eventData.status === 'SELESAI' ? 'badge-status-selesai' : eventData.status === 'BERJALAN' ? 'badge-status-berjalan' : eventData.status === 'RENCANA' ? 'badge-status-rencana' : 'badge-status-terlambat';
+    var pct = eventData.progressPersentase != null ? eventData.progressPersentase : 50;
+    var pcls = pct >= 100 ? 'selesai' : pct >= 50 ? 'tinggi' : pct > 0 ? 'sedang' : 'rendah';
+    var src = (eventData.sumber || 'pegawai').toLowerCase();
+
+    html += '<div class="kal-preview-header">';
+    html += '<div class="kal-preview-title">' + esc(eventData.judul) + '</div>';
+    html += '<div class="kal-preview-badges"><span class="sumber-badge ' + src + '">' + esc(eventData.sumber || 'PEGAWAI') + '</span><span class="badge ' + pc + '">' + pc + '</span><span class="badge ' + stCls + '">' + st + '</span></div>';
+    html += '</div>';
+    html += '<div class="kal-preview-body">';
+    if (eventData.picNama) html += '<div class="kal-preview-row"><i class="fas fa-user"></i><span>PIC: ' + esc(eventData.picNama) + '</span></div>';
+    if (eventData.subbagian) html += '<div class="kal-preview-row"><i class="fas fa-building"></i><span>' + esc(eventData.subbagian) + '</span></div>';
+    html += '<div class="kal-preview-row"><i class="fas fa-calendar-day"></i><span>Mulai: ' + (eventData.tanggalMulai || '-') + '</span></div>';
+    html += '<div class="kal-preview-row" style="color:' + (eventData.isOverdue ? '#dc2626' : '#64748b') + ';"><i class="fas fa-hourglass-end"></i><span>Tenggat: ' + (eventData.tanggalSelesai || '-') + '</span></div>';
+    html += '<div class="kal-preview-progress"><span style="font-size:12px;font-weight:600;color:#64748b;">Progress</span><div style="display:flex;align-items:center;gap:8px;margin-top:4px;"><div class="progress-bar-container" style="flex:1;"><div class="progress-bar-fill ' + pcls + '" style="width:' + pct + '%"></div></div><span style="font-size:13px;font-weight:700;color:#1e293b;">' + pct + '%</span></div></div>';
+    html += '</div>';
+    html += '<div class="kal-preview-footer"><button class="btn-primary" onclick="closeKalPreview();viewDetail(\'' + id + '\')" style="font-size:12px;padding:8px 16px;"><i class="fas fa-eye"></i> Lihat Detail</button></div>';
+  } else {
+    var wR = eventData.warna || '#6366f1';
+    html += '<div class="kal-preview-header"><div class="kal-preview-title" style="color:' + wR + ';">' + esc(eventData.judul) + '</div>';
+    html += '<span class="kal-timeline-badge bg-purple">Pribadi</span></div>';
+    html += '<div class="kal-preview-body">';
+    if (eventData.deskripsi) html += '<p style="font-size:13px;color:#64748b;line-height:1.5;">' + esc(eventData.deskripsi) + '</p>';
+    html += '<div class="kal-preview-row"><i class="fas fa-calendar-day"></i><span>' + (eventData.tanggalMulai || '-') + ' — ' + (eventData.tanggalSelesai || eventData.tanggalMulai || '-') + '</span></div>';
+    html += '</div>';
+    html += '<div class="kal-preview-footer"><button class="btn-primary" onclick="closeKalPreview();editKalEvent(\'' + id + '\')" style="font-size:12px;padding:8px 16px;"><i class="fas fa-edit"></i> Edit</button></div>';
+  }
+
+  html += '</div></div>';
+  var el = document.createElement('div');
+  el.innerHTML = html;
+  document.body.appendChild(el.firstElementChild);
+}
+
+function closeKalPreview() {
+  var el = document.getElementById('kalPreviewOverlay');
+  if (el) { el.remove(); }
 }
 
 function getAllFilteredEvents(dateStr) {
@@ -1562,16 +1666,24 @@ function rebuildGridAndPanel(dateStr) {
         var cl = 'kal-cell';
         if (isToday2) cl += ' kal-today';
         if (isSelected) cl += ' kal-selected';
+        if (evts.length) cl += ' kal-has-events';
         html += '<div class="' + cl + '" onclick="kalPilihTanggal(\'' + ds + '\')">';
         html += '<span class="kal-day-num">' + day + '</span>';
         if (evts.length) {
-          html += '<div class="kal-dots">';
-          var ac = evts.filter(function(e) { return e.sumber === 'agenda'; }).length;
-          var mc = evts.filter(function(e) { return e.sumber === 'manual'; }).length;
-          if (ac) html += '<span class="kal-dot-badge kal-dot-agenda">' + ac + ' agenda</span>';
-          if (mc) html += '<span class="kal-dot-badge kal-dot-manual">' + mc + ' pribadi</span>';
-          html += '</div>';
+          html += '<div class="kal-dots">' + getKalDotHtml(evts) + '</div>';
           html += '<div class="kal-event-label" title="' + esc(evts[0].judul) + '">' + esc(truncate(evts[0].judul, 18)) + '</div>';
+          html += '<div class="kal-tooltip">';
+          var ttlDate = parseInt(ds.split('-')[2]) + ' ' + namaBulan(parseInt(kalBulan)) + ' ' + kalTahun;
+          html += '<div class="kal-tooltip-date">' + ttlDate + '</div>';
+          evts.slice(0, 6).forEach(function(e) {
+            var c = getSubbagColor(e.subbagian);
+            html += '<div class="kal-tooltip-item" onclick="event.stopPropagation();kalPilihTanggal(\'' + ds + '\')">';
+            html += '<span class="kal-tooltip-dot" style="background:' + c.bg + ';color:' + c.text + ';">' + (e.sumber === 'agenda' ? 'A' : 'P') + '</span>';
+            html += '<span class="kal-tooltip-text">' + esc(truncate(e.judul, 35)) + '</span>';
+            html += '</div>';
+          });
+          if (evts.length > 6) html += '<div class="kal-tooltip-more">+' + (evts.length - 6) + ' lagi</div>';
+          html += '</div>';
         }
         html += '</div>';
         day++;
@@ -1679,6 +1791,26 @@ function kalToday() { var now = new Date(); kalBulan = now.getMonth() + 1; kalTa
 function namaBulan(b) { return ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][b-1]||''; }
 var hariIndo = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
 function truncate(s, max) { if (!s || s.length <= max) return s||''; return s.substring(0, max) + '...'; }
+
+// ── Subbag color palette for kalender ──
+var subbagColors = [
+  { bg:'#dbeafe', text:'#1e40af' },
+  { bg:'#d1fae5', text:'#065f46' },
+  { bg:'#fef3c7', text:'#92400e' },
+  { bg:'#f3e8ff', text:'#6b21a8' },
+  { bg:'#fce7f3', text:'#9d174d' },
+  { bg:'#e0e7ff', text:'#3730a3' },
+  { bg:'#ccfbf1', text:'#134e4a' },
+  { bg:'#fff1f2', text:'#9f1239' },
+  { bg:'#ecfeff', text:'#155e75' },
+  { bg:'#f5f5f4', text:'#44403c' }
+];
+function getSubbagColor(subbag) {
+  if (!subbag) return { bg:'#e5e7eb', text:'#64748b' };
+  var hash = 0;
+  for (var i = 0; i < subbag.length; i++) hash = ((hash << 5) - hash) + subbag.charCodeAt(i);
+  return subbagColors[Math.abs(hash) % subbagColors.length];
+}
 function dateStrParse(ds) { return ds || (new Date().getFullYear() + '-' + String(new Date().getMonth()+1).padStart(2,'0') + '-' + String(new Date().getDate()).padStart(2,'0')); }
 function fmtDate(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
 function formatTanggalWaktu(tgl) {

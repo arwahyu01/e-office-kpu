@@ -1221,7 +1221,9 @@ function getCalendarData(userEmail, bulan, tahun) {
             tanggalSelesai: tglSelesai, status: a.status,
             prioritas: a.prioritas, sumber: 'agenda',
             picNama: a.picNama || a.createdByNama || '',
-            subbagian: a.subbagian || ''
+            subbagian: a.subbagian || '',
+            progressPersentase: a.progressPersentase || 0,
+            isOverdue: a.isOverdue || false
           });
         }
       });
