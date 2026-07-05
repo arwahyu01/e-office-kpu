@@ -1812,13 +1812,29 @@
                 .getDataPegawai();
         }
 
+        function sortPesertaByJabatan(list) {
+            var priority = {
+                'KETUA': 1, 'WAKIL KETUA': 2, 'ANGGOTA': 3,
+                'SEKRETARIS': 4, 'KASUBBAG': 5,
+                'KEPALA SUBBAG': 5, 'KEPALA': 5
+            };
+            return list.slice().sort(function(a, b) {
+                var pa = priority[a.jabatan] || 99;
+                var pb = priority[b.jabatan] || 99;
+                if (pa !== pb) return pa - pb;
+                return (a.nama || '').localeCompare(b.nama || '');
+            });
+        }
+
         function renderPesertaChips() {
             var container = document.getElementById('pesertaChipContainer');
             if (!_selectedPeserta.length) {
                 container.innerHTML = '<span style="font-size:13px;color:#94a3b8;">Belum ada peserta. Ketik nama untuk menambah.</span>';
                 return;
             }
-            container.innerHTML = _selectedPeserta.map(function (p, i) {
+            var sorted = sortPesertaByJabatan(_selectedPeserta);
+            _selectedPeserta = sorted;
+            container.innerHTML = sorted.map(function (p, i) {
                 return '<span style="display:inline-flex;align-items:center;gap:4px;background:#eef2ff;color:#4338ca;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:500;">' +
                     (p.nama || '') + ' <span style="color:#64748b;font-weight:400;">' + (p.jabatan || '') + '</span>' +
                     '<span onclick="removePeserta(' + i + ')" style="cursor:pointer;margin-left:2px;color:#94a3b8;font-size:14px;line-height:1;">&times;</span>' +
@@ -2391,7 +2407,7 @@
                             '<span><i class="fas fa-user"></i> Pimpinan: <strong>' + (n.pimpinan || '-') + '</strong></span>' +
                             '<span><i class="fas fa-pen"></i> Notulis: <strong>' + (n.notulis || '-') + '</strong></span>' +
                             '</div>' +
-                            (n.pesertaList && n.pesertaList.length ? '<div style="margin-bottom:16px;"><span style="font-size:13px;color:#64748b;font-weight:600;"><i class="fas fa-users"></i> Peserta (' + n.pesertaList.length + '):</span> ' + n.pesertaList.map(function(p) { return '<span style="display:inline-block;background:#eef2ff;color:#4338ca;border-radius:14px;padding:2px 10px;font-size:12px;margin:3px 2px;">' + (p.nama || '') + ' <span style="color:#64748b;">' + (p.jabatan || '') + '</span></span>'; }).join('') + '</div>' : '') +
+                            (n.pesertaList && n.pesertaList.length ? '<div style="margin-bottom:16px;"><span style="font-size:13px;color:#64748b;font-weight:600;"><i class="fas fa-users"></i> Peserta (' + n.pesertaList.length + '):</span> ' + sortPesertaByJabatan(n.pesertaList).map(function(p) { return '<span style="display:inline-block;background:#eef2ff;color:#4338ca;border-radius:14px;padding:2px 10px;font-size:12px;margin:3px 2px;">' + (p.nama || '') + ' <span style="color:#64748b;">' + (p.jabatan || '') + '</span></span>'; }).join('') + '</div>' : '') +
                             (n.undanganLink ? '<div style="margin-bottom:8px;"><a href="' + n.undanganLink + '" target="_blank" class="btn-primary" style="text-decoration:none;font-size:13px;"><i class="fas fa-paperclip"></i> Lihat Undangan</a></div>' : '') +
                             (n.signedPdfUrl ? '<div style="margin-bottom:8px;"><a href="' + n.signedPdfUrl + '" target="_blank" class="btn-primary" style="text-decoration:none;font-size:13px;background:#059669;border-color:#059669;"><i class="fas fa-file-pdf"></i> Lihat Notulen TTD</a></div>' : '') +
                             '<hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0;">' +
