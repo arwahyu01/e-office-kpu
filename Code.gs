@@ -621,6 +621,46 @@ function getProfilByEmail(identifier) {
   }
 }
 
+function updateProfil(data) {
+  try {
+    if (!data || !data.email) return { success: false, message: 'Data tidak lengkap' };
+
+    const ss = SpreadsheetApp.getActive();
+    const sh = ss.getSheetByName(CONFIG.SHEET_MASTER);
+    if (!sh) return { success: false, message: 'Database tidak ditemukan' };
+
+    const rows = sh.getDataRange().getValues();
+    var rowIndex = -1;
+    var emailKey = data.email.toString().toLowerCase().trim();
+
+    for (var i = 1; i < rows.length; i++) {
+      var dbEmail = (rows[i][8] || '').toString().toLowerCase().trim();
+      if (dbEmail === emailKey) { rowIndex = i + 1; break; }
+    }
+
+    if (rowIndex === -1) return { success: false, message: 'Pegawai tidak ditemukan' };
+
+    if (data.nama !== undefined) sh.getRange(rowIndex, 2).setValue(data.nama);
+    if (data.nip !== undefined) sh.getRange(rowIndex, 3).setValue(data.nip);
+    if (data.jabatan !== undefined) sh.getRange(rowIndex, 4).setValue(data.jabatan);
+    if (data.gol !== undefined) sh.getRange(rowIndex, 5).setValue(data.gol);
+    if (data.subbag !== undefined) sh.getRange(rowIndex, 6).setValue(data.subbag);
+    if (data.atasan !== undefined) sh.getRange(rowIndex, 7).setValue(data.atasan);
+    if (data.nipAtasan !== undefined) sh.getRange(rowIndex, 8).setValue(data.nipAtasan);
+    if (data.emailBaru !== undefined && data.emailBaru !== data.email) {
+      sh.getRange(rowIndex, 9).setValue(data.emailBaru);
+    }
+    if (data.password) {
+      sh.getRange(rowIndex, 10).setValue(hashPassword(data.password));
+    }
+
+    clearCache(CONFIG.SHEET_MASTER);
+    return { success: true, message: 'Profil berhasil diperbarui' };
+  } catch (err) {
+    return { success: false, message: 'Gagal update profil: ' + err.message };
+  }
+}
+
 // ---------- CRUD AGENDA --------------
 function tambahAgenda(data) {
   try {
