@@ -709,7 +709,18 @@ function logout() { localStorage.removeItem(SESSION_KEY); redirectToLogin(); }
 function showLoading(m) { const el=document.getElementById('loading'); el.querySelector('.loading-text').textContent=m||'Memuat...'; el.style.display='flex'; }
 function hideLoading() { document.getElementById('loading').style.display='none'; }
 
-function initApp() { hideLoading(); loadPegawai(); loadList(); loadDashboardStats(); }
+function initApp() { hideLoading(); loadSystemVersion(); loadPegawai(); loadList(); loadDashboardStats(); }
+
+function loadSystemVersion() {
+  google.script.run.withSuccessHandler(function(res) {
+    if (!res) return;
+    document.querySelectorAll('.app-version').forEach(function(el) {
+      el.textContent = 'v' + res.version;
+    });
+  }).withFailureHandler(function(err) {
+    console.error('Gagal mengambil versi sistem', err);
+  }).getSystemVersion();
+}
 
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
 
