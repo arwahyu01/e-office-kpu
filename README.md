@@ -6,7 +6,7 @@ Sistem Informasi E-Office berbasis **Google Apps Script (GAS)** untuk lingkungan
 
 | Modul | Deskripsi |
 |-------|-----------|
-| **E-LKH** | Elektronik Laporan Kinerja Harian pegawai |
+| **E-Office** | Dashboard utama & manajemen Laporan Kinerja Harian (LKH) |
 | **Agenda & Tindak Lanjut** | Manajemen agenda, workflow, progress, dan penugasan |
 | **Presensi** | Pencatatan kehadiran pegawai |
 | **Absensi** | Rekapitulasi dan monitoring kehadiran |

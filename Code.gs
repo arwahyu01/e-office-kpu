@@ -1,5 +1,5 @@
 /* =========================================================
-   E-LKH KPU - BACKEND SYSTEM
+   E-Office KPU - BACKEND SYSTEM
    Versi 1.0.1
    Elektornik Laporan Kinerja Pegawai
    by arwp
@@ -76,30 +76,25 @@ function doGet(e) {
         initPage: 'dashboard',
         allowFrame: false
       },
-      cuti: {
-        file: 'cuti',
-        title: 'E-LKH | CUTI',
-        initPage: 'cuti-pengajuan'
-      },
       absensi: {
         file: 'absensi',
-        title: 'E-LKH | PRESENSI WFA',
+        title: 'E-Office | PRESENSI WFA',
         initPage: 'absensi-kelola'
       },
       presensi: {
         file: 'presensi',
-        title: 'E-LKH | ABSENSI',
+        title: 'E-Office | ABSENSI',
         initPage: 'presensi-kelola'
       },
       agenda: {
         file: 'index',
-        title: 'E-LKH | KPU SIAK',
+        title: 'E-Office | KPU SIAK',
         allowFrame: true,
         initPage: 'dashboard'
       },
       default: {
         file: 'index',
-        title: 'E-LKH | KPU SIAK',
+        title: 'E-Office | KPU SIAK',
         allowFrame: true,
         initPage: params.page || 'dashboard'
       }

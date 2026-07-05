@@ -18,7 +18,7 @@ function kirimNotifikasiEmail(type, payload) {
       to: payload.email,
       subject: subject,
       body: body,
-      name: 'E-LKH KPU Kabupaten Siak'
+      name: 'E-Office KPU Kabupaten Siak'
     });
 
     logSystem(

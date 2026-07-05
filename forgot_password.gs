@@ -33,17 +33,17 @@ function requestResetPassword(email) {
 
   MailApp.sendEmail({
     to: email,
-    subject: 'Reset Password E-LKH KPU Kabupaten Siak',
+    subject: 'Reset Password E-Office KPU Kabupaten Siak',
     htmlBody: `
       <p>Yth. ${row[1]},</p>
-      <p>Kami menerima permintaan reset password akun <b>E-LKH KPU</b>.</p>
+      <p>Kami menerima permintaan reset password akun <b>E-Office KPU</b>.</p>
       <p>Silakan klik tautan berikut:</p>
       <p><a href="${resetUrl}">${resetUrl}</a></p>
       <p><b>Berlaku 30 menit.</b></p>
       <br>
       <p>Jika Anda tidak meminta reset password, abaikan email ini.</p>
       <hr>
-      <small>E-LKH KPU Kabupaten Siak</small>
+      <small>E-Office KPU Kabupaten Siak</small>
     `
   });
 

@@ -10,7 +10,7 @@
 | 4 | Backend core + CRUD + Assignment | ✅ Selesai |
 | 5 | Frontend (agenda.html, style_agenda.html) | ✅ Selesai |
 | 6 | Integrasi LKH | ✅ Selesai |
-| 7 | Rebranding E-LKH → E-OFFICE + Sidebar Grup | ✅ Selesai |
+| 7 | Rebranding E-Office → E-OFFICE + Sidebar Grup | ✅ Selesai |
 | 8 | Notulen Rapat (Fase 1: Backend + Form Dasar) | ✅ Selesai |
 | 9 | Notulen Rapat (Fase 2: 4-Step Wizard + DB Standalone) | ✅ Selesai |
 | 10 | Notulen Rapat (Fase 3: Edit + File Upload + Folder per Tanggal) | ✅ Selesai |
@@ -37,7 +37,7 @@
 - [x] Routing di Code.gs
 - [x] Sidebar di index.html
 - [x] Simplifikasi form progress (hapus persentase, target, nama, realiasi→hasil)
-- [x] Rebranding E-LKH → E-OFFICE (semua HTML + CSS)
+- [x] Rebranding E-Office → E-OFFICE (semua HTML + CSS)
 - [x] Restruktur sidebar: group e-LKH, Absensi collapsible; Beranda + Notulen prioritas
 - [x] Beranda landing page: greeting + 5 quick action cards
 - [x] Backend notulen.gs: simpan, list, detail, upload undangan, hapus
@@ -144,10 +144,10 @@
 - **[New] Detail Modal**: Menampilkan info rapat + jalannya rapat (kronologis) + poin rapat
 - **[New] Backend `notulen.gs`**: 7 endpoint — `getListNotulen`, `getDetailNotulen`, `simpanNotulen`, `uploadUndanganNotulen`, `hapusNotulen`, `updateProgressFromNotulen`, `getListAgendaForNotulen`
 - **[Hapus] Export PDF**: Dihapus total dari frontend & backend (user akan buat auto-generate PDF nanti)
-- **[Move] Sheet**: Notulen dipindah dari spreadsheet E-LKH (`1JivPdetUS5...`) ke spreadsheet terpisah agar mudah dikelola
+- **[Move] Sheet**: Notulen dipindah dari spreadsheet E-Office (`1JivPdetUS5...`) ke spreadsheet terpisah agar mudah dikelola
 
 ### v2.3.0 — 1 Jul 2026 (Rebrand & Sidebar Restruktur)
-- **[Ubah] Rebranding**: E-LKH → E-OFFICE di semua file (index.html, agenda.html, presensi.html, absensi.html, verify.html, style.html)
+- **[Ubah] Rebranding**: E-Office → E-OFFICE di semua file (index.html, agenda.html, presensi.html, absensi.html, verify.html, style.html)
 - **[Ubah] Sidebar**: Beranda + Notulen di atas sendiri; e-LKH & Absensi jadi collapsible group (nav-group/nav-sub); Profil, Agenda, Logout tetap single item
 - **[New] Beranda**: Landing page dengan greeting user + 5 quick action cards (LKH, Notulen, Agenda, Laporan, Profil)
 - **[New] Section Notulen**: Menu + form notulen dengan poin dinamis + tindak lanjut (BUAT_AGENDA, UPDATE_PROGRES, CATATAN_SAJA, TANPA_TL)
@@ -177,7 +177,7 @@
 
 ### v2.1.0 — 29 Jun 2026 (Integrasi LKH)
 - **Arsitektur**: LKH tetap modul utama, Agenda sebagai sumber data otomatis — dua sumber aktivitas: Agenda (otomatis) + Manual (input pengguna)
-- **Kolom baru**: `SUMBER_DATA` (AGENDA/MANUAL) pada sheet AGENDA di spreadsheet E-LKH untuk membedakan asal aktivitas
+- **Kolom baru**: `SUMBER_DATA` (AGENDA/MANUAL) pada sheet AGENDA di spreadsheet E-Office untuk membedakan asal aktivitas
 - **`autoSaveLKH()`**: Ditulis ulang dengan mekanisme:
   - **Insert**: Progress SELESAI + realiasi → append row ke sheet AGENDA + simpan `LKH_REFERENCE_ID` ke MASTER_PROGRESS
   - **Update**: Progress yang sudah tersinkron berubah → update baris LKH yang sama (HASIL, KETERANGAN, TANGGAL)
@@ -336,7 +336,7 @@
 ---
 
 ## Key Architecture Decisions
-- **Notulen DB terpisah** dari spreadsheet E-LKH dan Agenda → easier management, independent scaling
+- **Notulen DB terpisah** dari spreadsheet E-Office dan Agenda → easier management, independent scaling
 - **Hybrid notulen → agenda**: notulis input poin + pilih tindak lanjut → sistem generate/update otomatis
 - **4-step wizard** dengan auto-save localStorage: user bisa mulai, simpan draft, lanjut kapan saja
 - **Jalannya Rapat sebagai array bebas**: tidak ada struktur fixed — notulis bebas input kronologis
@@ -348,8 +348,8 @@
 ---
 
 ## Known Issues
-- `AGENDA_MASTER_SHEET_ID` variable name in `backend_agenda.gs` is misleading (points to E-LKH spreadsheet, not an agenda master sheet) — cosmetic only
-- Hardcoded deployment URL in `agenda.html` sidebar E-LKH link — must be updated on redeploy
+- `AGENDA_MASTER_SHEET_ID` variable name in `backend_agenda.gs` is misleading (points to E-Office spreadsheet, not an agenda master sheet) — cosmetic only
+- Hardcoded deployment URL in `agenda.html` sidebar E-Office link — must be updated on redeploy
 - `notulen_draft` localStorage key tidak dibedakan per user — jika multi-user di device sama, draft bisa tertimpa
 - `updateNotulen` delete & re-insert JALANNYA + POIN — jika ada error di tengah, data child bisa hilang tanpa rollback
 

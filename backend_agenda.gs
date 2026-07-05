@@ -756,7 +756,7 @@ function updateAgendaStatusFromWorkflow(agendaId) {
 }
 
 // =============================================
-// AUTO SAVE TO LKH (AGENDA sheet in E-LKH spreadsheet)
+// AUTO SAVE TO LKH (AGENDA sheet in E-Office spreadsheet)
 // — Generate untuk PJ + semua Anggota
 // =============================================
 function autoSaveLKHAll(progressId, workflowId, pjEmail, anggotaEmails, namaProgress, realisasi, status) {

@@ -19,7 +19,7 @@ const EmailTemplate = {
       Terima kasih.
 
       —
-      Sistem E-LKH
+      Sistem E-Office
       KPU Kabupaten Siak
       `
     };
@@ -41,7 +41,7 @@ const EmailTemplate = {
       Terima kasih.
 
       —
-      Sistem E-LKH
+      Sistem E-Office
       KPU Kabupaten Siak
       `
     };
@@ -53,7 +53,7 @@ const EmailTemplate = {
       body: `
       Yth. ${payload.nama},
 
-      Laporan Kinerja Harian (LKH) Anda telah berhasil dibuat melalui sistem E-LKH.
+      Laporan Kinerja Harian (LKH) Anda telah berhasil dibuat melalui sistem E-Office.
 
       Rincian:
       - Nama File : ${payload.fileName}
@@ -65,7 +65,7 @@ const EmailTemplate = {
       Terima kasih.
 
       —
-      Sistem E-LKH
+      Sistem E-Office
       KPU Kabupaten Siak
       `
     };
@@ -94,7 +94,7 @@ const EmailTemplate = {
       Terima kasih.
 
       —
-      Sistem E-LKH
+      Sistem E-Office
       KPU Kabupaten Siak
       `
     };
@@ -121,7 +121,7 @@ const EmailTemplate = {
       Terima kasih.
 
       —
-      Sistem E-LKH
+      Sistem E-Office
       KPU Kabupaten Siak
       `
     };
@@ -146,7 +146,7 @@ const EmailTemplate = {
       Terima kasih atas kerja samanya.
 
       —
-      Sistem E-LKH
+      Sistem E-Office
       KPU Kabupaten Siak
       `
     };
@@ -163,13 +163,13 @@ const EmailTemplate = {
       Catatan dari atasan:
       ${payload.catatan}
 
-      Silakan melakukan perbaikan melalui sistem E-LKH,
+      Silakan melakukan perbaikan melalui sistem E-Office,
       kemudian ajukan kembali.
 
       Terima kasih.
 
       —
-      Sistem E-LKH
+      Sistem E-Office
       KPU Kabupaten Siak
       `
     };
@@ -194,7 +194,7 @@ const EmailTemplate = {
       Terima kasih.
 
       —
-      Sistem E-LKH
+      Sistem E-Office
       KPU Kabupaten Siak
       `
     };
@@ -221,7 +221,7 @@ const EmailTemplate = {
       Terima kasih.
 
       —
-      Sistem E-LKH
+      Sistem E-Office
       KPU Kabupaten Siak
       `
     };
