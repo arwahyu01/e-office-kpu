@@ -453,9 +453,9 @@
                                     <button type="button" class="btn-sm-outline" onclick="pilihSemuaPegawai()" style="font-size:12px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:20px;background:#f8fafc;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#f8fafc'"><i class="fas fa-users"></i> Semua Pegawai</button>
                                     <button type="button" class="btn-sm-outline" onclick="pilihKomisionerDanSekretariat()" style="font-size:12px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:20px;background:#f8fafc;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#f8fafc'"><i class="fas fa-gavel"></i> Komisioner & Sekretariat</button>
                                     <button type="button" class="btn-sm-outline" onclick="pilihSubbag('Keuangan, Umum dan Logistik')" style="font-size:12px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:20px;background:#f8fafc;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#f8fafc'">📂 Keuangan, Umum & Logistik</button>
-                                    <button type="button" class="btn-sm-outline" onclick="pilihSubbag('Teknis Penyelenggara dan Hukum')" style="font-size:12px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:20px;background:#f8fafc;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#f8fafc'">📂 Teknis Penyelenggara & Hukum</button>
+                                    <button type="button" class="btn-sm-outline" onclick="pilihSubbag('Teknis Penyelenggara Pemilu dan Hukum')" style="font-size:12px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:20px;background:#f8fafc;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#f8fafc'">📂 Teknis Penyelenggara Pemilu & Hukum</button>
                                     <button type="button" class="btn-sm-outline" onclick="pilihSubbag('Perencanaan Data dan Informasi')" style="font-size:12px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:20px;background:#f8fafc;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#f8fafc'">📂 Perencanaan Data & Informasi</button>
-                                    <button type="button" class="btn-sm-outline" onclick="pilihSubbag('Sumber Daya Manusia dan Partisipasi Masyarakat')" style="font-size:12px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:20px;background:#f8fafc;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#f8fafc'">📂 SDM & Partisipasi Masyarakat</button>
+                                    <button type="button" class="btn-sm-outline" onclick="pilihSubbag('Partisipasi Hubungan Masyarakat dan Sumber Daya Manusia')" style="font-size:12px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:20px;background:#f8fafc;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#f8fafc'">📂 Partisipasi, Humas & SDM</button>
                                 </div>
                                 <div id="pesertaChipContainer" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;min-height:32px;"></div>
                                 <div style="display:flex;gap:8px;">
@@ -904,11 +904,9 @@
                         <select id="monitorSubbag" class="filter-select">
                             <option value="">Semua Subbagian</option>
                             <option value="Keuangan, Umum dan Logistik">Keuangan, Umum dan Logistik</option>
-                            <option value="Teknis Penyelenggara dan Hukum">Teknis Penyelenggara dan Hukum</option>
+                            <option value="Teknis Penyelenggara Pemilu dan Hukum">Teknis Penyelenggara Pemilu dan Hukum</option>
                             <option value="Perencanaan Data dan Informasi">Perencanaan Data dan Informasi</option>
-                            <option value="Sumber Daya Manusia dan Partisipasi Masyarakat">Sumber Daya Manusia dan
-                                Partisipasi Masyarakat
-                            </option>
+                            <option value="Partisipasi Hubungan Masyarakat dan Sumber Daya Manusia">Partisipasi Hubungan Masyarakat dan Sumber Daya Manusia</option>
                         </select>
 
                         <label for="monitorPegawai" hidden></label>
@@ -1891,15 +1889,7 @@
 
         function pilihKomisionerDanSekretariat() {
             if (!_pegawaiCache.length) return;
-            var roles = ['KOMISIONER', 'SEKRETARIS', 'KASUBBAG'];
-            var list = _pegawaiCache.filter(function(p) {
-                return roles.indexOf((p.hakAkses || '').toUpperCase()) !== -1;
-            });
-            if (!list.length) {
-                Swal.fire('Informasi', 'Tidak ada data komisioner/sekreteris ditemukan.', 'info');
-                return;
-            }
-            _selectedPeserta = list.map(function(p) {
+            _selectedPeserta = _pegawaiCache.map(function(p) {
                 return { nama: p.nama, jabatan: p.jabatan, email: p.email };
             });
             renderPesertaChips();
@@ -2041,9 +2031,9 @@
                 '<select id="poinSubbag_' + notulenPoinCount + '" class="form-control" style="font-size:13px;" onchange="simpanDraft()">' +
                 '<option value="">Pilih Subbag</option>' +
                 '<option value="Keuangan, Umum dan Logistik">Keuangan, Umum dan Logistik</option>' +
-                '<option value="Teknis Penyelenggara dan Hukum">Teknis Penyelenggara dan Hukum</option>' +
+                '<option value="Teknis Penyelenggara Pemilu dan Hukum">Teknis Penyelenggara Pemilu dan Hukum</option>' +
                 '<option value="Perencanaan Data dan Informasi">Perencanaan Data dan Informasi</option>' +
-                '<option value="Sumber Daya Manusia dan Partisipasi Masyarakat">Sumber Daya Manusia dan Partisipasi Masyarakat</option>' +
+                '<option value="Partisipasi Hubungan Masyarakat dan Sumber Daya Manusia">Partisipasi Hubungan Masyarakat dan Sumber Daya Manusia</option>' +
                 '</select>' +
                 '</div>' +
                 '<div class="form-group" id="poinAgenda_' + notulenPoinCount + '" style="display:none;">' +
@@ -2092,9 +2082,9 @@
                 '<select id="poinSubbag_' + notulenPoinCount + '" class="form-control" style="font-size:13px;" onchange="simpanDraft()">' +
                 '<option value="">Pilih Subbag</option>' +
                 '<option value="Keuangan, Umum dan Logistik" ' + (assignSubbag === 'Keuangan, Umum dan Logistik' ? 'selected' : '') + '>Keuangan, Umum dan Logistik</option>' +
-                '<option value="Teknis Penyelenggara dan Hukum" ' + (assignSubbag === 'Teknis Penyelenggara dan Hukum' ? 'selected' : '') + '>Teknis Penyelenggara dan Hukum</option>' +
+                '<option value="Teknis Penyelenggara Pemilu dan Hukum" ' + (assignSubbag === 'Teknis Penyelenggara Pemilu dan Hukum' ? 'selected' : '') + '>Teknis Penyelenggara Pemilu dan Hukum</option>' +
                 '<option value="Perencanaan Data dan Informasi" ' + (assignSubbag === 'Perencanaan Data dan Informasi' ? 'selected' : '') + '>Perencanaan Data dan Informasi</option>' +
-                '<option value="Sumber Daya Manusia dan Partisipasi Masyarakat" ' + (assignSubbag === 'Sumber Daya Manusia dan Partisipasi Masyarakat' ? 'selected' : '') + '>Sumber Daya Manusia dan Partisipasi Masyarakat</option>' +
+                '<option value="Partisipasi Hubungan Masyarakat dan Sumber Daya Manusia" ' + (assignSubbag === 'Partisipasi Hubungan Masyarakat dan Sumber Daya Manusia' ? 'selected' : '') + '>Partisipasi Hubungan Masyarakat dan Sumber Daya Manusia</option>' +
                 '</select>' +
                 '</div>' +
                 '<div class="form-group" id="poinAgenda_' + notulenPoinCount + '" style="display:' + agendaDisplay + ';">' +
