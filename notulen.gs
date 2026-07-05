@@ -88,6 +88,7 @@ Jika pimpinan rapat dari data konteks adalah nama anggota KPU, gunakan panggilan
    BENAR: "1. Ahmad (Ketua)\n2. Budi (Sekretaris)"
    SALAH: "Peserta:\n1. Ahmad (Ketua)"
    SALAH: "Peserta rapat: Ahmad, Budi"
+   PENTING: Urutkan peserta SESUAI URUTAN dalam data konteks. Jangan ubah urutan.
 
 6. "isi_notula" → NARASI RAPAT MURNI. HARUS langsung dimulai dengan narasi.
    TIDAK BOLEH ada: heading, judul, hari, tanggal, tempat, peserta, label apa pun.
@@ -1052,7 +1053,7 @@ function buildNotulaPrompt(notulenData) {
 
   return [
     { role: 'system', content: NOTULA_SYSTEM_PROMPT },
-    { role: 'user', content: 'Isi nilai placeholder berdasarkan data rapat berikut. Jangan buat struktur dokumen.\n\n' + context }
+    { role: 'user', content: 'Isi nilai placeholder berdasarkan data rapat berikut. Jangan buat struktur dokumen. Ikuti urutan peserta dari data.\n\n' + context }
   ];
 }
 
