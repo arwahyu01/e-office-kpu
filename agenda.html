@@ -106,6 +106,9 @@
                 <button class="kal-filter-chip" data-view="week" onclick="kalSetView('week',this)"><i class="fas fa-calendar-week"></i> Minggu Ini</button>
                 <button class="kal-filter-chip" data-view="deadline" onclick="kalSetView('deadline',this)"><i class="fas fa-hourglass-end"></i> Deadline</button>
                 <button class="kal-filter-chip" data-view="overdue" onclick="kalSetView('overdue',this)"><i class="fas fa-exclamation-circle"></i> Terlambat</button>
+                <select id="kalFilterSubbag" class="filter-select" onchange="kalFilterSubbagChange()" style="margin-left:8px;max-width:200px;">
+                    <option value="">Semua Subbagian</option>
+                </select>
                 <div class="kal-filter-chips-right">
                     <label class="kal-chip-toggle"><input type="checkbox" checked onchange="kalFilterType()"><span>☑ Kantor</span></label>
                     <label class="kal-chip-toggle"><input type="checkbox" onchange="kalFilterType()"><span>☑ Pribadi</span></label>
@@ -1244,12 +1247,80 @@ var kalWeekRange = null; // { start: '2026-07-06', end: '2026-07-12' }
 var kalFilterTypeAgenda = true;
 var kalFilterTypeManual = false;
 var kalFilterTypeLibur = false;
+var kalFilterSubbag = '';
 
 function loadKalender() {
   var now = new Date();
   kalBulan = now.getMonth() + 1;
   kalTahun = now.getFullYear();
   renderKalender();
+}
+
+function populateKalSubbagOptions() {
+  var sel = document.getElementById('kalFilterSubbag');
+  if (!sel) return;
+  var subbags = {};
+  (kalData.agenda||[]).forEach(function(e) { if (e.subbagian) subbags[e.subbagian] = true; });
+  var keys = Object.keys(subbags).sort();
+  sel.innerHTML = '<option value="">Semua Subbagian</option>';
+  keys.forEach(function(sb) { sel.innerHTML += '<option value="' + sb + '">' + sb + '</option>'; });
+}
+
+function kalFilterSubbagChange() {
+  kalFilterSubbag = document.getElementById('kalFilterSubbag').value;
+  if (kalWeekRange) { buildKalRightPanelWeek(kalWeekRange.start, kalWeekRange.end); }
+  else { buildKalRightPanel(kalSelectedDate); }
+  rebuildGridForFilter();
+}
+
+function rebuildGridForFilter() {
+  var today = new Date();
+  var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+  var eventsMap = {};
+  var filteredAgenda = (kalData.agenda||[]).filter(function(e) {
+    if (kalFilterSubbag && e.subbagian !== kalFilterSubbag) return false;
+    return true;
+  });
+  filteredAgenda.forEach(function(e) { if (e.tanggalMulai) { if (!eventsMap[e.tanggalMulai]) eventsMap[e.tanggalMulai] = []; eventsMap[e.tanggalMulai].push(e); } });
+  (kalData.manual||[]).forEach(function(e) { if (e.tanggalMulai) { if (!eventsMap[e.tanggalMulai]) eventsMap[e.tanggalMulai] = []; eventsMap[e.tanggalMulai].push(e); } });
+  var hari = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  var firstDay = new Date(kalTahun, kalBulan - 1, 1).getDay();
+  var daysInMonth = new Date(kalTahun, kalBulan, 0).getDate();
+  var html = '<div class="kal-header-row">';
+  hari.forEach(function(h) { html += '<div class="kal-header-cell">' + h + '</div>'; });
+  html += '</div>';
+  var day = 1;
+  for (var row = 0; row < 6; row++) {
+    if (day > daysInMonth) break;
+    html += '<div class="kal-row">';
+    for (var col = 0; col < 7; col++) {
+      if ((row === 0 && col < firstDay) || day > daysInMonth) {
+        html += '<div class="kal-cell kal-empty"></div>';
+      } else {
+        var ds = kalTahun + '-' + String(kalBulan).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+        var evts = eventsMap[ds] || [];
+        var cl = 'kal-cell';
+        if (ds === todayStr) cl += ' kal-today';
+        if (ds === kalSelectedDate && kalViewMode==='day') cl += ' kal-selected';
+        if (kalWeekRange && ds >= kalWeekRange.start && ds <= kalWeekRange.end) cl += ' kal-week-range';
+        html += '<div class="' + cl + '" onclick="kalPilihTanggal(\'' + ds + '\')">';
+        html += '<span class="kal-day-num">' + day + '</span>';
+        if (evts.length) {
+          html += '<div class="kal-dots">';
+          var ac = evts.filter(function(e) { return e.sumber === 'agenda'; }).length;
+          var mc = evts.filter(function(e) { return e.sumber === 'manual'; }).length;
+          if (ac) html += '<span class="kal-dot-badge kal-dot-agenda">' + ac + ' agenda</span>';
+          if (mc) html += '<span class="kal-dot-badge kal-dot-manual">' + mc + ' pribadi</span>';
+          html += '</div>';
+          html += '<div class="kal-event-label" title="' + esc(evts[0].judul) + '">' + esc(truncate(evts[0].judul, 18)) + '</div>';
+        }
+        html += '</div>';
+        day++;
+      }
+    }
+    html += '</div>';
+  }
+  document.getElementById('kalenderGrid').innerHTML = html;
 }
 
 function renderKalender() {
@@ -1265,10 +1336,15 @@ function renderKalender() {
 
 function buildKalender() {
   document.getElementById('kalenderTitle').textContent = namaBulan(kalBulan) + ' ' + kalTahun;
+  populateKalSubbagOptions();
   var today = new Date();
   var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
   var eventsMap = {};
-  (kalData.agenda||[]).forEach(function(e) { if (e.tanggalMulai) { if (!eventsMap[e.tanggalMulai]) eventsMap[e.tanggalMulai] = []; eventsMap[e.tanggalMulai].push(e); } });
+  var filteredAgenda = (kalData.agenda||[]).filter(function(e) {
+    if (kalFilterSubbag && e.subbagian !== kalFilterSubbag) return false;
+    return true;
+  });
+  filteredAgenda.forEach(function(e) { if (e.tanggalMulai) { if (!eventsMap[e.tanggalMulai]) eventsMap[e.tanggalMulai] = []; eventsMap[e.tanggalMulai].push(e); } });
   (kalData.manual||[]).forEach(function(e) { if (e.tanggalMulai) { if (!eventsMap[e.tanggalMulai]) eventsMap[e.tanggalMulai] = []; eventsMap[e.tanggalMulai].push(e); } });
   if (!kalSelectedDate) kalSelectedDate = todayStr;
 
@@ -1320,8 +1396,11 @@ function buildKalender() {
 
 function applyFilterType(events) {
   return events.filter(function(e) {
-    if (e.sumber === 'agenda') return kalFilterTypeAgenda;
-    if (e.sumber === 'manual') return kalFilterTypeManual;
+    if (e.sumber === 'agenda') {
+      if (!kalFilterTypeAgenda) return false;
+      if (kalFilterSubbag && e.subbagian !== kalFilterSubbag) return false;
+    }
+    if (e.sumber === 'manual' && !kalFilterTypeManual) return false;
     return true;
   });
 }
@@ -1458,7 +1537,11 @@ function rebuildGridAndPanel(dateStr) {
   var today = new Date();
   var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
   var eventsMap = {};
-  (kalData.agenda||[]).forEach(function(e) { if (e.tanggalMulai) { if (!eventsMap[e.tanggalMulai]) eventsMap[e.tanggalMulai] = []; eventsMap[e.tanggalMulai].push(e); } });
+  var filteredAgenda = (kalData.agenda||[]).filter(function(e) {
+    if (kalFilterSubbag && e.subbagian !== kalFilterSubbag) return false;
+    return true;
+  });
+  filteredAgenda.forEach(function(e) { if (e.tanggalMulai) { if (!eventsMap[e.tanggalMulai]) eventsMap[e.tanggalMulai] = []; eventsMap[e.tanggalMulai].push(e); } });
   (kalData.manual||[]).forEach(function(e) { if (e.tanggalMulai) { if (!eventsMap[e.tanggalMulai]) eventsMap[e.tanggalMulai] = []; eventsMap[e.tanggalMulai].push(e); } });
   var hari = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
   var html = '<div class="kal-header-row">';

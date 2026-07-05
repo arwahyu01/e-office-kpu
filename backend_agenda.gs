@@ -1220,7 +1220,8 @@ function getCalendarData(userEmail, bulan, tahun) {
             id: a.id, judul: a.judul, tanggalMulai: tglMulai,
             tanggalSelesai: tglSelesai, status: a.status,
             prioritas: a.prioritas, sumber: 'agenda',
-            picNama: a.picNama || a.createdByNama || ''
+            picNama: a.picNama || a.createdByNama || '',
+            subbagian: a.subbagian || ''
           });
         }
       });
