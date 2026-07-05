@@ -1781,24 +1781,36 @@ function namaBulan(b) { return ['Januari','Februari','Maret','April','Mei','Juni
 var hariIndo = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
 function truncate(s, max) { if (!s || s.length <= max) return s||''; return s.substring(0, max) + '...'; }
 
-// ── Subbag color palette for kalender ──
-var subbagColors = [
-  { bg:'#dbeafe', text:'#1e40af' },
+// ── Subbag color mapping ──
+var subbagColorMap = {
+  'Keuangan, Umum dan Logistik': { bg:'#d1fae5', text:'#065f46' },
+  'Teknis Penyelenggara Pemilu dan Hukum': { bg:'#f3e8ff', text:'#6b21a8' },
+  'Perencanaan Data dan Informasi': { bg:'#e0e7ff', text:'#3730a3' },
+  'Partisipasi Hubungan Masyarakat dan Sumber Daya Manusia': { bg:'#fef3c7', text:'#92400e' },
+  'DIVISI KEUANGAN, UMUM, RUMAH TANGGA DAN LOGISTIK': { bg:'#dbeafe', text:'#1e40af' },
+  'DIVISI TEKNIS PENYELENGGARA PEMILU DAN HUKUM': { bg:'#fce7f3', text:'#9d174d' },
+  'DIVISI PERENCANAAN DATA DAN INFORMASI': { bg:'#ccfbf1', text:'#134e4a' },
+  'DIVISI PARTISIPASI HUBUNGAN MASYARAKAT DAN SDM': { bg:'#ecfeff', text:'#155e75' },
+  'Tanpa Subbag': { bg:'#e5e7eb', text:'#64748b' }
+};
+var subbagColorsFallback = [
+  { bg:'#fff1f2', text:'#9f1239' },
+  { bg:'#f5f5f4', text:'#44403c' },
   { bg:'#d1fae5', text:'#065f46' },
-  { bg:'#fef3c7', text:'#92400e' },
   { bg:'#f3e8ff', text:'#6b21a8' },
-  { bg:'#fce7f3', text:'#9d174d' },
+  { bg:'#fef3c7', text:'#92400e' },
   { bg:'#e0e7ff', text:'#3730a3' },
   { bg:'#ccfbf1', text:'#134e4a' },
-  { bg:'#fff1f2', text:'#9f1239' },
   { bg:'#ecfeff', text:'#155e75' },
-  { bg:'#f5f5f4', text:'#44403c' }
+  { bg:'#dbeafe', text:'#1e40af' },
+  { bg:'#fce7f3', text:'#9d174d' }
 ];
 function getSubbagColor(subbag) {
-  if (!subbag) return { bg:'#e5e7eb', text:'#64748b' };
+  if (!subbag) return subbagColorMap['Tanpa Subbag'] || { bg:'#e5e7eb', text:'#64748b' };
+  if (subbagColorMap[subbag]) return subbagColorMap[subbag];
   var hash = 0;
   for (var i = 0; i < subbag.length; i++) hash = ((hash << 5) - hash) + subbag.charCodeAt(i);
-  return subbagColors[Math.abs(hash) % subbagColors.length];
+  return subbagColorsFallback[Math.abs(hash) % subbagColorsFallback.length];
 }
 function dateStrParse(ds) { return ds || (new Date().getFullYear() + '-' + String(new Date().getMonth()+1).padStart(2,'0') + '-' + String(new Date().getDate()).padStart(2,'0')); }
 function fmtDate(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
