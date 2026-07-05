@@ -1428,17 +1428,6 @@ function getKalDotHtml(events) {
   if (manualCount) html += '<span class="kal-dot-badge kal-dot-manual">' + manualCount + ' pribadi</span>';
   return html;
 }
-        html += '</div>';
-        day++;
-      }
-    }
-    html += '</div>';
-  }
-  document.getElementById('kalenderGrid').innerHTML = html;
-
-  if (kalWeekRange) { buildKalRightPanelWeek(kalWeekRange.start, kalWeekRange.end); }
-  else { buildKalRightPanel(dateStrParse(kalSelectedDate)); }
-}
 
 function applyFilterType(events) {
   return events.filter(function(e) {
