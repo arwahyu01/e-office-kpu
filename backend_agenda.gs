@@ -1560,7 +1560,15 @@ function getMyActivityDashboard(userEmail, optYear, optMonth) {
       if (progSh2 && progSh2.getLastRow() >= 2) {
         var progRows2 = progSh2.getDataRange().getValues();
         for (var pj = 1; pj < progRows2.length; pj++) {
-          if (String(progRows2[pj][8] || '').toLowerCase().trim() === email) {
+          var isPj = String(progRows2[pj][8] || '').toLowerCase().trim() === email;
+          var isAnggota = false;
+          try {
+            var anggotaArr = JSON.parse(progRows2[pj][13] || '[]');
+            for (var ai = 0; ai < anggotaArr.length; ai++) {
+              if (String(anggotaArr[ai] || '').toLowerCase().trim() === email) { isAnggota = true; break; }
+            }
+          } catch(e) {}
+          if (isPj || isAnggota) {
             var wfId = String(progRows2[pj][1] || '').trim();
             var agIdPj = workflowAgendaMap[wfId] || '';
             if (agIdPj) userAgendaIds[agIdPj] = true;
@@ -1601,7 +1609,15 @@ function getMyActivityDashboard(userEmail, optYear, optMonth) {
         var progRows3 = progSh3.getDataRange().getValues();
         for (var pp = 1; pp < progRows3.length; pp++) {
           var pjEmail = String(progRows3[pp][8] || '').toLowerCase().trim();
-          if (pjEmail !== email) continue;
+          var isPj = pjEmail === email;
+          var isAnggota = false;
+          try {
+            var anggotaArr = JSON.parse(progRows3[pp][13] || '[]');
+            for (var ai2 = 0; ai2 < anggotaArr.length; ai2++) {
+              if (String(anggotaArr[ai2] || '').toLowerCase().trim() === email) { isAnggota = true; break; }
+            }
+          } catch(e) {}
+          if (!isPj && !isAnggota) continue;
           var progStatus = String(progRows3[pp][4] || '').trim().toUpperCase();
           var progPersen = Number(progRows3[pp][5] || 0);
           if (progStatus !== 'SELESAI' && progPersen < 100) continue;

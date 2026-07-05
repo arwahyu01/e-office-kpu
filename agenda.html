@@ -436,59 +436,141 @@
 
 <!-- ========== PROGRESS MODAL ========== -->
 <div id="modalProgress" class="modal" style="display:none;">
-    <div class="modal-content" style="max-width:680px;">
-        <div class="modal-header"><h2 id="modalProgressTitle"><b>Tambah Progress</b></h2><button class="close-btn" onclick="closeModalProgress()"><i class="fas fa-times"></i></button></div>
+    <div class="modal-content" style="max-width:920px;max-height:96vh;overflow-y:auto;padding:0;">
+        <!-- HEADER -->
+        <div style="position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid #e5e7eb;padding:18px 24px 14px;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+                <div>
+                    <h2 id="modalProgressTitle" style="font-size:18px;font-weight:700;color:#0f172a;margin:0;">Tambah Progress</h2>
+                    <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;align-items:center;font-size:12px;color:#64748b;">
+                        <span>Workflow: <strong id="progressWorkflowName" style="color:#1e293b;">-</strong></span>
+                        <span id="progressHeaderBadgeStatus" style="display:none;"></span>
+                        <span id="progressHeaderBadgeTarget" style="display:none;"></span>
+                    </div>
+                </div>
+                <button onclick="closeModalProgress()" style="background:#f1f5f9;border:none;width:34px;height:34px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="fas fa-times" style="color:#64748b;font-size:14px;"></i></button>
+            </div>
+        </div>
+
         <input type="hidden" id="progressId"><input type="hidden" id="progressWorkflowId">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-            <div>
-                <div id="progressWorkflowDisplay" style="padding:12px;background:#f8fafc;border-radius:12px;margin-bottom:16px;">
-                    <span style="font-size:12px;color:#64748b;">Workflow</span>
-                    <div style="font-weight:600;font-size:15px;color:#1e293b;margin-top:2px;" id="progressWorkflowName">-</div>
+        <input type="hidden" id="fProgressExistingEvidence" value="">
+
+        <!-- BODY -->
+        <div class="progress-modal-body" style="padding:20px 24px;display:grid;grid-template-columns:1.8fr 1fr;gap:20px;">
+            <!-- LEFT COL -->
+            <div style="display:flex;flex-direction:column;gap:16px;min-width:0;">
+
+                <!-- Card 1: Informasi Progress -->
+                <div class="progress-card">
+                    <div class="progress-card-title"><i class="fas fa-info-circle" style="color:#6366f1;width:16px;"></i> Informasi Progress</div>
+                    <div class="mb-3">
+                        <label class="progress-label">Nama Progress / Uraian Pekerjaan <span style="color:#dc2626;">*</span></label>
+                        <input type="text" id="fNamaProgress" class="progress-input" placeholder="Contoh: Nota Dinas, Undangan, Dokumentasi, dll">
+                    </div>
+                    <div class="mb-3">
+                        <label class="progress-label">Status</label>
+                        <select id="fProgressStatus" class="progress-input" onchange="toggleProgressEvidenceSection()">
+                            <option value="RENCANA">Belum Mulai</option>
+                            <option value="BERJALAN">Sedang Dikerjakan</option>
+                            <option value="SELESAI">Selesai</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="progress-label">Target <span style="color:#dc2626;">*</span></label>
+                        <select id="fProgressTarget" class="progress-input" onchange="updateProgressHeaderBadge()">
+                            <option value="">Pilih Target</option>
+                            <option value="Dokumen">Dokumen</option>
+                            <option value="Laporan">Laporan</option>
+                            <option value="Lainnya">Lainnya</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="form-group"><label>Nama Progress / Uraian Pekerjaan <span style="color:#dc2626;">*</span></label>
-                    <input type="text" id="fNamaProgress" class="form-control" placeholder="Contoh: Nota Dinas, Undangan, Dokumentasi, dll">
+
+                <!-- Card 2: Penanggung Jawab -->
+                <div class="progress-card">
+                    <div class="progress-card-title"><i class="fas fa-user-check" style="color:#6366f1;width:16px;"></i> Penanggung Jawab</div>
+                    <div>
+                        <label class="progress-label"></label>
+                        <select id="fProgressPJ" class="progress-input"><option value="">Pilih PJ</option></select>
+                    </div>
                 </div>
-                <div class="form-group" style="margin-top:16px;"><label>Status</label>
-                    <select id="fProgressStatus" class="form-control">
-                        <option value="RENCANA">Belum Mulai</option>
-                        <option value="BERJALAN">Sedang Dikerjakan</option>
-                        <option value="SELESAI">Selesai</option>
-                    </select>
+
+                <!-- Card 3: Hasil & Catatan -->
+                <div class="progress-card">
+                    <div class="progress-card-title"><i class="fas fa-file-lines" style="color:#6366f1;width:16px;"></i> Hasil &amp; Catatan</div>
+                    <div class="mb-3">
+                        <label class="progress-label">Hasil Pekerjaan <span style="color:#dc2626;">* jika Selesai</span></label>
+                        <textarea id="fHasilPekerjaan" class="progress-input progress-textarea" placeholder="Contoh: Draft nota dinas telah selesai disusun" rows="2"></textarea>
+                    </div>
+                    <div>
+                        <label class="progress-label">Catatan <span style="font-weight:400;color:#94a3b8;">(opsional)</span></label>
+                        <textarea id="fProgressCatatan" class="progress-input progress-textarea" placeholder="Kendala atau informasi tambahan" rows="2"></textarea>
+                    </div>
                 </div>
-                <div class="form-group" style="margin-top:16px;"><label>Target <span style="color:#dc2626;">*</span></label>
-                    <select id="fProgressTarget" class="form-control">
-                        <option value="">Pilih Target</option>
-                        <option value="Dokumen">Dokumen</option>
-                        <option value="Laporan">Laporan</option>
-                        <option value="Lainnya">Lainnya</option>
-                    </select>
-                </div>
-                <div class="form-group" style="margin-top:16px;"><label>Penanggung Jawab (PJ)</label>
-                    <select id="fProgressPJ" class="form-control"><option value="">Pilih PJ</option></select>
-                </div>
-                <div class="form-group" style="margin-top:16px;"><label>Hasil Pekerjaan <span style="color:#dc2626;">* jika Selesai</span></label>
-                    <input type="text" id="fHasilPekerjaan" class="form-control" placeholder="Contoh: Draft nota dinas telah selesai disusun">
-                </div>
-                <div class="form-group" style="margin-top:16px;"><label>Catatan <span style="color:#94a3b8;font-weight:400;">(opsional)</span></label>
-                    <textarea id="fProgressCatatan" class="form-control" rows="2" placeholder="Kendala atau informasi tambahan"></textarea>
+
+                <!-- Card 4: Evidence -->
+                <div id="progressEvidenceSection" style="display:none;">
+                    <div class="progress-card">
+                        <div class="progress-card-title"><i class="fas fa-paperclip" style="color:#6366f1;width:16px;"></i> Evidence <span style="font-weight:400;color:#94a3b8;font-size:12px;">(opsional)</span></div>
+
+                        <div id="fProgressEvExisting" style="margin-bottom:12px;display:none;">
+                            <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Evidence sudah ada:</div>
+                            <div id="fProgressEvExistingList" style="display:flex;flex-direction:column;gap:4px;"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="progress-label"><i class="fas fa-upload"></i> Upload File</label>
+                            <input type="file" id="fProgressEvFile" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.zip,.rar,.txt,.csv" style="font-size:13px;width:100%;padding:4px 0;">
+                        </div>
+
+                        <div style="position:relative;text-align:center;margin-bottom:10px;">
+                            <span style="font-size:11px;color:#94a3b8;background:#fff;padding:0 8px;position:relative;z-index:1;">atau</span>
+                            <div style="border-top:1px solid #e5e7eb;position:absolute;top:50%;left:0;right:0;"></div>
+                        </div>
+
+                        <div>
+                            <label class="progress-label"><i class="fas fa-link"></i> Tautan Dokumen</label>
+                            <div class="evidence-link-row" style="display:flex;gap:8px;">
+                                <input type="text" id="fProgressEvLinkUrl" class="progress-input" placeholder="https://..." style="flex:2;">
+                                <input type="text" id="fProgressEvLinkNama" class="progress-input" placeholder="Nama dokumen" style="flex:1;">
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div>
-                <div class="form-group"><label>Anggota <span style="color:#94a3b8;font-weight:400;">(centang yang ditugaskan)</span></label>
-                    <div id="fProgressAnggotaContainer" style="border:1px solid #e5e7eb;border-radius:8px;padding:8px;max-height:440px;overflow-y:auto;">
+
+            <!-- RIGHT COL -->
+            <div style="min-width:0;">
+                <div class="progress-card" style="position:sticky;top:0;">
+                    <div class="progress-card-title"><i class="fas fa-users" style="color:#6366f1;width:16px;"></i> Anggota</div>
+
+                    <!-- Chips -->
+                    <div id="fProgressAnggotaChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;min-height:0;"></div>
+
+                    <!-- Search -->
+                    <div class="mb-3">
+                        <input type="text" id="fCariAnggota" class="progress-input" placeholder="Cari pegawai..." oninput="filterAnggota()">
+                    </div>
+
+                    <!-- Buttons -->
+                    <div style="display:flex;gap:6px;margin-bottom:10px;">
+                        <button type="button" class="anggota-btn" onclick="selectAllAnggota(true)"><i class="fas fa-check-double"></i> Semua</button>
+                        <button type="button" class="anggota-btn" onclick="selectAllAnggota(false)"><i class="fas fa-times"></i> Hapus</button>
+                    </div>
+
+                    <!-- Checkbox list -->
+                    <div id="fProgressAnggotaContainer" style="border:1px solid #e5e7eb;border-radius:10px;padding:4px;max-height:320px;overflow-y:auto;">
                         <div id="fProgressAnggotaList"></div>
-                    </div>
-                    <div style="margin-top:6px;display:flex;gap:6px;">
-                        <button type="button" class="btn-secondary" onclick="selectAllAnggota(true)" style="font-size:11px;padding:3px 10px;">Pilih Semua</button>
-                        <button type="button" class="btn-secondary" onclick="selectAllAnggota(false)" style="font-size:11px;padding:3px 10px;">Hapus Semua</button>
-                    </div>
-                    <div style="margin-top:6px;">
-                        <input type="text" id="fCariAnggota" class="form-control" placeholder="Cari pegawai..." oninput="filterAnggota()" style="font-size:12px;padding:6px 10px;">
                     </div>
                 </div>
             </div>
         </div>
-        <button onclick="saveProgress()" class="btn-primary full-width" style="margin-top:24px;width:100%;"><i class="fas fa-save"></i> Simpan Progress</button>
+
+        <!-- FOOTER -->
+        <div style="position:sticky;bottom:0;z-index:20;background:#fff;border-top:1px solid #e5e7eb;padding:14px 24px;display:flex;justify-content:flex-end;align-items:center;gap:10px;">
+            <button onclick="closeModalProgress()" class="progress-btn-secondary">Batal</button>
+            <button onclick="saveProgress()" class="progress-btn-primary"><i class="fas fa-save"></i> Simpan Progress</button>
+        </div>
     </div>
 </div>
 
@@ -1182,7 +1264,7 @@ function renderActivityTimeline(acts) {
 
 function myActivityCard2(a) {
   var iconMap = {
-    'BUAT_AGENDA': 'fa-plus-circle', 'UPDATE_AGENDA': 'fa-pen-circle',
+    'BUAT_AGENDA': 'fa-plus-circle', 'UPDATE_AGENDA': 'fa-pen',
     'HAPUS_AGENDA': 'fa-trash-can', 'BUAT_WORKFLOW': 'fa-diagram-project',
     'UPDATE_WORKFLOW': 'fa-diagram-project', 'HAPUS_WORKFLOW': 'fa-diagram-project',
     'BUAT_PROGRESS': 'fa-circle-check', 'UPDATE_PROGRESS': 'fa-rotate',
@@ -2109,23 +2191,35 @@ function openCreateProgress(workflowId) {
   document.getElementById('fProgressCatatan').value='';
   document.getElementById('fProgressStatus').value='RENCANA';
   document.getElementById('fProgressTarget').value='';
-  document.getElementById('fProgressPJ').value=currentUser.email;
+  document.getElementById('fProgressPJ').value=wf&&wf.picEmail ? wf.picEmail : currentUser.email;
+  document.getElementById('fProgressExistingEvidence').value='';
+  document.getElementById('fProgressEvFile').value='';
+  document.getElementById('fProgressEvLinkUrl').value='';
+  document.getElementById('fProgressEvLinkNama').value='';
+  document.getElementById('fProgressEvExisting').style.display='none';
+  document.getElementById('fProgressEvExistingList').innerHTML='';
+  toggleProgressEvidenceSection();
+  updateProgressHeaderBadge();
   selectAllAnggota(false);
   document.getElementById('fCariAnggota').value='';
   filterAnggota();
   document.getElementById('modalProgress').style.display='flex';
 }
 
-function closeModalProgress() { document.getElementById('modalProgress').style.display='none'; }
+function closeModalProgress() {
+  document.getElementById('modalProgress').style.display='none';
+  document.getElementById('fProgressEvFile').value='';
+}
 
 function openEditProgress(id) {
   var prog = null;
+  var wf = null;
   var wfName = '';
   var wfs = window._currentWorkflows || [];
   for (var i = 0; i < wfs.length; i++) {
     var plist = wfs[i].progressList || [];
     for (var j = 0; j < plist.length; j++) {
-      if (plist[j].id === id) { prog = plist[j]; wfName = wfs[i].namaWorkflow || ''; break; }
+      if (plist[j].id === id) { prog = plist[j]; wf = wfs[i]; wfName = wfs[i].namaWorkflow || ''; break; }
     }
     if (prog) break;
   }
@@ -2139,7 +2233,35 @@ function openEditProgress(id) {
   document.getElementById('fProgressTarget').value=prog.target||'';
   document.getElementById('fHasilPekerjaan').value=prog.realisasi||'';
   document.getElementById('fProgressCatatan').value=prog.catatan||'';
-  document.getElementById('fProgressPJ').value=prog.pjEmail||currentUser.email;
+  document.getElementById('fProgressPJ').value=prog.pjEmail||(wf&&wf.picEmail)||currentUser.email;
+  document.getElementById('fProgressEvFile').value='';
+  document.getElementById('fProgressEvLinkUrl').value='';
+  document.getElementById('fProgressEvLinkNama').value='';
+  // Render existing evidence
+  var evList = prog.evidenceList||[];
+  var evContainer = document.getElementById('fProgressEvExisting');
+  var evListEl = document.getElementById('fProgressEvExistingList');
+  if (evList.length) {
+    evContainer.style.display='block';
+    evListEl.innerHTML=evList.map(function(ev) {
+      var icon = ev.mimeType ? 'fa-file-'+ev.mimeType : 'fa-file-alt';
+      if (ev.mimeType==='doc') icon='fa-file-word';
+      else if (ev.mimeType==='xls') icon='fa-file-excel';
+      else if (ev.mimeType==='ppt') icon='fa-file-powerpoint';
+      else if (ev.mimeType==='img') icon='fa-file-image';
+      else if (ev.mimeType==='zip') icon='fa-file-archive';
+      else if (ev.mimeType==='pdf') icon='fa-file-pdf';
+      return '<div style="display:flex;align-items:center;gap:6px;font-size:12px;padding:4px 8px;background:#fff;border-radius:6px;"><i class="fas '+icon+'" style="color:#6366f1;"></i> '+
+        (ev.link?'<a href="'+ev.link+'" target="_blank" style="color:#1e293b;text-decoration:none;">'+esc(ev.namaFile)+'</a>':'<span>'+esc(ev.namaFile)+'</span>')+
+        ' <span style="color:#94a3b8;margin-left:auto;">'+esc(ev.uploadByNama||'')+'</span></div>';
+    }).join('');
+  } else {
+    evContainer.style.display='none';
+    evListEl.innerHTML='';
+  }
+  document.getElementById('fProgressExistingEvidence').value=JSON.stringify(evList);
+  toggleProgressEvidenceSection();
+  updateProgressHeaderBadge();
   setAnggotaSelect(prog.anggotaEmails||[]);
   document.getElementById('fCariAnggota').value='';
   filterAnggota();
@@ -2151,22 +2273,29 @@ function renderAnggotaCheckboxes() {
   if (!c) return;
   c.innerHTML='';
   pegawaiList.forEach(function(p) {
-    c.innerHTML+='<label style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background=\'#f8fafc\'" onmouseout="this.style.background=\'transparent\'">'+
-      '<input type="checkbox" class="anggota-checkbox" value="'+esc(p.email)+'" style="width:16px;height:16px;accent-color:#b30000;">'+
-      '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">'+esc(p.nama)+'</div><div style="font-size:11px;color:#94a3b8;">'+esc(p.jabatan||'')+' · '+esc(p.subbag||'-')+'</div></div>'+
+    c.innerHTML+='<label class="anggota-item">'+
+      '<input type="checkbox" class="anggota-checkbox" value="'+esc(p.email)+'" style="width:16px;height:16px;accent-color:#b30000;flex-shrink:0;">'+
+      '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;color:#1e293b;">'+esc(p.nama)+'</div><div style="font-size:11px;color:#94a3b8;">'+esc(p.jabatan||'')+' · '+esc(p.subbag||'-')+'</div></div>'+
+      '<span class="anggota-check-icon"><i class="fas fa-check-circle"></i></span>'+
       '</label>';
+  });
+  syncAnggotaChips();
+  // Update checked class on init
+  c.querySelectorAll('.anggota-checkbox').forEach(function(cb) {
+    cb.closest('.anggota-item').classList.toggle('checked', cb.checked);
   });
 }
 function filterAnggota() {
   var q=document.getElementById('fCariAnggota').value.toLowerCase().trim();
-  var labels=document.querySelectorAll('#fProgressAnggotaList label');
-  labels.forEach(function(l) {
+  var items=document.querySelectorAll('#fProgressAnggotaList .anggota-item');
+  items.forEach(function(l) {
     l.style.display=(!q || l.textContent.toLowerCase().indexOf(q)!==-1)?'flex':'none';
   });
 }
 function selectAllAnggota(select) {
   var cbs=document.querySelectorAll('#fProgressAnggotaList .anggota-checkbox');
-  cbs.forEach(function(cb){cb.checked=select;});
+  cbs.forEach(function(cb){cb.checked=select; cb.closest('.anggota-item').classList.toggle('checked',select);});
+  syncAnggotaChips();
 }
 function getAnggotaEmails() {
   var cbs=document.querySelectorAll('#fProgressAnggotaList .anggota-checkbox:checked');
@@ -2177,8 +2306,60 @@ function getAnggotaEmails() {
 function setAnggotaSelect(emails) {
   var cbs=document.querySelectorAll('#fProgressAnggotaList .anggota-checkbox');
   cbs.forEach(function(cb){
-    cb.checked=emails&&emails.length&&emails.indexOf(cb.value)!==-1;
+    var sel=emails&&emails.length&&emails.indexOf(cb.value)!==-1;
+    cb.checked=sel;
+    cb.closest('.anggota-item').classList.toggle('checked',sel);
   });
+  syncAnggotaChips();
+}
+
+function syncAnggotaChips() {
+  var container=document.getElementById('fProgressAnggotaChips');
+  if (!container) return;
+  var cbs=document.querySelectorAll('#fProgressAnggotaList .anggota-checkbox:checked');
+  if (!cbs.length) { container.innerHTML=''; return; }
+  var map={}; pegawaiList.forEach(function(p){map[p.email]=p.nama;});
+  var html='';
+  cbs.forEach(function(cb){
+    var nama=map[cb.value]||cb.value;
+    html+='<span class="progress-chip">'+esc(nama)+'<button class="progress-chip-remove" data-email="'+esc(cb.value)+'" onclick="removeAnggotaChip(this)" title="Hapus"><i class="fas fa-times"></i></button></span>';
+  });
+  container.innerHTML=html;
+}
+function removeAnggotaChip(el) {
+  var email=el.getAttribute('data-email');
+  var cb=document.querySelector('#fProgressAnggotaList .anggota-checkbox[value="'+esc(email)+'"]');
+  if (cb) { cb.checked=false; cb.closest('.anggota-item').classList.remove('checked'); }
+  syncAnggotaChips();
+}
+// Delegated change listener for anggota checkboxes
+document.addEventListener('change', function(e) {
+  if (e.target.matches('#fProgressAnggotaList .anggota-checkbox')) {
+    e.target.closest('.anggota-item').classList.toggle('checked', e.target.checked);
+    syncAnggotaChips();
+  }
+});
+// Auto-expand textarea
+document.addEventListener('input', function(e) {
+  if (e.target.matches('.progress-textarea')) { e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'; }
+});
+
+function toggleProgressEvidenceSection() {
+  var status=document.getElementById('fProgressStatus').value;
+  document.getElementById('progressEvidenceSection').style.display=status==='SELESAI'?'block':'none';
+  updateProgressHeaderBadge();
+}
+
+function updateProgressHeaderBadge() {
+  var status=document.getElementById('fProgressStatus').value;
+  var target=document.getElementById('fProgressTarget').value;
+  var statusMap={RENCANA:'<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;background:#f1f5f9;color:#64748b;"><span style="width:6px;height:6px;border-radius:50%;background:#94a3b8;"></span> Belum Mulai</span>',
+    BERJALAN:'<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;background:#fef3c7;color:#92400e;"><span style="width:6px;height:6px;border-radius:50%;background:#f59e0b;"></span> Berjalan</span>',
+    SELESAI:'<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;background:#d1fae5;color:#065f46;"><span style="width:6px;height:6px;border-radius:50%;background:#10b981;"></span> Selesai</span>'};
+  var sb=document.getElementById('progressHeaderBadgeStatus');
+  var tb=document.getElementById('progressHeaderBadgeTarget');
+  if (statusMap[status]) { sb.innerHTML=statusMap[status]; sb.style.display='inline'; } else sb.style.display='none';
+  if (target) { tb.innerHTML='Target: <strong style="color:#1e293b;">'+esc(target)+'</strong>'; tb.style.display='inline'; } else tb.style.display='none';
 }
 
 function saveProgress() {
@@ -2195,11 +2376,78 @@ function saveProgress() {
   var pjEmail=document.getElementById('fProgressPJ').value;
   var anggotaEmails=getAnggotaEmails();
   var payload={workflowId:wfId,namaProgress:namaProgress,target:target,status:status,persentase:persentase,realisasi:hasil,pjEmail:pjEmail,anggotaEmails:anggotaEmails,catatan:document.getElementById('fProgressCatatan').value.trim(),userEmail:currentUser.email};
+
+  // Evidence data
+  var evFile=document.getElementById('fProgressEvFile').files[0]||null;
+  var evLinkUrl=document.getElementById('fProgressEvLinkUrl').value.trim();
+  var evLinkNama=document.getElementById('fProgressEvLinkNama').value.trim();
+  var hasEvFile=!!evFile;
+  var hasEvLink=evLinkUrl!=='' && evLinkNama!=='';
+
   showLoading('Menyimpan...');
-  const cb = (r) => { hideLoading(); if (r.success) { closeModalProgress(); viewDetail(currentDetailId); Swal.fire('Berhasil',id?'Progress diperbarui':'Progress ditambahkan','success'); } else Swal.fire('Gagal',r.message,'error'); };
-  const eb = (e) => { hideLoading(); Swal.fire('Error',e.message,'error'); };
-  if (id) { payload.id=id; google.script.run.withSuccessHandler(cb).withFailureHandler(eb).updateProgress(payload); }
-  else google.script.run.withSuccessHandler(cb).withFailureHandler(eb).createProgress(payload);
+  var eb = function(e) { hideLoading(); Swal.fire('Error',e.message,'error'); };
+
+  var afterSave = function(progressId) {
+    if (!hasEvFile && !hasEvLink) {
+      hideLoading();
+      closeModalProgress();
+      viewDetail(currentDetailId);
+      Swal.fire('Berhasil',id?'Progress diperbarui':'Progress ditambahkan','success');
+      return;
+    }
+    // Upload evidence after progress saved
+    var evDone = function() {
+      hideLoading();
+      closeModalProgress();
+      viewDetail(currentDetailId);
+      Swal.fire('Berhasil','Progress & evidence disimpan','success');
+    };
+    var evFail = function(msg) {
+      hideLoading();
+      closeModalProgress();
+      viewDetail(currentDetailId);
+      Swal.fire('Berhasil','Progress tersimpan, namun evidence gagal: '+msg,'warning');
+    };
+
+    if (hasEvLink && !hasEvFile) {
+      google.script.run.withSuccessHandler(function(r) {
+        if (r.success) evDone(); else evFail(r.message);
+      }).withFailureHandler(function(e) { evFail(e.message); })
+      .createEvidence({progressId:progressId, namaFile:evLinkNama, link:evLinkUrl, keterangan:'', uploadByEmail:currentUser.email});
+    } else if (hasEvFile) {
+      google.script.run.withSuccessHandler(function(r) {
+        if (r.success) {
+          // If link also provided, upload it too
+          if (hasEvLink) {
+            google.script.run.withSuccessHandler(function(r2) {
+              if (r2.success) evDone(); else evFail(r2.message);
+            }).withFailureHandler(function(e) { evFail(e.message); })
+            .createEvidence({progressId:progressId, namaFile:evLinkNama, link:evLinkUrl, keterangan:'', uploadByEmail:currentUser.email});
+          } else {
+            evDone();
+          }
+        } else {
+          evFail(r.message);
+        }
+      }).withFailureHandler(function(e) { evFail(e.message); })
+      .createEvidenceFile(progressId, evFile, '', currentUser.email);
+    } else {
+      evDone();
+    }
+  };
+
+  if (id) {
+    payload.id=id;
+    google.script.run.withSuccessHandler(function(r) {
+      if (r.success) afterSave(id);
+      else { hideLoading(); Swal.fire('Gagal',r.message,'error'); }
+    }).withFailureHandler(eb).updateProgress(payload);
+  } else {
+    google.script.run.withSuccessHandler(function(r) {
+      if (r.success) afterSave(r.id);
+      else { hideLoading(); Swal.fire('Gagal',r.message,'error'); }
+    }).withFailureHandler(eb).createProgress(payload);
+  }
 }
 
 // =============================================
