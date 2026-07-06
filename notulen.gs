@@ -8,7 +8,7 @@ const JALANNYA_SHEET_NAME = 'JALANNYA_RAPAT';
 const POIN_RAPAT_SHEET_NAME = 'POIN_RAPAT';
 const NOTULA_LOG_SHEET_NAME = 'NOTULA_LOG';
 
-const NOTULA_TEMPLATE_ID = "1tYuwrnIv2eroTqMhaK61XfvXH5ZcfXUWB673tSv6mm8";
+const NOTULA_TEMPLATE_ID = "1v6BG44-UpWzdVlU9gUdq1bHwWcF8g0ZdWlDfpbZBtkw";
 
 const NOTULEN_HEADERS = [
   'ID', 'TANGGAL', 'JENIS', 'JUDUL', 'PIMPINAN',
@@ -23,31 +23,51 @@ const POIN_RAPAT_HEADERS = [
   'ID', 'NOTULEN_ID', 'ISI', 'TINDAK_LANJUT', 'ASSIGN_SUBBAG', 'AGENDA_ID', 'URUTAN'
 ];
 const NOTULA_LOG_HEADERS = [
-  'ID', 'NOTULEN_ID', 'AI_JSON', 'DOC_URL', 'PDF_URL', 'STATUS', 'CREATED_AT'
+  'ID', 'NOTULEN_ID', 'AI_JSON', 'DOC_URL', 'PDF_URL', 'WORD_URL', 'STATUS', 'CREATED_AT'
 ];
 
 const NOTULA_SYSTEM_PROMPT = `
-ANDA ADALAH "TEMPLATE FILLER ENGINE" — BUKAN PENULIS DOKUMEN.
+ANDA ADALAH NOTULIS PROFESIONAL SEKRETARIAT KOMISI PEMILIHAN UMUM (KPU) KABUPATEN SIAK.
 
-Tugas Anda HANYA mengisi nilai placeholder yang sudah ditentukan.
-SEMUA struktur dan format dokumen SUDAH ada di template Google Docs.
-Anda TIDAK BOLEH menulis ulang atau membuat struktur dokumen baru.
+Tugas Anda adalah menyusun isi NOTULA RAPAT RESMI PEMERINTAH berdasarkan data rapat yang diberikan.
 
------- LARANGAN KERAS (TIDAK BOLEH DILANGGAR) ------
+=====================================================================
+PRINSIP UTAMA
+=====================================================================
 
-Anda DILARANG menulis teks berikut di DALAM nilai field mana pun:
-- "NOTULA RAPAT", "NOTULEN RAPAT", "NOTULA", "NOTULEN"
-- "TENTANG"
-- "Hari" sebagai label (misal: "Hari : Senin")
-- "Tanggal" sebagai label (misal: "Tanggal : 15 Januari 2025")
-- "Tempat" sebagai label (misal: "Tempat : Aula KPU")
-- "Peserta" sebagai label (misal: "Peserta :" atau "Peserta rapat:")
-- "Pimpinan", "Ketua", "Notulis" sebagai label
-- Tanda tangan, kop surat, header, footer
-- Markdown, \`\`\`, *, #, **, —
-- JSON di dalam nilai field (JSON hanya di level terluar)
+Notula bukan artikel.
+Notula bukan berita.
+Notula bukan ringkasan.
+Notula bukan hasil analisis AI.
+Notula adalah dokumen administrasi resmi yang merekam jalannya rapat secara objektif, sistematis, kronologis, dan dapat dipertanggungjawabkan.
 
------- DATA PIMPINAN KPU KABUPATEN SIAK ------
+Prioritas:
+1. Akurasi fakta
+2. Urutan kronologis
+3. Format resmi pemerintahan
+4. Tidak berhalusinasi
+5. Tidak menghilangkan keputusan penting
+
+Jika harus memilih antara kalimat indah atau akurasi — PILIH AKURASI.
+
+=====================================================================
+LARANGAN
+=====================================================================
+
+JANGAN:
+- membuat opini, interpretasi, analisis, atau kesimpulan sendiri
+- mengubah maksud pembicara
+- menambahkan keputusan yang tidak pernah disampaikan
+- membuat narasi panjang seperti artikel/berita/jurnalistik
+- memakai Markdown, *, #, **, ---, \`\`\`
+- memakai kalimat seperti "Selanjutnya...", "Kemudian...", "Memasuki agenda...", "Rapat berlangsung dengan baik." kecuali benar-benar sesuai data
+- MERINGKAS pokok bahasan sehingga detail penting hilang
+- MENGGABUNGKAN dua pokok bahasan berbeda dari pembicara yang sama
+- MENGURANGI jumlah pokok bahasan yang disampaikan pembicara
+
+=====================================================================
+DATA PIMPINAN KPU KABUPATEN SIAK
+=====================================================================
 
 Pimpinan KPU Kabupaten Siak periode sekarang:
 
@@ -57,115 +77,141 @@ ANGGOTA         : DEDI KURNIAWAN (Divisi Teknis Penyelenggaraan)
 ANGGOTA         : DAILIN FAJRI SORMIN (Divisi Sosialisasi, Pendidikan Pemilih, Partisipasi Masyarakat dan SDM)
 ANGGOTA         : MOH. ROYANI (Divisi Perencanaan, Data dan Informasi)
 
-Gunakan nama-nama di atas saat menulis narasi rapat. Panggilan profesional:
-- Ketua: "Ketua KPU Kabupaten Siak, Bapak Said Dharma Setiawan" atau "Bapak Said Dharma Setiawan selaku Ketua KPU Kabupaten Siak"
-- Anggota: "Anggota KPU Kabupaten Siak, Bapak [Nama Depan Nama Belakang]" atau "Bapak [Nama Depan Nama Belakang] selaku Anggota KPU Divisi [Divisi]"
+Panggilan profesional:
+- Ketua: "Ketua KPU Kabupaten Siak, Bapak Said Dharma Setiawan"
+- Anggota: "Anggota KPU Kabupaten Siak, Bapak [Nama]" atau "Bapak [Nama] selaku Anggota KPU Divisi [Divisi]"
 
-Jika pimpinan rapat dari data konteks adalah nama anggota KPU, gunakan panggilan sesuai divisinya masing-masing.
+=====================================================================
+ATURAN PENGISIAN SETIAP FIELD JSON
+=====================================================================
 
------- ATURAN PENGISIAN SETIAP FIELD ------
-
-1. "judul" → HANYA judul rapat, tanpa embel-embel.
+1. "judul" — HANYA judul rapat, tanpa embel-embel.
    BENAR: "Rapat Koordinasi Pemilu 2024"
    SALAH: "NOTULA RAPAT\nTENTANG\nRapat Koordinasi Pemilu 2024"
-   SALAH: "Judul: Rapat Koordinasi Pemilu 2024"
 
-2. "hari" → HANYA nama hari, tanpa embel-embel.
+2. "hari" — HANYA nama hari.
    BENAR: "Senin"
    SALAH: "Hari : Senin"
-   SALAH: "Hari Senin"
 
-3. "tanggal" → HANYA tanggal, tanpa embel-embel.
+3. "tanggal" — HANYA tanggal.
    BENAR: "15 Januari 2025"
    SALAH: "Tanggal : 15 Januari 2025"
-   SALAH: "Tanggal 15 Januari 2025"
 
-4. "tempat" → HANYA lokasi, tanpa embel-embel.
+4. "tempat" — HANYA lokasi.
    BENAR: "Aula KPU Kabupaten Siak"
-   SALAH: "Tempat : Aula KPU Kabupaten Siak"
 
-5. "peserta" → HANYA daftar peserta (nama saja atau dengan jabatan), TANPA label.
-   BENAR: "1. Ahmad (Ketua)\n2. Budi (Sekretaris)"
-   SALAH: "Peserta:\n1. Ahmad (Ketua)"
-   SALAH: "Peserta rapat: Ahmad, Budi"
+5. "peserta" — HANYA daftar peserta, TANPA label.
+   BENAR: "1. Ahmad (Ketua)\\n2. Budi (Sekretaris)"
+   SALAH: "Peserta:\\n1. Ahmad (Ketua)"
 
-6. "isi_notula" → NARASI RAPAT MURNI. HARUS langsung dimulai dengan narasi.
-   TIDAK BOLEH ada: heading, judul, hari, tanggal, tempat, peserta, label apa pun.
-   TIDAK BOLEH ada: "NOTULA RAPAT", "TENTANG", identitas rapat apa pun.
+6. "isi_notula" — HARUS berupa JSON OBJECT (bukan string) dengan struktur berikut:
 
------- PANDUAN ISI_NOTULA PROFESIONAL ------
+{
+  "pembukaan": "Kalimat pembukaan rapat...",
+  "agenda": ["1. Agenda pertama", "2. Agenda kedua"],
+  "pembahasan": [
+    {
+      "speaker": "Ketua KPU Kabupaten Siak, Said Dharma Setiawan",
+      "items": ["Poin pertama", "Poin kedua", "Poin ketiga"]
+    }
+  ],
+  "keputusan": ["Keputusan 1", "Keputusan 2"],
+  "penutup": "Rapat ditutup oleh..."
+}
 
-Gunakan gaya bahasa naskah dinas pemerintahan:
-- Bahasa Indonesia baku, formal, lugas, dan mengalir
-- Setiap alinea memiliki kesinambungan logis dengan alinea sebelumnya
-- JANGAN gunakan pola berulang seperti "Kemudian... Kemudian... Kemudian..."
-- Variasikan struktur kalimat (ada kalimat panjang deskriptif, ada kalimat pendek tegas)
-- Gunakan transisi alami antar paragraf, misalnya: "Memasuki agenda berikutnya...", "Sejalan dengan hal tersebut...", "Selanjutnya...", "Sementara itu...", "Menindaklanjuti pembahasan sebelumnya..."
-- Jika data jalannya rapat atau poin rapat tersedia, gunakan untuk memperkaya narasi diskusi dan keputusan
+=====================================================================
+STRUKTUR WAJIB ISI_NOTULA
+=====================================================================
 
-=== ALUR NARASI WAJIB ===
+Urutan pembahasan HARUS sama dengan urutan rapat. Jangan memindahkan atau menggabungkan agenda.
 
-Tulis narasi yang mengalir secara kronologis dengan struktur berikut:
+--- pembukaan (string) ---
 
-PEMBUKAAN — jelaskan siapa membuka rapat, tujuan rapat (dasarkan pada judul), dan suasana awal. Jangan potong-potong informasi.
+Kalimat yang menjelaskan siapa membuka rapat, jam mulai, jumlah peserta, dan status kuorum.
 
-PEMBAHASAN PER AGENDA — untuk setiap agenda yang dibahas, tulis:
-   - Pokok bahasan
-   - Siapa menyampaikan dan apa isinya (gunakan data dari jalannya rapat jika tersedia)
-   - Tanggapan atau diskusi dari peserta
-   - Hasil atau keputusan yang disepakati
-   Hubungkan antar agenda dengan kalimat transisi alami.
+--- agenda (array of strings) ---
 
-KESIMPULAN — tulis beberapa kalimat ringkasan hasil rapat secara naratif.
+Daftar bernomor. Setiap elemen adalah satu agenda.
 
-KEPUTUSAN RAPAT — setelah kesimpulan, buat daftar terpisah dengan format seperti ini:
+--- pembahasan (array of objects) ---
 
-Keputusan Rapat
-- [isi keputusan 1]
-- [isi keputusan 2]
-- [isi keputusan 3]
+Bagian TERPANJANG. Setiap elemen adalah objek dengan field:
 
-Gunakan data dari poin/keputusan jika tersedia. Jika tidak ada, simpulkan dari pembahasan.
-Format ini WAJIB: diawali baris "Keputusan Rapat" lalu tiap keputusan dengan tanda "- " (strip spasi).
-JANGAN gabung ke paragraf terakhir — pisahkan jelas.
+{
+  "speaker": "Nama lengkap dan jabatan pembicara",
+  "items": [
+    "Satu pokok bahasan dalam bahasa administrasi",
+    "Pokok bahasan kedua",
+    "dst."
+  ]
+}
 
-PENUTUP — sampaikan penutupan rapat secara ringkas.
+ATURAN KETAT PEMBAHASAN:
 
-PETUNJUK TAMBAHAN:
-- Jika Pimpinan Rapat dalam data adalah "SAID DHARMA SETIAWAN", tulis "Bapak Said Dharma Setiawan selaku Ketua KPU Kabupaten Siak" pada penyebutan pertama, selanjutnya cukup "Ketua KPU Kabupaten Siak"
-- Jika pimpinan rapat adalah anggota KPU, sebut nama dan divisinya: "Bapak [Nama] selaku Anggota KPU Kabupaten Siak Divisi [Divisi]" pada penyebutan pertama
-- Jika ada data jalannya rapat, integrasikan nama pembicara dan pokok bahasan ke dalam narasi diskusi
-- Jika tidak ada data jalannya rapat, tulis narasi berdasarkan poin/keputusan yang tersedia
-- Tempat rapat: gunakan "Aula Rapat Lt.2 KPU Kabupaten Siak" jika data tempat tidak tersedia
+SATU ITEM = SATU POKOK BAHASAN.
 
-=== CONTOH ISI_NOTULA (panduan gaya menulis) ===
+JANGAN pernah menggabungkan beberapa pokok bahasan menjadi satu item.
 
-Rapat dibuka oleh Bapak Said Dharma Setiawan selaku Ketua KPU Kabupaten Siak pada pukul 09.00 WIB dan dinyatakan terbuka dengan diawali doa bersama. Dalam sambutannya, Ketua KPU Kabupaten Siak menyampaikan bahwa rapat ini diselenggarakan dalam rangka membahas persiapan pelaksanaan Pemilihan Serentak Tahun 2024 di Kabupaten Siak. Beliau berharap seluruh peserta dapat berpartisipasi aktif dan memberikan kontribusi terbaik demi kesuksesan penyelenggaraan pemilu.
+CONTOH SALAH (JANGAN DITIRU):
 
-Memasuki agenda pertama, pembahasan mengenai penetapan Daftar Pemilih Tetap (DPT) tingkat kabupaten. Kepala Subbagian Teknis Penyelenggaraan memaparkan bahwa jumlah pemilih sementara yang telah terdata sebanyak 450.000 jiwa yang tersebar di 14 kecamatan. Menanggapi hal tersebut, Bapak Dedi Kurniawan selaku Anggota KPU Divisi Teknis Penyelenggaraan menyampaikan bahwa masih terdapat sekitar 2.500 data pemilih ganda yang perlu dilakukan pembersihan dan pencermatan ulang. Setelah dilakukan diskusi, disepakati bahwa pencermatan akhir data pemilih akan dilaksanakan pada tanggal 20 Desember 2024 dengan melibatkan seluruh PPK se-Kabupaten Siak dan akan dituangkan dalam berita acara.
+Jika Ketua menyampaikan:
+"Apakah pembuatan karya ilmiah ini dibuat secara tim atau pribadi? Pembuatan karya ilmiah tergantung dengan tim dari teknis, melibatkan lintas divisi/sub bagian. Jika dalam proses pembuatan karya ilmiah ada data di lintas divisi/sub bagian, mohon segera dikoordinasikan."
 
-Selanjutnya, agenda kedua membahas distribusi logistik pemilu. Kepala Subbagian Logistik melaporkan bahwa seluruh logistik untuk 850 TPS telah selesai diproduksi dan siap didistribusikan. Namun demikian, masih terdapat kendala terkait akses jalan menuju tiga kecamatan yang berada di wilayah pesisir. Terkait hal tersebut, diputuskan bahwa distribusi logistik untuk wilayah pesisir akan dilaksanakan lebih awal pada H-7, sedangkan wilayah daratan pada H-3 sebelum pemungutan suara. Bapak Dailin Fajri Sormin selaku Anggota KPU Divisi SDM menambahkan perlunya koordinasi dengan pemerintah kecamatan setempat untuk memastikan keamanan logistik.
+Maka JANGAN dijadikan satu item:
+"Menanyakan pembuatan karya ilmiah dan meminta koordinasi lintas divisi."
 
-Berdasarkan seluruh rangkaian pembahasan, rapat ini menghasilkan beberapa keputusan strategis untuk ditindaklanjuti oleh masing-masing bidang terkait.
+CONTOH BENAR:
 
-Keputusan Rapat
-- Pencermatan dan penetapan DPT final dilaksanakan pada 20 Desember 2024 melalui pleno terbuka.
-- Distribusi logistik untuk wilayah pesisir dimulai pada H-7 dan wilayah daratan pada H-3.
-- Seluruh PPK wajib menyampaikan laporan kesiapan masing-masing kecamatan paling lambat 15 Desember 2024.
+Harus dipecah menjadi TIGA item:
 
-Rapat ditutup oleh Ketua KPU Kabupaten Siak pada pukul 12.15 WIB. Ketua KPU Kabupaten Siak menyampaikan apresiasi atas partisipasi aktif seluruh peserta dan berharap seluruh keputusan dapat dilaksanakan dengan baik. Rapat ditutup dengan doa bersama.
+"items": [
+  "Menanyakan apakah pembuatan karya ilmiah dibuat secara tim atau pribadi.",
+  "Menjelaskan bahwa pembuatan karya ilmiah tergantung tim dari teknis dan melibatkan lintas divisi/sub bagian.",
+  "Meminta apabila ada data di lintas divisi/sub bagian segera dikoordinasikan untuk melengkapi data yang dibutuhkan."
+]
 
-CATATAN PENTING:
-- CONTOH DI ATAS UNTUK PANDUAN GAYA, jangan disalin mentah-mentah
-- Gunakan data dari konteks (peserta, jalannya rapat, poin) untuk narasi yang kaya dan akurat
-- Jaga kesinambungan: akhir paragraf sebelumnya harus terhubung dengan awal paragraf berikutnya
-- Jika data waktu tidak tersedia, jangan menulis jam spesifik
-- JANGAN PERNAH menambah fakta, nama, angka, atau detail yang tidak ada dalam data konteks
-- JANGAN PERNAH menulis ulang judul, hari, tanggal, tempat, peserta sebagai heading di dalam isi_notula
-- Jika peserta tidak diberikan, tulis: "Peserta rapat sebagaimana tercantum dalam daftar hadir"
-- Tempat rapat default jika tidak disebutkan: Aula Rapat Lt.2 KPU Kabupaten Siak
+SETIAP pergantian topik = ITEM BARU.
 
------- FORMAT OUTPUT ------
+Jika Ketua bicara 11 hal berbeda, maka items[] harus berisi 11 item.
+
+Tidak boleh dikurangi. Tidak boleh digabung.
+
+--- keputusan (array of strings) ---
+
+Jika rapat menghasilkan keputusan. Setiap elemen adalah satu keputusan.
+Kosongkan array jika tidak ada keputusan.
+
+--- penutup (string) ---
+
+"Rapat ditutup oleh [pimpinan] pada pukul XX.XX WIB."
+
+=====================================================================
+PANDUAN BAHASA
+=====================================================================
+
+- Gunakan Bahasa Indonesia resmi pemerintahan
+- Objektif, formal, ringkas, tidak berbunga-bunga
+- Jika data tidak ditemukan: jangan mengarang."
+- Gunakan nama lengkap setiap penyebutan pertama pembicara
+
+=====================================================================
+PEMERIKSAAN KUALITAS (WAJIB)
+=====================================================================
+
+Sebelum menghasilkan JSON, pastikan:
+✓ Tidak ada informasi fiktif
+✓ Tidak ada keputusan buatan AI
+✓ Semua pembicara dipisahkan
+✓ Semua agenda muncul
+✓ Ada pembukaan, kuorum, penutup
+✓ Ada keputusan bila memang ada
+✓ Urutan sama dengan rapat
+✓ Setiap pokok bahasan dari data Jalannya Rapat menjadi EXACTLY 1 item
+✓ Tidak ada pokok bahasan yang dihilangkan atau digabung
+
+=====================================================================
+FORMAT OUTPUT
+=====================================================================
 
 Hanya satu objek JSON valid. Tidak ada teks lain sebelum/sesudah JSON.
 
@@ -175,17 +221,20 @@ Hanya satu objek JSON valid. Tidak ada teks lain sebelum/sesudah JSON.
   "tanggal": "",
   "tempat": "",
   "peserta": "",
-  "isi_notula": ""
+  "isi_notula": {
+    "pembukaan": "",
+    "agenda": [],
+    "pembahasan": [],
+    "keputusan": [],
+    "penutup": ""
+  }
 }
 
-- Urutan field HARUS seperti di atas.
-- Tidak ada field tambahan.
-- Nilai string kosong jika data tidak tersedia.
-- Gunakan Bahasa Indonesia baku dan gaya naskah dinas pemerintahan.
-- Jangan menambah fakta yang tidak disebutkan dalam data.
-- Jangan mengurangi keputusan rapat.
-
-INGAT: Anda adalah MESIN PENGISI TEMPLATE. Jangan buat dokumen baru.
+- Urutan field HARUS seperti di atas
+- Tidak ada field tambahan
+- Nilai string kosong jika data tidak tersedia
+- Jangan menambah fakta yang tidak disebutkan dalam data
+- Jangan mengurangi keputusan rapat
 `;
 
 function getSS() { return SpreadsheetApp.openById(NOTULEN_SPREADSHEET_ID); }
@@ -788,6 +837,13 @@ function simpanNotulenKeDrive(id, data) {
   return DriveApp.getFolderById(folderId).createFile(blob).getUrl();
 }
 
+function _getNotulenFolderPath(tanggalStr) {
+  var tahun = tanggalStr.substring(0, 4);
+  var bulan = getBulanName(parseInt(tanggalStr.substring(5, 7), 10));
+  var tgl = String(parseInt(tanggalStr.substring(8, 10), 10)).padStart(2, '0');
+  return 'E-OFFICE/NOTULEN/' + tahun + '/' + bulan + '/' + tgl;
+}
+
 function getOrCreateNotulenFolder(tanggalStr) {
   var rootName = 'E-OFFICE';
   var tahun = tanggalStr.substring(0, 4);
@@ -979,14 +1035,17 @@ function generateNotulaAI(notulenId) {
     var docUrl = 'https://docs.google.com/document/d/' + docId + '/edit';
 
     var pdfUrl = _exportNotulaPDF(docId, folderId, notulenId);
+    var wordUrl = _exportNotulaWord(docId, folderId, notulenId);
 
-    _saveNotulaLog(notulenId, aiResult, docUrl, pdfUrl);
+    _saveNotulaLog(notulenId, aiResult, docUrl, pdfUrl, wordUrl);
 
     return {
       success: true,
-      message: 'Notula berhasil dibuat dan di-export ke PDF',
+      message: 'Notula berhasil dibuat dan di-export ke PDF dan Word',
       docUrl: docUrl,
-      pdfUrl: pdfUrl
+      pdfUrl: pdfUrl,
+      wordUrl: wordUrl,
+      folderPath: _getNotulenFolderPath(n.tanggal)
     };
   } catch (err) {
     return { success: false, message: err.message };
@@ -1082,7 +1141,7 @@ function buildNotulaPrompt(notulenData) {
 
   return [
     { role: 'system', content: NOTULA_SYSTEM_PROMPT },
-    { role: 'user', content: 'Isi nilai placeholder berdasarkan data rapat berikut. Jangan buat struktur dokumen.\n\n' + context }
+    { role: 'user', content: 'Susun isi notula berdasarkan DATA RAPAT berikut. Ikuti seluruh aturan pada SYSTEM PROMPT.\n\nPENTING — Setiap baris pada "Jalannya Rapat" adalah SATU POKOK BAHASAN yang WAJIB menjadi SATU ITEM di objek pembahasan.\n\nCONTOH: Jika data menunjukkan Ketua menyampaikan 3 hal (menanya karya ilmiah, meminta koordinasi, membahas SPIP), maka items harus:\n"items": [\n  "Menanyakan apakah pembuatan karya ilmiah dibuat secara tim atau pribadi.",\n  "Meminta koordinasi lintas divisi untuk kelengkapan data.",\n  "Membahas kendala SPIP dan evaluasi bersama."\n]\n\nJangan menggabung, meringkas, atau menghilangkan pokok bahasan.\n\n' + context }
   ];
 }
 
@@ -1103,7 +1162,6 @@ function _createNotulaDocument(aiResult, folderId, notulenId) {
     "{{TANGGAL}}": aiResult.tanggal || "",
     "{{TEMPAT}}": aiResult.tempat || "",
     "{{PESERTA}}": aiResult.peserta || "",
-    "{{ISI_NOTULA}}": aiResult.isi_notula || "",
     "{{ATASAN_LANGSUNG}}": aiResult.atasan_langsung || "",
     "{{NOTULIS}}": aiResult.notulis || "",
     "{{JABATAN_ATASAN}}": aiResult.jabatan_atasan || "",
@@ -1116,8 +1174,125 @@ function _createNotulaDocument(aiResult, folderId, notulenId) {
     }
   }
 
+  _fillNotulaContent(body, aiResult.isi_notula);
+
   doc.saveAndClose();
   return docId;
+}
+
+function _stripDash(t) {
+  if (!t) return '';
+  return t.replace(/^[\s]*[-•‣▪▸→●]\s*/g, '').trim();
+}
+
+function _cleanItem(t) {
+  if (!t) return '';
+  var s = t;
+  while (true) {
+    var prev = s;
+    s = s.replace(/^[\s]*[-•‣▪▸→●]\s*/g, '');
+    s = s.replace(/^[\s]*\(\d+\)\s*/g, '');
+    s = s.replace(/^[\s]*\d+[.)]\s*/g, '');
+    if (s === prev) break;
+  }
+  return s.trim();
+}
+
+function _fillNotulaContent(body, isiNotula) {
+  var searchResult = body.findText('\\{\\{ISI_NOTULA\\}\\}');
+  if (!searchResult) return;
+
+  var parent = searchResult.getElement().getParent();
+  var parentIndex = body.getChildIndex(parent);
+  parent.removeFromParent();
+
+  var content;
+  if (typeof isiNotula === 'string') {
+    try {
+      content = JSON.parse(isiNotula);
+    } catch (e) {
+      _fillNotulaFromText(body, parentIndex, isiNotula);
+      return;
+    }
+  } else {
+    content = isiNotula;
+  }
+  if (!content || typeof content !== 'object') {
+    _fillNotulaFromText(body, parentIndex, String(isiNotula));
+    return;
+  }
+
+  var idx = parentIndex;
+
+  if (content.pembukaan) {
+    body.insertParagraph(idx, content.pembukaan);
+    idx++;
+  }
+
+  if (content.agenda && content.agenda.length) {
+    body.insertParagraph(idx, 'Dengan agenda sebagai berikut:');
+    idx++;
+    content.agenda.forEach(function (a) {
+      var li = body.insertListItem(idx, _cleanItem(a));
+      li.setGlyphType(DocumentApp.GlyphType.NUMBER);
+      idx++;
+    });
+  }
+
+  if (content.pembahasan && content.pembahasan.length) {
+    var firstSpeaker = true;
+    content.pembahasan.forEach(function (session) {
+      if (!session.speaker || !session.items || !session.items.length) return;
+      if (firstSpeaker) {
+        body.insertParagraph(idx, 'Adapun pendapat dan/atau saran/masukan antara lain:');
+        idx++;
+        firstSpeaker = false;
+      }
+      var p = body.insertParagraph(idx, session.speaker);
+      p.setHeading(DocumentApp.ParagraphHeading.HEADING4);
+      p.setBold(true);
+      idx++;
+      session.items.forEach(function (item) {
+        var li = body.insertListItem(idx, _cleanItem(item));
+        li.setGlyphType(DocumentApp.GlyphType.BULLET);
+        idx++;
+      });
+    });
+  }
+
+  if (content.keputusan && content.keputusan.length) {
+    body.insertParagraph(idx, 'Keputusan Rapat');
+    idx++;
+    content.keputusan.forEach(function (k) {
+      if (!k) return;
+      var li = body.insertListItem(idx, _cleanItem(k));
+      li.setGlyphType(DocumentApp.GlyphType.NUMBER);
+      idx++;
+    });
+  }
+
+  if (content.penutup) {
+    body.insertParagraph(idx, content.penutup);
+  }
+}
+
+function _fillNotulaFromText(body, startIdx, text) {
+  var lines = text.split('\n');
+  var idx = startIdx;
+  lines.forEach(function (line) {
+    var trimmed = line.trim();
+    if (!trimmed) return;
+    if (/^[-•‣▪▸→●]\s/.test(trimmed)) {
+      var li = body.insertListItem(idx, _stripDash(trimmed));
+      li.setGlyphType(DocumentApp.GlyphType.BULLET);
+    } else if (/^[0-9]+[.)]\s/.test(trimmed)) {
+      var li = body.insertListItem(idx, trimmed.replace(/^[0-9]+[.)]\s*/, ''));
+      li.setGlyphType(DocumentApp.GlyphType.NUMBER);
+    } else {
+      body.insertParagraph(idx, trimmed);
+    }
+    idx++;
+  });
 }
 
 function _exportNotulaPDF(docId, folderId, notulenId) {
@@ -1132,11 +1307,144 @@ function _exportNotulaPDF(docId, folderId, notulenId) {
   return pdfFile.getUrl();
 }
 
-function _saveNotulaLog(notulenId, aiResult, docUrl, pdfUrl) {
+function _exportNotulaWord(docId, folderId, notulenId) {
+  try {
+    var shortId = notulenId.substring(0, 8);
+    var wordName = 'notula_' + shortId + '.docx';
+    var wordBlob = Drive.Files.export(docId, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    wordBlob.setName(wordName);
+    var wordFile = DriveApp.getFolderById(folderId).createFile(wordBlob);
+    return wordFile.getUrl();
+  } catch (e) {
+    console.warn('Gagal export Word:', e.message);
+    return '';
+  }
+}
+
+function buildIsiNotulaApaAdanya(n) {
+  var pembahasan = [];
+  if (n.jalannyaList && n.jalannyaList.length) {
+    var grouped = {};
+    n.jalannyaList.forEach(function (j) {
+      var pembicara = j.pembicara || 'Pembicara';
+      if (!grouped[pembicara]) grouped[pembicara] = [];
+      grouped[pembicara].push(j.pokokBahasan || '');
+    });
+    for (var nama in grouped) {
+      pembahasan.push({ speaker: nama, items: grouped[nama] });
+    }
+  }
+  var keputusan = [];
+  if (n.poinList && n.poinList.length) {
+    n.poinList.forEach(function (p) { keputusan.push(p.isi || ''); });
+  }
+  return {
+    pembukaan: 'Rapat dibuka oleh ' + (n.pimpinan || 'Pimpinan Rapat') + ' pada pukul 09.20 WIB. Rapat dinyatakan kuorum.',
+    agenda: ['1. ' + (n.judul || '-')],
+    pembahasan: pembahasan,
+    keputusan: keputusan,
+    penutup: 'Rapat ditutup oleh ' + (n.pimpinan || 'Pimpinan Rapat') + ' pada pukul 12.00 WIB.'
+  };
+}
+
+function generateNotulaApaAdanya(notulenId) {
+  try {
+    var detail = getDetailNotulen({ id: notulenId });
+    if (!detail.success) return { success: false, message: 'Notulen tidak ditemukan' };
+    var n = detail.data;
+
+    var isiNotula = buildIsiNotulaApaAdanya(n);
+
+    var aiResult = {
+      judul: n.judul || '',
+      hari: _inferHari(n.tanggal) || '',
+      tanggal: n.tanggal || '',
+      tempat: 'Aula Rapat Lt.2 KPU Kabupaten Siak',
+      peserta: '',
+      isi_notula: isiNotula,
+      atasan_langsung: _findAtasanLangsung(n.notulis),
+      notulis: n.notulis || '',
+      jabatan_atasan: '',
+      jabatan_notulis: ''
+    };
+    aiResult.jabatan_atasan = _findJabatanPegawai(aiResult.atasan_langsung);
+    aiResult.jabatan_notulis = _findJabatanPegawai(n.notulis);
+
+    if (n.pesertaList && n.pesertaList.length) {
+      var sortedPeserta = n.pesertaList.slice().sort(function(a, b) {
+        var ja = (a.jabatan || '').toUpperCase();
+        var jb = (b.jabatan || '').toUpperCase();
+        var pa = ja === 'KETUA' ? 1 : (ja.indexOf('WAKIL') !== -1 && ja.indexOf('KETUA') !== -1) ? 2 : ja === 'ANGGOTA' ? 3 : ja.indexOf('SEKRETARIS') !== -1 ? 4 : (ja.indexOf('KEPALA') !== -1 || ja === 'KASUBBAG') ? 5 : 99;
+        var pb = jb === 'KETUA' ? 1 : (jb.indexOf('WAKIL') !== -1 && jb.indexOf('KETUA') !== -1) ? 2 : jb === 'ANGGOTA' ? 3 : jb.indexOf('SEKRETARIS') !== -1 ? 4 : (jb.indexOf('KEPALA') !== -1 || jb === 'KASUBBAG') ? 5 : 99;
+        if (pa !== pb) return pa - pb;
+        return (a.no || 999) - (b.no || 999);
+      });
+      var pesertaText = '';
+      sortedPeserta.forEach(function(p, i) {
+        pesertaText += (i + 1) + '. ' + p.nama + ' (' + (p.jabatan || '-') + ')\n';
+      });
+      aiResult.peserta = pesertaText.trim();
+    }
+
+    if (!aiResult.tempat) aiResult.tempat = 'Aula Rapat Lt.2 KPU Kabupaten Siak';
+
+    var folderId = getOrCreateNotulenFolder(n.tanggal);
+    var docId = _createNotulaDocument(aiResult, folderId, notulenId + '_apaadanya');
+    var docUrl = 'https://docs.google.com/document/d/' + docId + '/edit';
+    var pdfUrl = _exportNotulaPDF(docId, folderId, notulenId + '_apaadanya');
+    var wordUrl = _exportNotulaWord(docId, folderId, notulenId + '_apaadanya');
+
+    _saveNotulaLog(notulenId, aiResult, docUrl, pdfUrl, wordUrl);
+
+    return {
+      success: true,
+      message: 'Notula apa adanya berhasil dibuat',
+      docUrl: docUrl,
+      pdfUrl: pdfUrl,
+      wordUrl: wordUrl,
+      folderPath: _getNotulenFolderPath(n.tanggal)
+    };
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+
+function _saveNotulaLog(notulenId, aiResult, docUrl, pdfUrl, wordUrl) {
   var ss = getSS();
   var sh = getOrInitSheet(ss, NOTULA_LOG_SHEET_NAME, NOTULA_LOG_HEADERS);
   var id = Utilities.getUuid();
   var now = new Date();
   var aiJson = JSON.stringify(aiResult);
-  sh.appendRow([id, notulenId, aiJson, docUrl, pdfUrl, 'selesai', now]);
+  sh.appendRow([id, notulenId, aiJson, docUrl || '', pdfUrl || '', wordUrl || '', 'selesai', now]);
+}
+
+function getNotulaGenerateLogs(params) {
+  try {
+    var notulenId = params.id;
+    if (!notulenId) return { success: false, message: 'ID tidak valid' };
+    initAllSheets();
+    var ss = getSS();
+    var sh = ss.getSheetByName(NOTULA_LOG_SHEET_NAME);
+    if (!sh || sh.getLastRow() < 2) return { success: true, data: [] };
+    var data = sh.getDataRange().getValues();
+    var logs = [];
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][1] === notulenId) {
+        var cols = data[i].length;
+        logs.push({
+          id: data[i][0] || '',
+          docUrl: data[i][3] || '',
+          pdfUrl: data[i][4] || '',
+          wordUrl: cols > 5 ? (data[i][5] || '') : '',
+          status: cols > 6 ? (data[i][6] || 'selesai') : (data[i][5] || 'selesai'),
+          createdAt: cols > 7 ? (data[i][7] ? _fmtDate(data[i][7]) : '') : (data[i][6] ? _fmtDate(data[i][6]) : ''),
+          aiJson: data[i][2] || ''
+        });
+      }
+    }
+    logs.reverse();
+    return { success: true, data: logs };
+  } catch (err) {
+    return { success: false, message: 'Error: ' + err.message };
+  }
 }

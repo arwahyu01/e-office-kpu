@@ -420,7 +420,9 @@
                                     <label>Jenis Rapat <span style="color:#dc2626;">*</span></label>
                                     <select id="notulenJenis" class="form-control" onchange="simpanDraft()">
                                         <option value="">Pilih jenis rapat</option>
-                                        <option value="RAPAT_PLENO">Rapat Pleno</option>
+                                        <option value="RAPAT_PLENO_TERTUTUP">Rapat Pleno Tertutup</option>
+                                        <option value="RAPAT_PLENO_TERBUKA">Rapat Pleno Terbuka</option>
+                                        <option value="RAPAT_PLENO_RUTIN">Rapat Pleno Rutin</option>
                                         <option value="RAPAT_INTERNAL_SEKRETARIAT">Rapat Internal Sekretariat</option>
                                         <option value="RAPAT_INTERNAL_SUBBAGIAN">Rapat Internal Subbagian</option>
                                     </select>
@@ -548,13 +550,13 @@
 
             <!-- ========== MODAL DETAIL NOTULEN ========== -->
             <div id="modalDetailNotulen" class="modal" style="display:none;">
-                <div class="modal-content" style="max-width:640px;max-height:85vh;overflow-y:auto;">
-                    <div class="modal-header">
-                        <h2><b>Detail Notulen</b></h2>
+                <div class="modal-content" style="max-width:960px;width:94%;max-height:90vh;overflow-y:auto;border-radius:16px;">
+                    <div class="modal-header" style="padding:20px 24px;border-bottom:1px solid #e9edf4;">
+                        <h2 style="font-size:18px;display:flex;align-items:center;gap:8px;"><i class="fas fa-file-pen" style="color:#1e293b;"></i> <b>Detail Notulen</b></h2>
                         <button class="close-btn" onclick="closeModalDetailNotulen()"><i
                                 class="fas fa-times"></i></button>
                     </div>
-                    <div id="detailNotulenBody"></div>
+                    <div id="detailNotulenBody" style="padding:24px;"></div>
                 </div>
             </div>
 
@@ -586,29 +588,19 @@
                 </div>
             </div>
 
-            <!-- ========== MODAL UPLOAD NOTULEN TTD ========== -->
-            <div id="modalUploadSigned" class="modal" style="display:none;">
-                <div class="modal-content" style="max-width:480px;">
+            <!-- ========== MODAL KELOLA DOKUMEN NOTULEN ========== -->
+            <div id="modalKelolaDokumen" class="modal" style="display:none;">
+                <div class="modal-content" style="max-width:640px;max-height:90vh;overflow-y:auto;">
                     <div class="modal-header">
-                        <h2><b>Upload Notulen TTD</b></h2>
-                        <button class="close-btn" onclick="closeModalUploadSigned()"><i
+                        <h2><b><i class="fas fa-file-alt"></i> Kelola Dokumen Notulen</b></h2>
+                        <button class="close-btn" onclick="closeModalKelolaDokumen()"><i
                                 class="fas fa-times"></i></button>
                     </div>
-                    <div style="margin:16px 0;">
-                        <p style="font-size:14px;color:#64748b;margin-bottom:16px;">Upload file notulen yang sudah ditandatangani (PDF).</p>
-                        <input type="hidden" id="uploadSignedNotulenId">
-                        <div class="form-group">
-                            <label>File Notulen TTD (PDF)</label>
-                            <input type="file" id="uploadSignedFileInput" class="form-control" accept=".pdf">
+                    <div id="kelolaDokumenBody">
+                        <div style="padding:20px;text-align:center;color:#94a3b8;">
+                            <i class="fas fa-spinner fa-spin" style="font-size:24px;"></i>
+                            <p style="margin-top:8px;">Memuat data...</p>
                         </div>
-                        <div id="signedFileInfo" style="margin-top:8px;padding:8px 12px;background:#f0fdf4;border-radius:8px;display:none;">
-                            <p style="font-size:13px;color:#166534;margin:0;"><i class="fas fa-check-circle"></i> <span id="signedFileName"></span></p>
-                        </div>
-                    </div>
-                    <div style="display:flex;gap:8px;justify-content:flex-end;">
-                        <button class="btn-secondary" onclick="closeModalUploadSigned()">Batal</button>
-                        <button class="btn-primary" onclick="submitUploadSigned()"><i class="fas fa-upload"></i>
-                            Upload</button>
                     </div>
                 </div>
             </div>
@@ -2398,7 +2390,7 @@
                                 '</div>' +
                                 '<div style="display:flex;gap:6px;flex-shrink:0;">' +
                                 '<button class="btn-secondary" style="padding:8px 12px;font-size:12px;" onclick="event.stopPropagation();showUndanganUpload(\'' + n.id + '\')" title="Upload Undangan"><i class="fas fa-paperclip"></i></button>' +
-                                '<button class="btn-primary" style="padding:8px 12px;font-size:12px;background:#059669;border-color:#059669;" onclick="event.stopPropagation();showUploadSigned(\'' + n.id + '\')" title="Upload Notulen TTD"><i class="fas fa-signature"></i></button>' +
+                                '<button class="btn-primary" style="padding:8px 12px;font-size:12px;background:#059669;border-color:#059669;" onclick="event.stopPropagation();showKelolaDokumen(\'' + n.id + '\')" title="Kelola Dokumen & Upload TTD"><i class="fas fa-file-alt"></i></button>' +
                                 '<button class="btn-danger" style="padding:8px 12px;font-size:12px;" onclick="event.stopPropagation();hapusNotulen(\'' + n.id + '\')" title="Hapus"><i class="fas fa-trash"></i></button>' +
                                 '</div>' +
                                 (n.undanganLink ? '<div style="margin-top:8px;font-size:12px;"><i class="fas fa-link" style="color:#2563eb;"></i> <a href="' + n.undanganLink + '" target="_blank" onclick="event.stopPropagation();">Undangan Rapat</a></div>' : '') +
@@ -2462,32 +2454,73 @@
                         }
 
                         body.innerHTML = '' +
-                            '<div style="padding:4px 0;">' +
-                            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">' +
-                            '<span class="badge badge-outline">' + formatJenis(n.jenis) + '</span>' +
-                            '<span style="font-size:13px;color:#64748b;">' + (n.tanggal || '') + '</span>' +
+                            '<div style="max-width:100%;">' +
+
+                            /* === HEADER CARD === */
+                            '<div style="display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:20px;">' +
+                            '<div style="flex:1;min-width:200px;">' +
+                            '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">' +
+                            '<span class="badge badge-outline" style="font-size:12px;padding:3px 12px;">' + formatJenis(n.jenis) + '</span>' +
+                            '<span style="font-size:13px;color:#64748b;"><i class="far fa-calendar-alt"></i> ' + (n.tanggal || '') + '</span>' +
                             '</div>' +
-                            '<h2 style="font-size:20px;font-weight:700;margin:8px 0;">' + (n.judul || '(tanpa judul)') + '</h2>' +
-                            '<div style="display:flex;gap:20px;font-size:14px;color:#475569;margin:8px 0 16px;">' +
-                            '<span><i class="fas fa-user"></i> Pimpinan: <strong>' + (n.pimpinan || '-') + '</strong></span>' +
-                            '<span><i class="fas fa-pen"></i> Notulis: <strong>' + (n.notulis || '-') + '</strong></span>' +
+                            '<h2 style="font-size:22px;font-weight:700;margin:4px 0 0;color:#0f172a;line-height:1.3;">' + (n.judul || '(tanpa judul)') + '</h2>' +
                             '</div>' +
-                            (n.pesertaList && n.pesertaList.length ? '<div style="margin-bottom:16px;"><span style="font-size:13px;color:#64748b;font-weight:600;"><i class="fas fa-users"></i> Peserta (' + n.pesertaList.length + '):</span> ' + sortPesertaByJabatan(n.pesertaList).map(function(p) { return '<span style="display:inline-block;background:#eef2ff;color:#4338ca;border-radius:14px;padding:2px 10px;font-size:12px;margin:3px 2px;">' + (p.nama || '') + ' <span style="color:#64748b;">' + (p.jabatan || '') + '</span></span>'; }).join('') + '</div>' : '') +
-                            (n.undanganLink ? '<div style="margin-bottom:8px;"><a href="' + n.undanganLink + '" target="_blank" class="btn-primary" style="text-decoration:none;font-size:13px;"><i class="fas fa-paperclip"></i> Lihat Undangan</a></div>' : '') +
-                            (n.signedPdfUrl ? '<div style="margin-bottom:8px;"><a href="' + n.signedPdfUrl + '" target="_blank" class="btn-primary" style="text-decoration:none;font-size:13px;background:#059669;border-color:#059669;"><i class="fas fa-file-pdf"></i> Lihat Notulen TTD</a></div>' : '') +
-                            '<hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0;">' +
-                            '<h3 style="font-size:15px;font-weight:700;margin:0 0 12px;"><i class="fas fa-comments"></i> Jalannya Rapat</h3>' +
-                            jalannyaHtml +
-                            '<hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0;">' +
-                            '<h3 style="font-size:15px;font-weight:700;margin:0 0 12px;"><i class="fas fa-list"></i> Poin Rapat</h3>' +
-                            poinHtml +
-                            '<hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0;">' +
-                            '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
-                            '<button class="btn-secondary" onclick="closeModalDetailNotulen()"><i class="fas fa-times"></i> Tutup</button>' +
-                            '<button class="btn-primary" onclick="closeModalDetailNotulen();editNotulen(\'' + n.id + '\')"><i class="fas fa-edit"></i> Edit</button>' +
-                            '<button class="btn-secondary" onclick="closeModalDetailNotulen();showUndanganUpload(\'' + n.id + '\')"><i class="fas fa-paperclip"></i> Upload Undangan</button>' +
-                            '<button class="btn-primary" style="background:#059669;border-color:#059669;" onclick="closeModalDetailNotulen();showUploadSigned(\'' + n.id + '\')"><i class="fas fa-signature"></i> Upload TTD</button>' +
-                            '<button class="btn-primary" style="background:#7c3aed;border-color:#7c3aed;" onclick="generateNotula(\'' + n.id + '\')"><i class="fas fa-robot"></i> Generate Notula AI</button>' +
+                            (n.undanganLink ?
+                            '<a href="' + n.undanganLink + '" target="_blank" class="btn-primary" style="text-decoration:none;font-size:13px;padding:8px 18px;white-space:nowrap;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;"><i class="fas fa-paperclip"></i> Lihat Undangan</a>' : '') +
+                            '</div>' +
+
+                            /* === INFO CARDS === */
+                            '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:20px;">' +
+                            '<div style="background:#f8fafc;border:1px solid #e9edf4;border-radius:12px;padding:14px 16px;">' +
+                            '<span style="font-size:12px;color:#94a3b8;font-weight:500;text-transform:uppercase;letter-spacing:0.3px;">Pimpinan</span>' +
+                            '<p style="margin:4px 0 0;font-size:14px;font-weight:600;color:#0f172a;"><i class="fas fa-gavel" style="color:#7c3aed;margin-right:6px;"></i> ' + (n.pimpinan || '-') + '</p>' +
+                            '</div>' +
+                            '<div style="background:#f8fafc;border:1px solid #e9edf4;border-radius:12px;padding:14px 16px;">' +
+                            '<span style="font-size:12px;color:#94a3b8;font-weight:500;text-transform:uppercase;letter-spacing:0.3px;">Notulis</span>' +
+                            '<p style="margin:4px 0 0;font-size:14px;font-weight:600;color:#0f172a;"><i class="fas fa-feather" style="color:#0891b2;margin-right:6px;"></i> ' + (n.notulis || '-') + '</p>' +
+                            '</div>' +
+                            (n.signedPdfUrl ?
+                            '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:10px;">' +
+                            '<i class="fas fa-file-pdf" style="color:#16a34a;font-size:20px;"></i>' +
+                            '<div><span style="font-size:12px;color:#94a3b8;font-weight:500;text-transform:uppercase;letter-spacing:0.3px;">Notulen TTD</span>' +
+                            '<p style="margin:2px 0 0;"><a href="' + n.signedPdfUrl + '" target="_blank" style="color:#16a34a;font-size:13px;font-weight:600;text-decoration:none;">Lihat PDF <i class="fas fa-external-link-alt" style="font-size:11px;"></i></a></p></div>' +
+                            '</div>' : '') +
+                            '</div>' +
+
+                            /* === PESERTA === */
+                            (n.pesertaList && n.pesertaList.length ?
+                            '<div style="margin-bottom:20px;">' +
+                            '<h4 style="font-size:13px;color:#64748b;font-weight:600;margin:0 0 10px;text-transform:uppercase;letter-spacing:0.5px;"><i class="fas fa-users"></i> Peserta (' + n.pesertaList.length + ')</h4>' +
+                            '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
+                            sortPesertaByJabatan(n.pesertaList).map(function(p) {
+                            return '<span style="display:inline-flex;align-items:center;gap:6px;background:#f8fafc;border:1px solid #e9edf4;border-radius:20px;padding:4px 14px 4px 12px;font-size:13px;"><span style="width:6px;height:6px;border-radius:50%;background:#6366f1;display:inline-block;"></span> ' + (p.nama || '') + ' <span style="color:#94a3b8;font-size:12px;">' + (p.jabatan || '') + '</span></span>';
+                            }).join('') +
+                            '</div></div>' : '') +
+
+                            /* === SEPARATOR === */
+                            '<hr style="border:none;border-top:2px solid #e9edf4;margin:20px 0;">' +
+
+                            /* === JALANNYA RAPAT === */
+                            '<div style="margin-bottom:20px;">' +
+                            '<h3 style="font-size:16px;font-weight:700;margin:0 0 14px;color:#0f172a;display:flex;align-items:center;gap:8px;"><span style="width:4px;height:18px;background:#3b82f6;border-radius:4px;display:inline-block;"></span> Jalannya Rapat</h3>' +
+                            (jalannyaHtml || '<div style="padding:20px;text-align:center;background:#fafafa;border:1px dashed #d1d5db;border-radius:10px;color:#94a3b8;font-size:14px;"><i class="fas fa-comment-slash"></i> Tidak ada catatan jalannya rapat.</div>') +
+                            '</div>' +
+
+                            /* === POIN RAPAT === */
+                            '<div style="margin-bottom:20px;">' +
+                            '<h3 style="font-size:16px;font-weight:700;margin:0 0 14px;color:#0f172a;display:flex;align-items:center;gap:8px;"><span style="width:4px;height:18px;background:#ef4444;border-radius:4px;display:inline-block;"></span> Poin Rapat</h3>' +
+                            (poinHtml || '<div style="padding:20px;text-align:center;background:#fafafa;border:1px dashed #d1d5db;border-radius:10px;color:#94a3b8;font-size:14px;"><i class="fas fa-list"></i> Tidak ada poin rapat.</div>') +
+                            '</div>' +
+
+                            /* === ACTION BUTTONS === */
+                            '<hr style="border:none;border-top:2px solid #e9edf4;margin:20px 0;">' +
+                            '<div style="display:flex;gap:10px;flex-wrap:wrap;">' +
+                            '<button class="btn-secondary" onclick="closeModalDetailNotulen()" style="padding:9px 20px;font-size:13px;"><i class="fas fa-times"></i> Tutup</button>' +
+                            '<button class="btn-primary" onclick="closeModalDetailNotulen();editNotulen(\'' + n.id + '\')" style="padding:9px 20px;font-size:13px;"><i class="fas fa-edit"></i> Edit</button>' +
+                            '<button class="btn-secondary" onclick="closeModalDetailNotulen();showUndanganUpload(\'' + n.id + '\')" style="padding:9px 20px;font-size:13px;"><i class="fas fa-paperclip"></i> Upload Undangan</button>' +
+                            '<button class="btn-primary" style="background:#059669;border-color:#059669;padding:9px 20px;font-size:13px;" onclick="closeModalDetailNotulen();showKelolaDokumen(\'' + n.id + '\')"><i class="fas fa-file-alt"></i> Kelola Dokumen</button>' +
+                            '<button class="btn-primary" style="background:#7c3aed;border-color:#7c3aed;padding:9px 20px;font-size:13px;" onclick="generateNotula(\'' + n.id + '\')"><i class="fas fa-robot"></i> Generate By AI</button>' +
+                            '<button class="btn-primary" style="background:#0891b2;border-color:#0891b2;padding:9px 20px;font-size:13px;" onclick="generateNotulaApaAdanya(\'' + n.id + '\')"><i class="fas fa-file-lines"></i> Generate Apa Adanya</button>' +
                             '</div>' +
                             '</div>';
                     } else {
@@ -2505,47 +2538,67 @@
         }
 
         function generateNotula(id) {
-            Swal.fire({
-                title: 'Generate Notula AI',
-                text: 'AI akan membuat notula rapat dan mengekspor ke PDF. Lanjutkan?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#7c3aed',
-                confirmButtonText: 'Ya, Generate!',
-                cancelButtonText: 'Batal'
-            }).then(function (result) {
-                if (!result.isConfirmed) return;
-                showLoading('AI sedang menulis notula... (membutuhkan beberapa detik)');
-                google.script.run
-                    .withSuccessHandler(function (res) {
-                        hideLoading();
-                        if (!res) { Swal.fire('Error', 'Tidak ada respons.', 'error'); return; }
-                        if (res.success) {
-                            var linksHtml = '' +
-                                '<div style="text-align:left;margin-top:12px;">' +
+            showLoading('AI sedang menulis notula... (membutuhkan beberapa detik)');
+            google.script.run
+                .withSuccessHandler(function (res) {
+                    hideLoading();
+                    if (!res) { Swal.fire('Error', 'Tidak ada respons.', 'error'); return; }
+                    if (res.success) {
+                        closeModalDetailNotulen();
+                        Swal.fire({
+                            title: 'Generate Berhasil',
+                            html: '<div style="text-align:left;">' +
                                 '<p><i class="fas fa-check-circle" style="color:#22c55e;"></i> ' + res.message + '</p>' +
-                                '<div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">' +
-                                '<a href="' + res.docUrl + '" target="_blank" class="btn-primary" style="text-decoration:none;text-align:center;font-size:14px;"><i class="fas fa-file-word"></i> Buka Google Docs</a>' +
-                                '<a href="' + res.pdfUrl + '" target="_blank" class="btn-secondary" style="text-decoration:none;text-align:center;font-size:14px;"><i class="fas fa-file-pdf"></i> Download PDF</a>' +
-                                '</div>' +
-                                '</div>';
-                            Swal.fire({
-                                title: 'Notula Berhasil!',
-                                html: linksHtml,
-                                icon: 'success',
-                                confirmButtonText: 'Tutup'
-                            });
-                            closeModalDetailNotulen();
-                        } else {
-                            Swal.fire('Gagal', res.message || 'Terjadi kesalahan', 'error');
-                        }
-                    })
-                    .withFailureHandler(function (err) {
-                        hideLoading();
-                        Swal.fire('Error Koneksi', err.message || 'Tidak dapat terhubung ke server', 'error');
-                    })
-                    .generateNotulaAI(id);
-            });
+                                '<p style="margin-top:12px;padding:12px;background:#f0f9ff;border-radius:8px;font-size:13px;color:#0369a1;">' +
+                                '<i class="fas fa-folder-open"></i> Hasil disimpan di folder:<br><strong>' + (res.folderPath || 'E-OFFICE/NOTULEN') + '</strong>' +
+                                '<br><br>File tersedia dalam format: Google Docs, PDF, dan Word (.docx).' +
+                                '<br>Anda dapat membukanya melalui menu Notulen > Detail.' +
+                                '</p>' +
+                                '</div>',
+                            icon: 'success',
+                            confirmButtonText: 'Tutup'
+                        });
+                    } else {
+                        Swal.fire('Gagal', res.message || 'Terjadi kesalahan', 'error');
+                    }
+                })
+                .withFailureHandler(function (err) {
+                    hideLoading();
+                    Swal.fire('Error Koneksi', err.message || 'Tidak dapat terhubung ke server', 'error');
+                })
+                .generateNotulaAI(id);
+        }
+
+        function generateNotulaApaAdanya(id) {
+            showLoading('Menyusun notula apa adanya...');
+            google.script.run
+                .withSuccessHandler(function (res) {
+                    hideLoading();
+                    if (!res) { Swal.fire('Error', 'Tidak ada respons.', 'error'); return; }
+                    if (res.success) {
+                        closeModalDetailNotulen();
+                        Swal.fire({
+                            title: 'Generate Berhasil',
+                            html: '<div style="text-align:left;">' +
+                                '<p><i class="fas fa-check-circle" style="color:#22c55e;"></i> ' + res.message + '</p>' +
+                                '<p style="margin-top:12px;padding:12px;background:#f0f9ff;border-radius:8px;font-size:13px;color:#0369a1;">' +
+                                '<i class="fas fa-folder-open"></i> Hasil disimpan di folder:<br><strong>' + (res.folderPath || 'E-OFFICE/NOTULEN') + '</strong>' +
+                                '<br><br>File tersedia dalam format: Google Docs, PDF, dan Word (.docx).' +
+                                '<br>Anda dapat membukanya melalui menu Notulen > Detail.' +
+                                '</p>' +
+                                '</div>',
+                            icon: 'success',
+                            confirmButtonText: 'Tutup'
+                        });
+                    } else {
+                        Swal.fire('Gagal', res.message || 'Terjadi kesalahan', 'error');
+                    }
+                })
+                .withFailureHandler(function (err) {
+                    hideLoading();
+                    Swal.fire('Error Koneksi', err.message || 'Tidak dapat terhubung ke server', 'error');
+                })
+                .generateNotulaApaAdanya(id);
         }
 
         function showUndanganUpload(id) {
@@ -2600,30 +2653,120 @@
         // ======================
         // UPLOAD NOTULEN TTD
         // ======================
-        function showUploadSigned(id) {
-            document.getElementById('uploadSignedNotulenId').value = id;
-            document.getElementById('uploadSignedFileInput').value = '';
-            document.getElementById('signedFileInfo').style.display = 'none';
-            document.getElementById('modalUploadSigned').style.display = 'flex';
+        function showKelolaDokumen(id) {
+            document.getElementById('modalKelolaDokumen').style.display = 'flex';
+            document.getElementById('kelolaDokumenBody').innerHTML =
+                '<div style="padding:20px;text-align:center;color:#94a3b8;">' +
+                '<i class="fas fa-spinner fa-spin" style="font-size:24px;"></i>' +
+                '<p style="margin-top:8px;">Memuat data...</p></div>';
+
+            google.script.run
+                .withSuccessHandler(function (res) {
+                    if (!res) {
+                        document.getElementById('kelolaDokumenBody').innerHTML =
+                            '<div style="padding:20px;text-align:center;color:#ef4444;">' +
+                            '<i class="fas fa-exclamation-circle" style="font-size:24px;"></i>' +
+                            '<p style="margin-top:8px;">Fungsi server tidak ditemukan. Silakan deploy ulang Apps Script (Deploy > New Deployment).</p>' +
+                            '<button class="btn-secondary" onclick="closeModalKelolaDokumen()" style="margin-top:12px;">Tutup</button></div>';
+                        return;
+                    }
+                    if (!res.success) {
+                        document.getElementById('kelolaDokumenBody').innerHTML =
+                            '<div style="padding:20px;text-align:center;color:#ef4444;">' +
+                            '<i class="fas fa-exclamation-circle" style="font-size:24px;"></i>' +
+                            '<p style="margin-top:8px;">' + res.message + '</p>' +
+                            '<button class="btn-secondary" onclick="closeModalKelolaDokumen()" style="margin-top:12px;">Tutup</button></div>';
+                        return;
+                    }
+                    renderKelolaDokumen(id, res.data);
+                })
+                .withFailureHandler(function () {
+                    document.getElementById('kelolaDokumenBody').innerHTML =
+                        '<div style="padding:20px;text-align:center;color:#ef4444;">' +
+                        '<i class="fas fa-exclamation-triangle" style="font-size:24px;"></i>' +
+                        '<p style="margin-top:8px;">Gagal terhubung ke server</p></div>';
+                })
+                .getNotulaGenerateLogs({ id: id });
         }
 
-        function closeModalUploadSigned() {
-            document.getElementById('modalUploadSigned').style.display = 'none';
+        function renderKelolaDokumen(notulenId, logs) {
+            var html = '<input type="hidden" id="kelolaNotulenId" value="' + notulenId + '">';
+
+            // === SECTION: HASIL GENERATE ===
+            html += '<div style="padding:20px 20px 0 20px;">';
+            html += '<h3 style="font-size:15px;font-weight:700;margin:0 0 12px;color:#1e293b;"><i class="fas fa-robot" style="color:#7c3aed;"></i> Hasil Generate</h3>';
+            html += '<p style="font-size:13px;color:#64748b;margin:0 0 16px;">Dokumen hasil generate otomatis tersimpan di Google Drive. Berikut daftar hasil generate:</p>';
+
+            if (logs && logs.length) {
+                logs.forEach(function (log, idx) {
+                    if (!log.docUrl && !log.pdfUrl && !log.wordUrl) return;
+                    var label = (idx === 0) ? 'Terbaru' : 'Sebelumnya';
+                    var badge = (idx === 0)
+                        ? '<span style="display:inline-block;background:#7c3aed;color:#fff;border-radius:10px;padding:1px 10px;font-size:11px;font-weight:600;margin-left:8px;">' + label + '</span>'
+                        : '<span style="display:inline-block;background:#94a3b8;color:#fff;border-radius:10px;padding:1px 10px;font-size:11px;font-weight:600;margin-left:8px;">' + label + '</span>';
+                    var timeLabel = log.createdAt ? log.createdAt : '';
+                    html += '<div style="border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-bottom:10px;background:#fafafa;">';
+                    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">';
+                    html += '<span style="font-size:13px;font-weight:600;color:#334155;">Generate ' + (idx + 1) + badge + '</span>';
+                    html += '<span style="font-size:11px;color:#94a3b8;">' + timeLabel + '</span>';
+                    html += '</div>';
+                    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+                    if (log.docUrl) {
+                        html += '<a href="' + log.docUrl + '" target="_blank" class="btn-primary" style="text-decoration:none;font-size:12px;padding:6px 14px;background:#1e293b;border-color:#1e293b;"><i class="fas fa-file-word"></i> Google Docs</a>';
+                    }
+                    if (log.pdfUrl) {
+                        html += '<a href="' + log.pdfUrl + '" target="_blank" class="btn-primary" style="text-decoration:none;font-size:12px;padding:6px 14px;background:#dc2626;border-color:#dc2626;"><i class="fas fa-file-pdf"></i> PDF</a>';
+                    }
+                    if (log.wordUrl) {
+                        html += '<a href="' + log.wordUrl + '" target="_blank" class="btn-primary" style="text-decoration:none;font-size:12px;padding:6px 14px;background:#2563eb;border-color:#2563eb;"><i class="fas fa-file-word"></i> Word</a>';
+                    }
+                    html += '</div></div>';
+                });
+            } else {
+                html += '<div style="padding:20px;text-align:center;background:#f8fafc;border-radius:10px;border:1px dashed #cbd5e1;margin-bottom:16px;">';
+                html += '<i class="fas fa-inbox" style="font-size:28px;color:#94a3b8;"></i>';
+                html += '<p style="font-size:13px;color:#94a3b8;margin:8px 0 0;">Belum ada generate. Klik tombol <strong>Generate By AI</strong> atau <strong>Generate Apa Adanya</strong> untuk membuat dokumen.</p>';
+                html += '</div>';
+            }
+            html += '</div>';
+
+            // === SECTION: UPLOAD TTD ===
+            html += '<div style="padding:20px;border-top:1px solid #e2e8f0;">';
+            html += '<h3 style="font-size:15px;font-weight:700;margin:0 0 12px;color:#1e293b;"><i class="fas fa-signature" style="color:#059669;"></i> Upload Notulen TTD</h3>';
+            html += '<p style="font-size:13px;color:#64748b;margin:0 0 12px;">Upload file PDF notulen yang sudah ditandatangani:</p>';
+            html += '<div class="form-group">';
+            html += '<label>File Notulen TTD (PDF)</label>';
+            html += '<input type="file" id="uploadSignedFileInput" class="form-control" accept=".pdf" onchange="signedFileOnChange()">';
+            html += '</div>';
+            html += '<div id="signedFileInfo" style="display:none;padding:8px 12px;background:#f0fdf4;border-radius:8px;margin-bottom:12px;">';
+            html += '<p style="font-size:13px;color:#166534;margin:0;"><i class="fas fa-check-circle"></i> <span id="signedFileName"></span></p>';
+            html += '</div>';
+            html += '<div style="display:flex;gap:8px;justify-content:flex-end;">';
+            html += '<button class="btn-primary" onclick="submitUploadSigned()" style="background:#059669;border-color:#059669;"><i class="fas fa-upload"></i> Upload TTD</button>';
+            html += '</div>';
+            html += '</div>';
+
+            document.getElementById('kelolaDokumenBody').innerHTML = html;
         }
 
-        document.getElementById('uploadSignedFileInput').addEventListener('change', function () {
+        function signedFileOnChange() {
             var info = document.getElementById('signedFileInfo');
             var nameEl = document.getElementById('signedFileName');
-            if (this.files && this.files.length > 0) {
-                nameEl.textContent = this.files[0].name;
+            var input = document.getElementById('uploadSignedFileInput');
+            if (input.files && input.files.length > 0) {
+                nameEl.textContent = input.files[0].name;
                 info.style.display = 'block';
             } else {
                 info.style.display = 'none';
             }
-        });
+        }
+
+        function closeModalKelolaDokumen() {
+            document.getElementById('modalKelolaDokumen').style.display = 'none';
+        }
 
         function submitUploadSigned() {
-            var id = document.getElementById('uploadSignedNotulenId').value;
+            var id = document.getElementById('kelolaNotulenId').value;
             var fileInput = document.getElementById('uploadSignedFileInput');
 
             if (!fileInput.files || fileInput.files.length === 0) {
@@ -2647,7 +2790,7 @@
                         if (!res) { Swal.fire('Error', 'Tidak ada respons.', 'error'); return; }
                         if (res.success) {
                             Swal.fire('Berhasil', 'Notulen TTD berhasil diupload', 'success');
-                            closeModalUploadSigned();
+                            closeModalKelolaDokumen();
                             loadNotulenList();
                         } else {
                             Swal.fire('Gagal', res.message || 'Terjadi kesalahan', 'error');
