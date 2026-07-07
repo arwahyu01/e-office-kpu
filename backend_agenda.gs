@@ -11,6 +11,8 @@
 const AGENDA_SPREADSHEET_ID = "1-xohP9CXPUIOL8Ar8L_L3xTOfs_S6fMkUj098nmyE10";
 const AGENDA_MASTER_SHEET_ID = "1JivPdetUS5lu5ZjJveqwhpKhwU5r0QiRb4GtJGXxDtA";
 
+const EVIDENCE_ROOT_FOLDER_ID = "17Qcb0BKL5s9suzeyleaZZ0ZImryDPZn6";
+
 const AGENDA_SHEETS = {
   MASTER_AGENDA: "MASTER_AGENDA",
   MASTER_WORKFLOW: "MASTER_WORKFLOW",
@@ -759,7 +761,7 @@ function updateAgendaStatusFromWorkflow(agendaId) {
 // AUTO SAVE TO LKH (AGENDA sheet in E-Office spreadsheet)
 // — Generate untuk PJ + semua Anggota
 // =============================================
-function autoSaveLKHAll(progressId, workflowId, pjEmail, anggotaEmails, namaProgress, realisasi, status) {
+function autoSaveLKHAll(progressId, workflowId, pjEmail, anggotaEmails, namaProgress, realisasi, status, tanggalLkh) {
   try {
     if (status !== "SELESAI" || !realisasi) return;
     var allEmails = [pjEmail].concat(anggotaEmails || []).filter(Boolean);
@@ -786,7 +788,7 @@ function autoSaveLKHAll(progressId, workflowId, pjEmail, anggotaEmails, namaProg
     if (!sh) return;
 
     var now = new Date();
-    var tglStr = Utilities.formatDate(now, AGENDA_TIMEZONE, "yyyy-MM-dd");
+    var tglStr = tanggalLkh || Utilities.formatDate(now, AGENDA_TIMEZONE, "yyyy-MM-dd");
     var progSh2 = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.MASTER_PROGRESS);
     var progRows2 = progSh2.getDataRange().getValues();
     var progTarget = "";
@@ -871,7 +873,7 @@ function createProgress(data) {
       data.status || "RENCANA", data.persentase || 0,
       data.target || "", data.realisasi || "",
       data.pjEmail || "", data.catatan || "", new Date(), new Date(), '', anggotaJson]);
-    autoSaveLKHAll(id, data.workflowId, data.pjEmail, data.anggotaEmails || [], data.namaProgress, data.realisasi, data.status || "RENCANA");
+    autoSaveLKHAll(id, data.workflowId, data.pjEmail, data.anggotaEmails || [], data.namaProgress, data.realisasi, data.status || "RENCANA", data.tanggalLkh);
     var agendaId = _workflowToAgendaId(data.workflowId);
     logAgendaActivity(data.userEmail || "", "BUAT_PROGRESS", agendaId || data.workflowId);
     return { success: true, id };
@@ -913,7 +915,7 @@ function updateProgress(data) {
         var effAnggota = [];
         try { effAnggota = JSON.parse(anggotaStr); } catch(e) {}
         if (data.anggotaEmails !== undefined) effAnggota = data.anggotaEmails;
-        autoSaveLKHAll(data.id, wfId, effPj, effAnggota, effNama, effRealisasi, effStatus);
+        autoSaveLKHAll(data.id, wfId, effPj, effAnggota, effNama, effRealisasi, effStatus, data.tanggalLkh);
 
         var agendaId2 = _workflowToAgendaId(wfId);
         logAgendaActivity(data.userEmail || "", "UPDATE_PROGRESS", agendaId2 || wfId);
@@ -1074,7 +1076,7 @@ function createEvidenceFile(progressId, fileBlob, keterangan, uploadByEmail) {
   try {
     if (!progressId || !fileBlob)
       return { success: false, message: "Data tidak lengkap" };
-    var folder = _getEvidenceFolder();
+    var folder = _getEvidenceFolder(progressId);
     var driveFile = folder.createFile(fileBlob);
     driveFile.setDescription("Evidence for progress: " + progressId);
     var fileUrl = driveFile.getUrl();
@@ -1083,6 +1085,35 @@ function createEvidenceFile(progressId, fileBlob, keterangan, uploadByEmail) {
     var fileDriveId = driveFile.getId();
     var id = Utilities.getUuid();
     const sh = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.MASTER_EVIDENCE);
+    sh.appendRow([id, progressId, fileName, fileUrl, keterangan || "",
+      uploadByEmail || "", new Date(), fileDriveId, mimeType]);
+    var agendaId4 = _progressToAgendaId(progressId);
+    logAgendaActivity(uploadByEmail || "", "UPLOAD_EVIDENCE", agendaId4 || progressId);
+    return {
+      success: true, id: id, namaFile: fileName, link: fileUrl,
+      fileDriveId: fileDriveId, mimeType: mimeType
+    };
+  } catch (err) {
+    return { success: false, message: "Gagal upload file: " + err.message };
+  }
+}
+
+function createEvidenceFileFromBase64(progressId, base64Data, fileName, keterangan, uploadByEmail) {
+  try {
+    if (!progressId || !base64Data || !fileName)
+      return { success: false, message: "Data tidak lengkap" };
+    var matches = base64Data.match(/^data:(.*);base64,(.*)$/);
+    if (!matches) return { success: false, message: "Format data tidak valid" };
+    var mimeType = matches[1];
+    var base64 = matches[2];
+    var folder = _getEvidenceFolder(progressId);
+    var blob = Utilities.newBlob(Utilities.base64Decode(base64), mimeType, fileName);
+    var driveFile = folder.createFile(blob);
+    driveFile.setDescription("Evidence for progress: " + progressId);
+    var fileUrl = driveFile.getUrl();
+    var fileDriveId = driveFile.getId();
+    var id = Utilities.getUuid();
+    var sh = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.MASTER_EVIDENCE);
     sh.appendRow([id, progressId, fileName, fileUrl, keterangan || "",
       uploadByEmail || "", new Date(), fileDriveId, mimeType]);
     var agendaId4 = _progressToAgendaId(progressId);
@@ -1140,15 +1171,64 @@ function getEvidenceByProgressId(progressId) {
   } catch (err) { return []; }
 }
 
-function _getEvidenceFolder() {
+function _getEvidenceFolder(progressId) {
+  var subbagian = "TANPA_SUBBAGIAN";
+  var judul = "TANPA_JUDUL";
   var tahun = Utilities.formatDate(new Date(), AGENDA_TIMEZONE, "yyyy");
-  var bulan = Utilities.formatDate(new Date(), AGENDA_TIMEZONE, "MM");
-  var folderName = "EVIDENCE_" + tahun + "_" + bulan;
-  var folders = DriveApp.getFoldersByName(folderName);
-  if (folders.hasNext()) return folders.next();
-  var root = DriveApp.getFolderById(AGENDA_SPREADSHEET_ID);
-  // Simpan folder evidence di root spreadsheet untuk kemudahan akses
-  return root.createFolder(folderName);
+
+  if (progressId) {
+    try {
+      var wfId = "";
+      var agId = "";
+      var progSh = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.MASTER_PROGRESS);
+      if (progSh && progSh.getLastRow() >= 2) {
+        var progData = progSh.getDataRange().getValues();
+        for (var i = 1; i < progData.length; i++) {
+          if (progData[i][0] === progressId) { wfId = String(progData[i][1] || "").trim(); break; }
+        }
+      }
+      if (wfId) {
+        var wfSh = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.MASTER_WORKFLOW);
+        if (wfSh && wfSh.getLastRow() >= 2) {
+          var wfData = wfSh.getDataRange().getValues();
+          for (var j = 1; j < wfData.length; j++) {
+            if (wfData[j][0] === wfId) { agId = String(wfData[j][1] || "").trim(); break; }
+          }
+        }
+      }
+      if (agId) {
+        var agSh = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.MASTER_AGENDA);
+        if (agSh && agSh.getLastRow() >= 2) {
+          var agData = agSh.getDataRange().getValues();
+          for (var k = 1; k < agData.length; k++) {
+            if (agData[k][0] === agId) {
+              var rawSubbag = String(agData[k][5] || "").trim();
+              if (rawSubbag) subbagian = rawSubbag;
+              var rawJudul = String(agData[k][2] || "").trim();
+              if (rawJudul) judul = rawJudul;
+              break;
+            }
+          }
+        }
+      }
+    } catch (e) {}
+  }
+
+  var sanitize = function (name) {
+    return String(name).replace(/[\/\\:*?"<>|]/g, "_").trim() || "TANPA_NAMA";
+  };
+
+  var rootFolder = DriveApp.getFolderById(EVIDENCE_ROOT_FOLDER_ID);
+  var subbagFolder = _getOrCreateSubfolder(rootFolder, sanitize(subbagian));
+  var tahunFolder = _getOrCreateSubfolder(subbagFolder, tahun);
+  var agendaFolder = _getOrCreateSubfolder(tahunFolder, sanitize(judul));
+
+  return agendaFolder;
+}
+
+function _getOrCreateSubfolder(parent, name) {
+  var folders = parent.getFoldersByName(name);
+  return folders.hasNext() ? folders.next() : parent.createFolder(name);
 }
 
 function _mapMimeType(mime) {

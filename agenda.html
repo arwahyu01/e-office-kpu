@@ -506,6 +506,11 @@
                         <label class="progress-label">Catatan <span style="font-weight:400;color:#94a3b8;">(opsional)</span></label>
                         <textarea id="fProgressCatatan" class="progress-input progress-textarea" placeholder="Kendala atau informasi tambahan" rows="2"></textarea>
                     </div>
+                    <div id="progressTanggalLkhSection" style="display:none;margin-top:12px;">
+                        <label class="progress-label"><i class="fas fa-calendar"></i> Tanggal Pelaporan LKH</label>
+                        <input type="date" id="fTanggalLkh" class="progress-input">
+                        <div style="font-size:11px;color:#94a3b8;margin-top:4px;">Atur tanggal LKH sesuai hari pengerjaan, bukan hari upload</div>
+                    </div>
                 </div>
 
                 <!-- Card 4: Evidence -->
@@ -2205,10 +2210,12 @@ function openCreateProgress(workflowId) {
   document.getElementById('fProgressPJ').value=wf&&wf.picEmail ? wf.picEmail : currentUser.email;
   document.getElementById('fProgressExistingEvidence').value='';
   document.getElementById('fProgressEvFile').value='';
+  _progressFormFileBase64=null;
   document.getElementById('fProgressEvLinkUrl').value='';
   document.getElementById('fProgressEvLinkNama').value='';
   document.getElementById('fProgressEvExisting').style.display='none';
   document.getElementById('fProgressEvExistingList').innerHTML='';
+  document.getElementById('fTanggalLkh').value='';
   toggleProgressEvidenceSection();
   updateProgressHeaderBadge();
   selectAllAnggota(false);
@@ -2220,6 +2227,7 @@ function openCreateProgress(workflowId) {
 function closeModalProgress() {
   document.getElementById('modalProgress').style.display='none';
   document.getElementById('fProgressEvFile').value='';
+  _progressFormFileBase64=null;
 }
 
 function openEditProgress(id) {
@@ -2246,8 +2254,10 @@ function openEditProgress(id) {
   document.getElementById('fProgressCatatan').value=prog.catatan||'';
   document.getElementById('fProgressPJ').value=prog.pjEmail||(wf&&wf.picEmail)||currentUser.email;
   document.getElementById('fProgressEvFile').value='';
+  _progressFormFileBase64=null;
   document.getElementById('fProgressEvLinkUrl').value='';
   document.getElementById('fProgressEvLinkNama').value='';
+  document.getElementById('fTanggalLkh').value='';
   // Render existing evidence
   var evList = prog.evidenceList||[];
   var evContainer = document.getElementById('fProgressEvExisting');
@@ -2357,7 +2367,12 @@ document.addEventListener('input', function(e) {
 
 function toggleProgressEvidenceSection() {
   var status=document.getElementById('fProgressStatus').value;
-  document.getElementById('progressEvidenceSection').style.display=status==='SELESAI'?'block':'none';
+  var isSelesai=status==='SELESAI';
+  document.getElementById('progressEvidenceSection').style.display=isSelesai?'block':'none';
+  document.getElementById('progressTanggalLkhSection').style.display=isSelesai?'block':'none';
+  if (isSelesai && !document.getElementById('fTanggalLkh').value) {
+    document.getElementById('fTanggalLkh').value=new Date().toISOString().split('T')[0];
+  }
   updateProgressHeaderBadge();
 }
 
@@ -2386,7 +2401,8 @@ function saveProgress() {
   var persentase=status==='SELESAI'?100:(status==='BERJALAN'?50:0);
   var pjEmail=document.getElementById('fProgressPJ').value;
   var anggotaEmails=getAnggotaEmails();
-  var payload={workflowId:wfId,namaProgress:namaProgress,target:target,status:status,persentase:persentase,realisasi:hasil,pjEmail:pjEmail,anggotaEmails:anggotaEmails,catatan:document.getElementById('fProgressCatatan').value.trim(),userEmail:currentUser.email};
+  var tanggalLkh=document.getElementById('fTanggalLkh').value||'';
+  var payload={workflowId:wfId,namaProgress:namaProgress,target:target,status:status,persentase:persentase,realisasi:hasil,pjEmail:pjEmail,anggotaEmails:anggotaEmails,catatan:document.getElementById('fProgressCatatan').value.trim(),userEmail:currentUser.email,tanggalLkh:tanggalLkh};
 
   // Evidence data
   var evFile=document.getElementById('fProgressEvFile').files[0]||null;
@@ -2426,22 +2442,28 @@ function saveProgress() {
       }).withFailureHandler(function(e) { evFail(e.message); })
       .createEvidence({progressId:progressId, namaFile:evLinkNama, link:evLinkUrl, keterangan:'', uploadByEmail:currentUser.email});
     } else if (hasEvFile) {
-      google.script.run.withSuccessHandler(function(r) {
-        if (r.success) {
-          // If link also provided, upload it too
-          if (hasEvLink) {
-            google.script.run.withSuccessHandler(function(r2) {
-              if (r2.success) evDone(); else evFail(r2.message);
-            }).withFailureHandler(function(e) { evFail(e.message); })
-            .createEvidence({progressId:progressId, namaFile:evLinkNama, link:evLinkUrl, keterangan:'', uploadByEmail:currentUser.email});
+      var doUpload = function(base64) {
+        google.script.run.withSuccessHandler(function(r) {
+          if (r.success) {
+            if (hasEvLink) {
+              google.script.run.withSuccessHandler(function(r2) {
+                if (r2.success) evDone(); else evFail(r2.message);
+              }).withFailureHandler(function(e) { evFail(e.message); })
+              .createEvidence({progressId:progressId, namaFile:evLinkNama, link:evLinkUrl, keterangan:'', uploadByEmail:currentUser.email});
+            } else {
+              evDone();
+            }
           } else {
-            evDone();
+            evFail(r.message);
           }
-        } else {
-          evFail(r.message);
-        }
-      }).withFailureHandler(function(e) { evFail(e.message); })
-      .createEvidenceFile(progressId, evFile, '', currentUser.email);
+        }).withFailureHandler(function(e) { evFail(e.message); })
+        .createEvidenceFileFromBase64(progressId, base64, evFile.name, '', currentUser.email);
+      };
+      if (_progressFormFileBase64) {
+        doUpload(_progressFormFileBase64);
+      } else {
+        readFileAsBase64(evFile, doUpload);
+      }
     } else {
       evDone();
     }
@@ -2526,23 +2548,30 @@ function handleEvFileSelect(input) {
   updateEvUi();
 }
 
+function readFileAsBase64(file, cb) {
+  var r = new FileReader();
+  r.onload = function(e) { cb(e.target.result); };
+  r.readAsDataURL(file);
+}
+
 function addEvFile(file) {
-  // Check max 10
   if (_evSelectedFiles.length >= 10) {
     Swal.fire('Maksimal 10 file', 'Hapus beberapa file terlebih dahulu', 'warning');
     return;
   }
-  // Check duplicate
-  if (_evSelectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+  if (_evSelectedFiles.some(function(f) { return f.name === file.name && f.size === file.size; })) {
     Swal.fire('File sudah dipilih', file.name, 'warning');
     return;
   }
-  // Check size (max 10MB per file)
   if (file.size > 10 * 1024 * 1024) {
     Swal.fire('File terlalu besar', file.name + ' — Maksimal 10MB per file', 'warning');
     return;
   }
-  _evSelectedFiles.push(file);
+  var entry = { name: file.name, size: file.size, base64: null };
+  _evSelectedFiles.push(entry);
+  readFileAsBase64(file, function(data) {
+    entry.base64 = data;
+  });
   renderEvFileList();
   updateEvUi();
 }
@@ -2619,6 +2648,8 @@ function updateEvUi() {
   }
 }
 
+var _progressFormFileBase64 = null;
+
 // ---- Drag & Drop ----
 document.addEventListener('DOMContentLoaded', function() {
   var dz = document.getElementById('evDropZone');
@@ -2646,6 +2677,16 @@ document.addEventListener('DOMContentLoaded', function() {
       updateEvUi();
     });
   });
+  var pf = document.getElementById('fProgressEvFile');
+  if (pf) {
+    pf.addEventListener('change', function() {
+      _progressFormFileBase64 = null;
+      var file = this.files[0];
+      if (file) {
+        readFileAsBase64(file, function(data) { _progressFormFileBase64 = data; });
+      }
+    });
+  }
 });
 
 // ---- Upload ----
@@ -2716,8 +2757,12 @@ function uploadEvNext(index, total, success, fail, progressId, keterangan) {
     }, 600);
     return;
   }
-  var file = _evSelectedFiles[index];
-  updateEvProgress(index, total, 'Mengupload ' + (index+1) + '/' + total + ': ' + file.name);
+  var entry = _evSelectedFiles[index];
+  if (!entry.base64) {
+    setTimeout(function() { uploadEvNext(index, total, success, fail, progressId, keterangan); }, 200);
+    return;
+  }
+  updateEvProgress(index, total, 'Mengupload ' + (index+1) + '/' + total + ': ' + entry.name);
   google.script.run
     .withSuccessHandler(function(r) {
       if (r.success) {
@@ -2725,16 +2770,16 @@ function uploadEvNext(index, total, success, fail, progressId, keterangan) {
         uploadEvNext(index+1, total, success+1, fail, progressId, keterangan);
       } else {
         console.error('Upload fail:', r.message);
-        updateEvProgress(index+1, total, (index+1) + '/' + total + ' gagal: ' + file.name);
+        updateEvProgress(index+1, total, (index+1) + '/' + total + ' gagal: ' + entry.name);
         uploadEvNext(index+1, total, success, fail+1, progressId, keterangan);
       }
     })
     .withFailureHandler(function(e) {
       console.error('Upload error:', e.message);
-      updateEvProgress(index+1, total, (index+1) + '/' + total + ' error: ' + file.name);
+      updateEvProgress(index+1, total, (index+1) + '/' + total + ' error: ' + entry.name);
       uploadEvNext(index+1, total, success, fail+1, progressId, keterangan);
     })
-    .createEvidenceFile(progressId, file, keterangan, currentUser.email);
+    .createEvidenceFileFromBase64(progressId, entry.base64, entry.name, keterangan, currentUser.email);
 }
 
 function updateEvProgress(done, total, statusText) {
