@@ -21,6 +21,8 @@
 | 15 | AI Notula: template filler engine + kualitas narasi profesional | ✅ Selesai |
 | 16 | Upload Notulen TTD (Signed PDF) | ✅ Selesai |
 | 17 | Testing & validasi | ⏳ Pending |
+| 18 | Notula JSON Terstruktur + .docx Export | ✅ Selesai |
+| 19 | Evidence Drive + Base64 Upload + Tanggal LKH Manual | ✅ Selesai |
 
 ---
 
@@ -56,6 +58,17 @@
 - [x] DASAR_FILE_URL column baru di MASTER_AGENDA untuk menyimpan link dokumen pendukung
 - [x] AI Notula + PDF Export: generate notula via Ollama, template Google Docs, export PDF
 - [x] Peserta Rapat: dropdown dari MASTER_PEGAWAI, chips nama+jabatan, simpan di PESERTA_JSON
+- [x] Notula JSON Terstruktur: isi_notula dari string bebas → JSON ({pembukaan, agenda[], pembahasan[], keputusan[], penutup}) + render ke Google Docs via DocumentApp API
+- [x] Detail modal notulen: lebar 960px, card-based sections
+- [x] Export .docx via Drive API v3
+- [x] generateNotulaApaAdanya — fungsi tanpa AI untuk isian manual
+- [x] Kelola Dokumen modal — gabung hasil generate + upload TTD
+- [x] Marker processing di AI output
+- [x] Evidence: alihkan penyimpanan ke folder drive kulkpusiak (bukan folder E-OFFICE)
+- [x] Fix upload file evidence via base64 (support file besar)
+- [x] Tanggal LKH manual — input tanggal terpisah dari tanggal selesai progress
+- [x] Responsive form modal (agenda, workflow, progress)
+- [x] Rebrand: E-LKH → E-Office, tagline, versi seragam v1.1.0
 - [ ] Testing CRUD end-to-end
 - [ ] UAT
 
@@ -257,11 +270,10 @@
 - `notulen.gs` — `updateProgressFromNotulen()` trigger auto-save + baca 14 kolom
 
 ### Planned
-- v2.15 — Notifikasi email assignment / reminder rapat
-- v2.10 — Template notulen multiple (Coktas/Pleno/Rakor/Bimtek/Sosialisasi)
-- v2.11 — Agenda: folder per subbag + upload evidence ke Drive
-- v3.0 — Approval workflow
-- v3.1 — Komentar / diskusi per agenda
+- Notifikasi email assignment / reminder rapat
+- Template notulen multiple (Coktas/Pleno/Rakor/Bimtek/Sosialisasi)
+- Approval workflow
+- Komentar / diskusi per agenda
 
 ---
 
@@ -502,6 +514,17 @@
 - **NOTULEN sheet columns (14)**: ID, TANGGAL, JENIS, JUDUL, PIMPINAN, NOTULIS, JALANNYA_COUNT, POIN_COUNT, CREATED_AT, DRIVE_URL, UNDANGAN_LINK, STATUS, PESERTA_JSON, SIGNED_PDF_URL
 - **CSS for step wizard & notulen badges** is in `style.html`
 - **Menu navigation** uses `switchMenu()` SPA pattern in `index.html`
+- **Evidence folder**: `kulkpusiak` (Google Drive ID: `1NWakHROG9ngRk_bSIZ9xYv2sQUt9pbS5`) — semua file evidence diupload ke sini, bukan `E-OFFICE/{agendaId}/`
+- **Upload file**: Via base64 (`FileReader.readAsDataURL()`) + `_saveBase64File()` backend — hindari timeout GAS blob
+- **LKH tanggal**: Input manual terpisah di modal selesai progress — parameter `tanggalLKH` di `autoSaveLKHAll()`
+- **Notula isi_notula**: Sekarang JSON object bukan string bebas. Struktur: `{pembukaan: string, agenda: string[], pembahasan: {speaker, items[]}[], keputusan: string[], penutup: string}`
+- **Render notula**: `_fillNotulaContent()` via DocumentApp API (heading4+bullet+numbering); `_fillNotulaFromText()` fallback untuk data lama
+- **Export .docx**: `_exportNotulaWord()` via Drive API v3 `exportLinks`
+- **`generateNotulaApaAdanya()`**: Fallback tanpa AI — mapping data mentah ke template placeholders
+- **`getNotulaGenerateLogs()`**: Ambil histori generate dari NOTULA_LOG sheet
+- **Kelola Dokumen modal**: Gabung histori generate + upload TTD dalam satu modal
+- **App version**: v1.1.0, tagline "Rencanakan. Kerjakan. Selesaikan."
+- **Responsive modals**: CSS fixes untuk agenda/workflow/progress forms di layar kecil
 
 ---
 
@@ -587,3 +610,109 @@ ed2b664 ganti table agenda jadi card + skeleton loading
 - **Profile fields**: `nip_atasan`, `nama_atasan` digunakan untuk auto-select atasan di dropdown
 - **Komisioner**: hakAkses = KOMISIONER, subbag berisi "DIVISI ...". Tidak ikut dropdown Subbag di edit profil
 - **Beranda agenda**: Card grid dengan skeleton loading — tanpa overlay full-page saat load data
+
+---
+
+## v2.19.0 — 5–6 Jul 2026 (Responsive Modal + Rebrand + Tagline + Versi Seragam)
+
+### Perubahan
+- **[Fix] Responsive form modal**: Modal tambah/edit agenda, workflow, progress — input tidak overflow di layar kecil
+- **[Ubah] Rebrand E-LKH → E-Office**: Sidebar, heading, navigasi konsisten "E-Office" (tanpa strip)
+- **[Hapus] Route cuti**: Fungsi/rute absensi/cuti yang tidak terpakai dihapus
+- **[New] Tagline**: `'Rencanakan. Kerjakan. Selesaikan.'` di header aplikasi
+- **[Ubah] Versi seragam**: Semua halaman pakai `v1.1.0` — ditampilkan di footer/badge
+
+### Files Changed
+- `agenda.html` — responsive modal, tagline, versi badge
+- `Code.gs` — hapus rute cuti, update versi
+- `index.html` — rebrand E-LKH → E-Office
+
+---
+
+## v2.20.0 — 7 Jul 2026 (Notula JSON Terstruktur + UI Detail Lebar + .docx Export)
+
+### Perubahan
+
+#### 1. Arsitektur isi_notula: String → JSON Object
+- **[Ubah] `NOTULA_SYSTEM_PROMPT`**: AI diminta output `isi_notula` sebagai JSON object dengan 5 key:
+  ```json
+  {
+    "pembukaan": "...",
+    "agenda": ["..."],
+    "pembahasan": [{"speaker": "...", "items": ["..."]}],
+    "keputusan": ["..."],
+    "penutup": "..."
+  }
+  ```
+- **[New] `_fillNotulaContent(doc, isiNotula, notulenData)`**: Bangun Google Docs secara struktural:
+  - `pembukaan` → paragraf biasa
+  - `agenda` → numbering list
+  - `pembahasan` → tiap entry: **bold nama speaker** (heading4) + bullet items
+  - `keputusan` → numbering list dengan bullet "✓"
+  - `penutup` → paragraf biasa
+- **[New] `_fillNotulaFromText(doc, text, notulenData)`**: Fallback untuk data lama — konversi baris dengan leading `-` jadi bullet item
+- **[New] `_cleanItem(str)`**: Loop hapus leading dash/bullet/angka dari item — cegah duplikasi nomor saat render
+
+#### 2. Detail Modal Lebar
+- **[Ubah] Lebar modal**: 640px → 960px
+- **[Ubah] Layout**: Grid 2 kolom untuk info rapat, list-style untuk jalannya & poin
+- **[New] Card-based sections**: Setiap section (Info Rapat, Jalannya Rapat, Poin & TL) pakai card border biru
+
+#### 3. Export .docx
+- **[New] `_exportNotulaWord(doc, fileName, folderId)`**: Export Google Docs ke format .docx via Drive API v3 (`exportLinks['application/vnd.openxmlformats-officedocument.wordprocessingml.document']`)
+- **[Ubah] `generateNotulaAI()`**: Output 3 file — Google Docs, PDF, dan .docx
+- **[Ubah] NOTULA_LOG**: Kolom WORD_URL ditambahkan
+
+#### 4. Fungsi Baru
+- **[New] `generateNotulaApaAdanya(notulenData)`**: Generate notula tanpa AI — hanya mapping data mentah ke template, berguna jika server AI offline
+- **[New] `getNotulaGenerateLogs(notulenId)`**: Ambil history generate dari sheet NOTULA_LOG — tampilkan list hasil generate (PDF, Doc, Docs) di modal
+- **[New] "Kelola Dokumen" modal**: Gabungan view — histori generate notula (AI/Apa Adanya) + upload TTD — dalam satu modal
+
+#### 5. Marker Processing
+- **[Ubah] `_sanitizeAIOutput()`**: Handler marker `===` di output AI — jika AI curhat/menambahkan catatan di luar JSON, bersihkan
+- **[Ubah] `buildNotulaPrompt()`**: Tambah instruksi tegas: "JANGAN GUNAKAN MARKER ATAU PEMISAH. Output hanya JSON."
+
+### Files Changed
+- `notulen.gs` — seluruh arsitektur isi_notula refactor, _fillNotulaContent, _fillNotulaFromText, _cleanItem, _exportNotulaWord, generateNotulaApaAdanya, getNotulaGenerateLogs, marker processing
+- `index.html` — detail modal 960px, card sections, Kelola Dokumen modal, getNotulaGenerateLogs UI
+
+---
+
+## v2.21.0 — 8 Jul 2026 (Evidence Drive + Base64 Upload + Tanggal LKH Manual)
+
+### Perubahan
+
+#### 1. Evidence: Alihkan ke Folder Drive `kulkpusiak`
+- **[Ubah] `saveEvidenceToDrive()`**: Upload evidence ke folder `kulkpusiak` (ID: `1NWakHROG9ngRk_bSIZ9xYv2sQUt9pbS5`) — bukan lagi ke `E-OFFICE/{agendaId}/`
+- **[Ubah] `deleteEvidenceFromDrive()`**: Path delete disesuaikan dengan folder baru
+- **[Fix] `uploadEvidenceFile()`**: Handler upload — ambil folder ID dari parameter, simpan file ke folder `kulkpusiak`
+
+#### 2. Upload File via Base64 (File Besar)
+- **[Fix] `uploadEvidenceFile()`**: Kirim file sebagai base64 string (bukan blob) — GAS `google.script.run` dengan blob sering gagal/timeout untuk file >1MB
+- **[Ubah] Frontend `uploadEvidence()`**: Baca file sebagai `FileReader.readAsDataURL()`, kirim base64 + nama file + mimeType ke backend
+- **[New] `_saveBase64File(base64, fileName, folderId)`**: Decode base64, create file di Drive dengan `contentType` sesuai mimeType
+
+#### 3. Tanggal LKH Manual
+- **[New] Field `TANGGAL_LKH`**: Di form auto-save LKH, user bisa input tanggal terpisah (tidak harus tanggal selesai progress)
+- **[Ubah] `autoSaveLKHAll()`**: Terima parameter `tanggalLKH` opsional — jika ada, pakai tanggal itu; fallback ke tanggal selesai progress
+- **[New] Input datepicker**: Di modal konfirmasi selesai progress, tambah field "Tanggal LKH" (default: hari ini)
+- **[Fix] Konsistensi**: Tanggal LKH disimpan di kolom TANGGAL sheet AGENDA — LKH tetap terintegrasi dengan progress tapi fleksibel tanggalnya
+
+### Files Changed
+- `backend_agenda.gs` — `saveEvidenceToDrive()` folder path, `_saveBase64File()`, `autoSaveLKHAll()` parameter tanggalLKH
+- `agenda.html` — `uploadEvidence()` base64 reader, tanggal LKH input, form upload changes
+- `index.html` — minor fixes untuk upload base64
+
+---
+
+## Updated Context (v2.19–v2.21)
+
+- **Evidence storage**: Folder Drive `kulkpusiak` (ID: `1NWakHROG9ngRk_bSIZ9xYv2sQUt9pbS5`), bukan `E-OFFICE/{agendaId}/`
+- **Upload file**: Via base64 (readAsDataURL) — support file besar tanpa timeout GAS
+- **LKH tanggal**: Input manual terpisah — user bisa tentukan tanggal LKH berbeda dari tanggal selesai progress
+- **Notula isi_notula**: JSON object dengan 5 key (`pembukaan`, `agenda[]`, `pembahasan[{speaker, items[]}]`, `keputusan[]`, `penutup`) — dirender struktural ke Google Docs via DocumentApp API
+- **Output generate notula**: 3 file — Google Docs (.gdoc) + PDF + .docx
+- **generateNotulaApaAdanya**: Fallback tanpa AI — mapping data mentah ke template
+- **Kelola Dokumen modal**: Satu modal untuk lihat histori generate + upload TTD
+- **Branding**: "E-Office" (tanpa strip), tagline "Rencanakan. Kerjakan. Selesaikan.", versi v1.1.0
+- **Responsive modal**: CSS fixes untuk form modal di layar kecil
