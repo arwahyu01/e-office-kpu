@@ -144,52 +144,49 @@ Kalimat yang menjelaskan siapa membuka rapat, jam mulai, jumlah peserta, dan sta
 AGENDA ADALAH STRUKTUR HIERARKI (WAJIB)
 ====================================================================
 
-Agenda rapat bukan paragraf.
-Agenda adalah struktur bertingkat (hierarchical structure).
+Data "Poin / Keputusan" sudah dikelompokkan secara hierarki
+dengan label INDUK dan ANAK.
 
-AI WAJIB memahami hubungan INDUK dan ANAK.
+CONTOH data yang akan Anda terima:
+AGENDA INDUK 1: Subbagian Keuangan Umum dan Logistik
+   ANAK: Laporan Realisasi Anggaran
+   ANAK: Laporan Surat Masuk dan Surat Keluar
+   ANAK: Progres Penelusuran BMN
+AGENDA INDUK 2: Subbagian Teknis dan Hukum
+   ANAK: Pembahasan FGD Penataan Dapil
+   ANAK: Rencana Bedah Buku
 
-Contoh data input:
-1. Subbagian Keuangan Umum dan Logistik
-- Laporan Realisasi Anggaran
-- Laporan Surat Masuk dan Surat Keluar
-- Progres Penelusuran Aset BMN
+Yang WAJIB AI lakukan:
+AGENDA INDUK 1 → menjadi item pertama di array agenda (dengan indentasi)
+   Setiap ANAK → menjadi sub-item dengan prefix "   -"
 
-Yang WAJIB dipahami AI adalah:
-Subbagian Keuangan Umum dan Logistik
-  ├── Laporan Realisasi Anggaran
-  ├── Laporan Surat Masuk dan Surat Keluar
-  └── Progres Penelusuran Aset BMN
-
-BUKAN dipahami sebagai:
-1. Subbagian Keuangan Umum dan Logistik
-2. Laporan Realisasi Anggaran
-3. Laporan Surat Masuk dan Surat Keluar
-4. Progres Penelusuran Aset BMN
-
-Seluruh bullet (-) adalah ANAK (child) dari agenda sebelumnya (induk).
-AI WAJIB mempertahankan hubungan induk-anak tersebut.
-
-Output WAJIB:
+Output WAJIB — gunakan nomor urut berurutan (1, 2, 3, ...) untuk INDUK:
 "agenda": [
   "1. Subbagian Keuangan Umum dan Logistik",
   "   - Laporan Realisasi Anggaran",
   "   - Laporan Surat Masuk dan Surat Keluar",
-  "   - Progres Penelusuran BMN"
+  "   - Progres Penelusuran BMN",
+  "2. Subbagian Teknis dan Hukum",
+  "   - Pembahasan FGD Penataan Dapil",
+  "   - Rencana Bedah Buku"
 ]
+
+PENTING: AI WAJIB membuat nomor urut INDUK baru (1., 2., 3., ...)
+dan mempertahankan teks ANAK apa adanya (termasuk nomor aslinya jika ada).
 
 LARANGAN:
 - meringkas agenda
 - menyederhanakan agenda
 - mengubah susunan agenda
 - mengganti kalimat agenda
-- menghapus sub agenda (bullet)
+- menghapus sub agenda (ANAK)
 - membuat ulang agenda dengan bahasa sendiri
-- memperlakukan bullet sebagai item terpisah dan setara dengan induk
+- memperlakukan ANAK sebagai item terpisah dan setara dengan INDUK
+- mengubah INDUK menjadi format paragraf
 
-Apabila terdapat 20 agenda dan 80 sub agenda,
+Apabila terdapat 20 INDUK dan 80 ANAK,
 seluruhnya harus ditampilkan.
-Tidak boleh ada satupun sub agenda yang hilang.
+Tidak boleh ada satupun ANAK yang hilang.
 
 Agenda merupakan kutipan administrasi sehingga AI DILARANG
 mengubah redaksi agenda.
@@ -1569,6 +1566,51 @@ function _sanitizeAIOutput(result) {
   return result;
 }
 
+function _formatPoinHierarki(poinList) {
+  // Deteksi induk: item yang mengandung "dengan agenda" (case insensitive)
+  var groups = [];
+  var currentInduk = null;
+  var currentIndukOriginal = null;
+  var currentAnak = [];
+
+  for (var i = 0; i < poinList.length; i++) {
+    var isi = (poinList[i].isi || '').trim();
+    var isInduk = /dengan\s+agenda/i.test(isi);
+
+    if (isInduk) {
+      if (currentInduk !== null) {
+        groups.push({ induk: currentInduk, anak: currentAnak });
+      }
+      currentInduk = isi;
+      currentAnak = [];
+    } else {
+      currentAnak.push(isi);
+    }
+  }
+  if (currentInduk !== null) {
+    groups.push({ induk: currentInduk, anak: currentAnak });
+  }
+
+  // Jika tidak ada induk terdeteksi, kirim sebagai flat list biasa
+  if (groups.length === 0) {
+    var flat = '';
+    poinList.forEach(function(p) {
+      flat += '   - ' + (p.isi || '') + '\n';
+    });
+    return flat;
+  }
+
+  // Format dengan hierarki eksplisit
+  var text = '';
+  for (var g = 0; g < groups.length; g++) {
+    text += 'AGENDA INDUK ' + (g + 1) + ': ' + groups[g].induk + '\n';
+    for (var a = 0; a < groups[g].anak.length; a++) {
+      text += '   ANAK: ' + groups[g].anak[a] + '\n';
+    }
+  }
+  return text;
+}
+
 function buildNotulaPrompt(notulenData) {
   var context = '';
   context += '1. Judul: ' + (notulenData.judul || '-') + '\n';
@@ -1597,10 +1639,8 @@ function buildNotulaPrompt(notulenData) {
   }
 
   if (notulenData.poinList && notulenData.poinList.length) {
-    context += '\n10. Poin / Keputusan:\n';
-    notulenData.poinList.forEach(function (p, i) {
-      context += '   - ' + (p.isi || '') + '\n';
-    });
+    var poinText = _formatPoinHierarki(notulenData.poinList);
+    context += '\n10. Poin / Keputusan:\n' + poinText;
   }
 
   return [
