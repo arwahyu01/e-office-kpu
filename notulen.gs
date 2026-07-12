@@ -141,55 +141,17 @@ Kalimat yang menjelaskan siapa membuka rapat, jam mulai, jumlah peserta, dan sta
 --- agenda (array of strings) ---
 
 ====================================================================
-AGENDA ADALAH STRUKTUR HIERARKI (WAJIB)
+AGENDA (data tersedia di Poin / Keputusan)
 ====================================================================
 
-Data "Poin / Keputusan" sudah dikelompokkan secara hierarki
-dengan label INDUK dan ANAK.
+Data agenda sudah dikelompokkan dengan label INDUK dan ANAK.
 
-CONTOH data yang akan Anda terima:
-AGENDA INDUK 1: Subbagian Keuangan Umum dan Logistik
-   ANAK: Laporan Realisasi Anggaran
-   ANAK: Laporan Surat Masuk dan Surat Keluar
-   ANAK: Progres Penelusuran BMN
-AGENDA INDUK 2: Subbagian Teknis dan Hukum
-   ANAK: Pembahasan FGD Penataan Dapil
-   ANAK: Rencana Bedah Buku
+AI hanya perlu menjadikannya referensi saat menulis isi notula.
+Format akhir array agenda akan diproses secara terpisah, sehingga
+AI tidak perlu khawatir tentang format output agenda.
 
-Yang WAJIB AI lakukan:
-AGENDA INDUK 1 → menjadi item pertama di array agenda (dengan indentasi)
-   Setiap ANAK → menjadi sub-item dengan prefix "   -"
-
-Output WAJIB — gunakan nomor urut berurutan (1, 2, 3, ...) untuk INDUK:
-"agenda": [
-  "1. Subbagian Keuangan Umum dan Logistik",
-  "   - Laporan Realisasi Anggaran",
-  "   - Laporan Surat Masuk dan Surat Keluar",
-  "   - Progres Penelusuran BMN",
-  "2. Subbagian Teknis dan Hukum",
-  "   - Pembahasan FGD Penataan Dapil",
-  "   - Rencana Bedah Buku"
-]
-
-PENTING: AI WAJIB membuat nomor urut INDUK baru (1., 2., 3., ...)
-dan mempertahankan teks ANAK apa adanya (termasuk nomor aslinya jika ada).
-
-LARANGAN:
-- meringkas agenda
-- menyederhanakan agenda
-- mengubah susunan agenda
-- mengganti kalimat agenda
-- menghapus sub agenda (ANAK)
-- membuat ulang agenda dengan bahasa sendiri
-- memperlakukan ANAK sebagai item terpisah dan setara dengan INDUK
-- mengubah INDUK menjadi format paragraf
-
-Apabila terdapat 20 INDUK dan 80 ANAK,
-seluruhnya harus ditampilkan.
-Tidak boleh ada satupun ANAK yang hilang.
-
-Agenda merupakan kutipan administrasi sehingga AI DILARANG
-mengubah redaksi agenda.
+Yang penting: gunakan data agenda sebagai acuan saat menyusun
+pembukaan (menyebutkan agenda rapat) dan pembahasan.
 
 --- pembahasan (array of objects) ---
 
@@ -1492,6 +1454,12 @@ function generateNotulaAI(notulenId) {
       aiResult.peserta = pesertaText.trim();
     }
 
+    // Override agenda — AI tidak kompeten menjaga hierarki, kita generate langsung
+    if (n.poinList && n.poinList.length) {
+      aiResult.isi_notula = aiResult.isi_notula || {};
+      aiResult.isi_notula.agenda = _generateAgendaArray(n.poinList);
+    }
+
     // Default tempat jika AI tidak menyimpulkan
     if (!aiResult.tempat) aiResult.tempat = "Aula Rapat Lt.2 KPU Kabupaten Siak";
 
@@ -1560,6 +1528,52 @@ function _sanitizeAIOutput(result) {
 
     if (val !== original) {
       console.warn('[Sanitasi] ' + fields[f] + ' mengandung struktur template, telah dibersihkan');
+    }
+  }
+
+  return result;
+}
+
+function _generateAgendaArray(poinList) {
+  // Generate array agenda langsung dari poinList, tanpa AI
+  // Format: INDUK = "N. teks", ANAK = "   <huruf>. teks"
+  var result = [];
+  var indukCount = 0;
+  var hasInduk = false;
+
+  for (var i = 0; i < poinList.length; i++) {
+    if (/dengan\s+agenda/i.test((poinList[i].isi || '').trim())) {
+      hasInduk = true;
+      break;
+    }
+  }
+
+  if (!hasInduk) {
+    // Fallback: semua item sebagai induk flat
+    poinList.forEach(function(p, idx) {
+      result.push((idx + 1) + '. ' + (p.isi || '').replace(/^\d+[\.\s]+/, '').trim());
+    });
+    return result;
+  }
+
+  for (var i = 0; i < poinList.length; i++) {
+    var isi = (poinList[i].isi || '').trim();
+    var isInduk = /dengan\s+agenda/i.test(isi);
+
+    if (isInduk) {
+      indukCount++;
+      var cleanInduk = isi.replace(/^\d+[\.\s]+/, '').trim();
+      cleanInduk = cleanInduk.replace(/\s*dengan\s+agenda\s*:?\s*$/i, '').trim();
+      result.push(indukCount + '. ' + cleanInduk);
+    } else {
+      var anakCount = 0;
+      for (var j = result.length - 1; j >= 0; j--) {
+        if (/^\d+\.\s/.test(result[j])) break;
+        anakCount++;
+      }
+      var letter = String.fromCharCode(97 + anakCount);
+      var cleanAnak = isi.replace(/^\d+[\.\s]+/, '').trim();
+      result.push('   ' + letter + '. ' + cleanAnak);
     }
   }
 
@@ -1842,9 +1856,10 @@ function buildIsiNotulaApaAdanya(n) {
   if (n.poinList && n.poinList.length) {
     n.poinList.forEach(function (p) { keputusan.push(p.isi || ''); });
   }
+  var agendaArr = (n.poinList && n.poinList.length) ? _generateAgendaArray(n.poinList) : ['1. ' + (n.judul || '-')];
   return {
     pembukaan: 'Rapat dibuka oleh ' + (n.pimpinan || 'Pimpinan Rapat') + ' pada pukul 09.20 WIB. Rapat dinyatakan kuorum.',
-    agenda: ['1. ' + (n.judul || '-')],
+    agenda: agendaArr,
     pembahasan: pembahasan,
     keputusan: keputusan,
     penutup: 'Rapat ditutup oleh ' + (n.pimpinan || 'Pimpinan Rapat') + ' pada pukul 12.00 WIB.'
