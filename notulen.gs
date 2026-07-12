@@ -322,6 +322,7 @@ function getListNotulen(params) {
         judul: row[3],
         pimpinan: row[4],
         notulis: row[5],
+        notulisNama: _resolveNotulisNama(row[5]),
         jalannyaCount: row[6],
         poinCount: row[7],
         createdAt: _fmtDate(row[8]),
@@ -362,6 +363,7 @@ function getDetailNotulen(params) {
         notulen = {
           id: rows[i][0], tanggal: _fmtDate(rows[i][1]), jenis: rows[i][2],
           judul: rows[i][3], pimpinan: rows[i][4], notulis: rows[i][5],
+          notulisNama: _resolveNotulisNama(rows[i][5]),
           jalannyaCount: rows[i][6], poinCount: rows[i][7],
           createdAt: _fmtDate(rows[i][8]), driveUrl: rows[i][9],
           undanganLink: rows[i][10], status: rows[i][11] || NOTULEN_STATUS.DRAFT,
@@ -446,8 +448,9 @@ function simpanNotulen(data) {
       return updateResult;
     }
 
-    // === TENTUKAN STATUS ===
-    var hakAkses = _getHakAksesByEmail(data.userEmail || '');
+    // === TENTUKAN STATUS BERDASARKAN NOTULIS ===
+    var notulisEmail = data.notulis || data.userEmail || '';
+    var hakAkses = _getHakAksesByEmail(notulisEmail);
     var autoPublish = AUTO_PUBLISH_ROLES.indexOf(hakAkses) !== -1;
     var status = autoPublish ? NOTULEN_STATUS.DISETUJUI : NOTULEN_STATUS.DRAFT;
 
@@ -466,7 +469,7 @@ function simpanNotulen(data) {
 
     var approverEmail = '';
     if (!autoPublish) {
-      approverEmail = _getAtasanEmailByEmail(data.userEmail || '');
+      approverEmail = _getAtasanEmailByEmail(notulisEmail);
     }
 
     notulenSheet.appendRow([
@@ -640,6 +643,14 @@ function _getNamaByEmail(email) {
   }
 }
 
+function _resolveNotulisNama(notulisVal) {
+  if (!notulisVal) return '';
+  if (notulisVal.indexOf('@') !== -1) {
+    return _getNamaByEmail(notulisVal);
+  }
+  return notulisVal;
+}
+
 // =============================================
 // EKSEKUSI TINDAK LANJUT (dipanggil saat DISETUJUI)
 // =============================================
@@ -676,7 +687,7 @@ function _executeTindakLanjut(poinList, data, id) {
 // =============================================
 function ajukanNotulen(params) {
   try {
-    if (!params.id || !params.userEmail) {
+    if (!params.id) {
       return { success: false, message: 'Parameter tidak lengkap' };
     }
 
@@ -692,13 +703,26 @@ function ajukanNotulen(params) {
     if (rowIndex === -1) return { success: false, message: 'Notulen tidak ditemukan' };
 
     var currentStatus = rows[rowIndex - 1][11] || '';
-    if (currentStatus !== NOTULEN_STATUS.DRAFT) {
+    if (currentStatus !== NOTULEN_STATUS.DRAFT && currentStatus !== 'tersimpan') {
       return { success: false, message: 'Hanya notulen dengan status DRAFT yang bisa diajukan' };
     }
 
-    var approverEmail = _getAtasanEmailByEmail(params.userEmail);
+    // Cari atasan berdasarkan NOTULIS (col 5), bukan user yang login
+    var notulisVal = String(rows[rowIndex - 1][5] || '').trim();
+    var notulisEmail = notulisVal.indexOf('@') !== -1 ? notulisVal : '';
+    if (!notulisEmail) {
+      // Fallback: cari email dari nama notulis
+      var list = getAllPegawai();
+      for (var j = 0; j < list.length; j++) {
+        if (list[j].nama && list[j].nama.toLowerCase().trim() === notulisVal.toLowerCase().trim()) {
+          notulisEmail = list[j].email || '';
+          break;
+        }
+      }
+    }
+    var approverEmail = notulisEmail ? _getAtasanEmailByEmail(notulisEmail) : '';
     if (!approverEmail) {
-      return { success: false, message: 'Atasan langsung tidak ditemukan di master pegawai' };
+      return { success: false, message: 'Atasan langsung notulis tidak ditemukan di master pegawai' };
     }
 
     notulenSheet.getRange(rowIndex, 12).setValue(NOTULEN_STATUS.MENUNGGU);
@@ -735,6 +759,7 @@ function getPengajuanNotulen(params) {
         result.push({
           id: row[0], tanggal: _fmtDate(row[1]), jenis: row[2],
           judul: row[3], pimpinan: row[4], notulis: row[5],
+          notulisNama: _resolveNotulisNama(row[5]),
           jalannyaCount: row[6], poinCount: row[7],
           createdAt: _fmtDate(row[8]), driveUrl: row[9],
           undanganLink: row[10], status: status,

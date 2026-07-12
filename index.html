@@ -1645,7 +1645,14 @@
             document.getElementById('notulenJenis').value = draft.info.jenis || '';
             document.getElementById('notulenJudul').value = draft.info.judul || '';
             document.getElementById('notulenPimpinan').value = draft.info.pimpinan || '';
-            document.getElementById('notulenNotulis').value = draft.info.notulis || '';
+            var restoredNotulis = draft.info.notulis || '';
+            var notulisSelect = document.getElementById('notulenNotulis');
+            if (restoredNotulis.indexOf('@') === -1 && restoredNotulis) {
+                var cache = typeof pegawaiCache !== 'undefined' && pegawaiCache.length ? pegawaiCache : _pegawaiCache;
+                var found = cache.find(function(p) { return p.nama === restoredNotulis; });
+                if (found) restoredNotulis = found.email;
+            }
+            notulisSelect.value = restoredNotulis;
             document.getElementById('notulenUndangan').value = draft.info.undangan || '';
 
             // === RESET JALANNYA RAPAT ===
@@ -1770,7 +1777,7 @@
                 notulisEl.innerHTML = '<option value="">Pilih notulis</option>';
                 list.forEach(function (p) {
                     var sel = p.email === profile.email ? ' selected' : '';
-                    notulisEl.innerHTML += '<option value="' + p.nama + '"' + sel + '>' + p.nama + ' — ' + (p.jabatan || '-') + '</option>';
+                    notulisEl.innerHTML += '<option value="' + p.email + '"' + sel + '>' + p.nama + ' — ' + (p.jabatan || '-') + '</option>';
                 });
                 if (callback) callback();
             };
@@ -1779,6 +1786,13 @@
             } else {
                 google.script.run.withSuccessHandler(load).getDataPegawai();
             }
+        }
+
+        function getNamaFromEmail(email) {
+            if (!email) return '';
+            var cache = typeof pegawaiCache !== 'undefined' && pegawaiCache.length ? pegawaiCache : _pegawaiCache;
+            var found = cache.find(function(p) { return p.email === email; });
+            return found ? found.nama : email;
         }
 
         function initFreshForm() {
@@ -1880,7 +1894,7 @@
                 '<tr><td style="padding:4px 8px;color:#64748b;">Jenis</td><td style="padding:4px 8px;">' + formatJenis(draft.info.jenis) + '</td></tr>' +
                 '<tr><td style="padding:4px 8px;color:#64748b;">Judul</td><td style="padding:4px 8px;font-weight:600;">' + (draft.info.judul || '-') + '</td></tr>' +
                 '<tr><td style="padding:4px 8px;color:#64748b;">Pimpinan</td><td style="padding:4px 8px;">' + (draft.info.pimpinan || '-') + '</td></tr>' +
-                '<tr><td style="padding:4px 8px;color:#64748b;">Notulis</td><td style="padding:4px 8px;">' + (draft.info.notulis || '-') + '</td></tr>' +
+                '<tr><td style="padding:4px 8px;color:#64748b;">Notulis</td><td style="padding:4px 8px;">' + (getNamaFromEmail(draft.info.notulis) || draft.info.notulis || '-') + '</td></tr>' +
                 pesertaHtml +
                 (draft.info.undangan ? '<tr><td style="padding:4px 8px;color:#64748b;">Undangan</td><td style="padding:4px 8px;"><a href="' + draft.info.undangan + '" target="_blank">Lihat Link</a></td></tr>' : '') +
                 '</table>' +
@@ -2442,7 +2456,7 @@
                         var list = res.data;
                         if (filterJenis) list = list.filter(function (n) { return n.jenis === filterJenis; });
                         if (filterStatus) list = list.filter(function (n) { return _normStatus(n.status) === filterStatus; });
-                        if (search) list = list.filter(function (n) { return (n.judul || '').toLowerCase().includes(search) || (n.jenis || '').toLowerCase().includes(search) || (n.pimpinan || '').toLowerCase().includes(search) || (n.notulis || '').toLowerCase().includes(search); });
+                        if (search) list = list.filter(function (n) { return (n.judul || '').toLowerCase().includes(search) || (n.jenis || '').toLowerCase().includes(search) || (n.pimpinan || '').toLowerCase().includes(search) || (n.notulis || '').toLowerCase().includes(search) || (n.notulisNama || '').toLowerCase().includes(search); });
 
                         if (list.length === 0) {
                             container.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><h3>Tidak ada notulen</h3><p>Belum ada notulen yang tersimpan.</p></div>';
@@ -2472,7 +2486,7 @@
                                 '<div class="notulen-card-title">' + (n.judul || '(tanpa judul)') + '</div>' +
                                 '<div class="notulen-card-meta">' +
                                 '<span><i class="fas fa-user"></i> ' + (n.pimpinan || '-') + '</span>' +
-                                '<span><i class="fas fa-pen"></i> ' + (n.notulis || '-') + '</span>' +
+                                '<span><i class="fas fa-pen"></i> ' + (n.notulisNama || getNamaFromEmail(n.notulis) || n.notulis || '-') + '</span>' +
                                 '<span><i class="fas fa-list-ol"></i> ' + (n.poinCount || 0) + ' poin</span>' +
                                 '</div>' +
                                 (n.undanganLink || n.signedPdfUrl ? '<div class="notulen-card-links">' +
@@ -2570,7 +2584,7 @@
                             '</div>' +
                             '<div style="background:#f8fafc;border:1px solid #e9edf4;border-radius:12px;padding:14px 16px;">' +
                             '<span style="font-size:12px;color:#94a3b8;font-weight:500;text-transform:uppercase;letter-spacing:0.3px;">Notulis</span>' +
-                            '<p style="margin:4px 0 0;font-size:14px;font-weight:600;color:#0f172a;"><i class="fas fa-feather" style="color:#0891b2;margin-right:6px;"></i> ' + (n.notulis || '-') + '</p>' +
+                            '<p style="margin:4px 0 0;font-size:14px;font-weight:600;color:#0f172a;"><i class="fas fa-feather" style="color:#0891b2;margin-right:6px;"></i> ' + (n.notulisNama || getNamaFromEmail(n.notulis) || n.notulis || '-') + '</p>' +
                             '</div>' +
                             (n.signedPdfUrl ?
                             '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:10px;">' +
@@ -3111,7 +3125,7 @@
                             '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">' +
                             '<div style="flex:1;">' +
                             '<strong style="font-size:14px;">' + (n.judul || '-') + '</strong>' +
-                            '<p style="font-size:12px;color:#64748b;margin:4px 0;">' + formatJenis(n.jenis) + ' &middot; ' + (n.tanggal || '') + ' &middot; Notulis: ' + (n.notulis || '-') + '</p>' +
+                            '<p style="font-size:12px;color:#64748b;margin:4px 0;">' + formatJenis(n.jenis) + ' &middot; ' + (n.tanggal || '') + ' &middot; Notulis: ' + (n.notulisNama || getNamaFromEmail(n.notulis) || n.notulis || '-') + '</p>' +
                             '</div>' +
                             '<div style="display:flex;gap:6px;flex-shrink:0;">' +
                             '<button class="btn-setujui" onclick="setujuiNotulen(\'' + n.id + '\');Swal.close();" style="font-size:12px;padding:6px 12px;"><i class="fas fa-check"></i> Setujui</button>' +
