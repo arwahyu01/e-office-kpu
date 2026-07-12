@@ -1430,14 +1430,9 @@ function generateNotulaAI(notulenId) {
     aiResult.jabatan_atasan = _findJabatanPegawai(aiResult.atasan_langsung);
     aiResult.jabatan_notulis = _findJabatanPegawai(n.notulis);
 
-    // Timpa peserta dengan urutan dari database (AI sering ubah urutan)
+    // Timpa peserta — urut sesuai nomor dari database (bukan jabatan)
     if (n.pesertaList && n.pesertaList.length) {
       var sortedPeserta = n.pesertaList.slice().sort(function(a, b) {
-        var ja = (a.jabatan || '').toUpperCase();
-        var jb = (b.jabatan || '').toUpperCase();
-        var pa = ja === 'KETUA' ? 1 : (ja.indexOf('WAKIL') !== -1 && ja.indexOf('KETUA') !== -1) ? 2 : ja === 'ANGGOTA' ? 3 : ja.indexOf('SEKRETARIS') !== -1 ? 4 : (ja.indexOf('KEPALA') !== -1 || ja === 'KASUBBAG') ? 5 : 99;
-        var pb = jb === 'KETUA' ? 1 : (jb.indexOf('WAKIL') !== -1 && jb.indexOf('KETUA') !== -1) ? 2 : jb === 'ANGGOTA' ? 3 : jb.indexOf('SEKRETARIS') !== -1 ? 4 : (jb.indexOf('KEPALA') !== -1 || jb === 'KASUBBAG') ? 5 : 99;
-        if (pa !== pb) return pa - pb;
         return (a.no || 999) - (b.no || 999);
       });
       var pesertaText = '';
@@ -1791,13 +1786,9 @@ function generateNotulaApaAdanya(notulenId) {
     aiResult.jabatan_atasan = _findJabatanPegawai(aiResult.atasan_langsung);
     aiResult.jabatan_notulis = _findJabatanPegawai(n.notulis);
 
+    // Urut sesuai nomor dari database
     if (n.pesertaList && n.pesertaList.length) {
       var sortedPeserta = n.pesertaList.slice().sort(function(a, b) {
-        var ja = (a.jabatan || '').toUpperCase();
-        var jb = (b.jabatan || '').toUpperCase();
-        var pa = ja === 'KETUA' ? 1 : (ja.indexOf('WAKIL') !== -1 && ja.indexOf('KETUA') !== -1) ? 2 : ja === 'ANGGOTA' ? 3 : ja.indexOf('SEKRETARIS') !== -1 ? 4 : (ja.indexOf('KEPALA') !== -1 || ja === 'KASUBBAG') ? 5 : 99;
-        var pb = jb === 'KETUA' ? 1 : (jb.indexOf('WAKIL') !== -1 && jb.indexOf('KETUA') !== -1) ? 2 : jb === 'ANGGOTA' ? 3 : jb.indexOf('SEKRETARIS') !== -1 ? 4 : (jb.indexOf('KEPALA') !== -1 || jb === 'KASUBBAG') ? 5 : 99;
-        if (pa !== pb) return pa - pb;
         return (a.no || 999) - (b.no || 999);
       });
       var pesertaText = '';

@@ -2662,7 +2662,7 @@
                             '<div style="margin-bottom:16px;">' +
                             '<span style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.3px;display:block;margin-bottom:6px;"><i class="fas fa-users"></i> Peserta (' + n.pesertaList.length + ')</span>' +
                             '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
-                            sortPesertaByJabatan(n.pesertaList).map(function(p) {
+                            n.pesertaList.map(function(p) {
                             return '<span style="display:inline-flex;align-items:center;gap:6px;background:#f8fafc;border:1px solid #e9edf4;border-radius:20px;padding:3px 12px 3px 10px;font-size:12px;"><span style="width:6px;height:6px;border-radius:50%;background:#6366f1;display:inline-block;flex-shrink:0;"></span> ' + (p.nama || '') + ' <span style="color:#94a3b8;font-size:11px;">' + (p.jabatan || '') + '</span></span>';
                             }).join('') +
                             '</div></div>' : '') +
