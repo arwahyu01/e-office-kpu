@@ -173,12 +173,14 @@ Data "Jalannya Rapat" memiliki format:
    - [Nama Pembicara]: [Teks yang disampaikan]
 
 AI WAJIB:
-1. Pisahkan setiap baris "Jalannya Rapat" menjadi SATU objek pembahasan
+1. JANGAN menghilangkan satupun pembicara — setiap baris = satu objek pembahasan
 2. Jika dalam teks pembicara terdapat bullet (-) atau paragraf terpisah,
    PISAHKAN masing-masing menjadi ITEM terpisah di dalam items[]
 3. Pembicara pertama yang membuka rapat → jadikan acuan pembukaan
 4. Pembicara terakhir yang menutup rapat → jadikan acuan penutup
 5. Nama pembicara HARUS menyertakan jabatan lengkap
+6. Jika ada 10 baris Jalannya Rapat → pembahasan harus berisi 10 objek
+   (dikurangi 1 untuk pembukaan dan 1 untuk penutup = minimal 8 objek)
 
 CONTOH:
 Data input: "- Kasubbag Parmas & SDM, Fresly Gunata: - Terkait komunikasi dengan kominfo, kpu siak akan menyerahkan 4 video. - Kamis, 9 Juli 2026 CPNS akan MCU di RSUD Siak - SKP Pegawai triwulan ke 2 harus segera di selesaikan"
@@ -200,6 +202,7 @@ ATURAN KETAT:
 - Jika pembicara menyampaikan 5 hal → items[] berisi 5 item
 - Gunakan Bahasa Indonesia resmi pemerintahan dalam items[]
 - Awali setiap item dengan kata kerja aktif (Menyampaikan, Menjelaskan, Mengingatkan, Menanyakan, dll)
+- Pahami isi agenda & dan rapat dengan baik
 
 --- keputusan (array of strings) ---
 
@@ -226,7 +229,7 @@ PEMERIKSAAN KUALITAS (WAJIB)
 Sebelum menghasilkan JSON, pastikan:
 ✓ Tidak ada informasi fiktif
 ✓ Tidak ada keputusan buatan AI
-✓ Semua pembicara dipisahkan
+✓ Semua pembicara dipisahkan seusai data yang diterima
 ✓ Semua agenda muncul
 ✓ Ada pembukaan, kuorum, penutup
 ✓ Ada keputusan bila memang ada
@@ -1747,23 +1750,43 @@ function _fillNotulaContent(body, isiNotula) {
 
   var idx = parentIndex;
 
-  if (content.pembukaan) {
-    body.insertParagraph(idx, content.pembukaan);
+  function addPara(text, opts) {
+    opts = opts || {};
+    var p = body.insertParagraph(idx, text || '');
+    p.setAlignment(DocumentApp.HorizontalAlignment.JUSTIFY);
+    if (opts.bold) p.setBold(true);
+    if (opts.heading) p.setHeading(opts.heading);
+    if (opts.indent) p.setIndentStart(opts.indent);
+    if (opts.spacing) p.setSpacingAfter(opts.spacing);
     idx++;
+    return p;
+  }
+
+  function addListItem(text, glyphType) {
+    var li = body.insertListItem(idx, text || '');
+    li.setAlignment(DocumentApp.HorizontalAlignment.JUSTIFY);
+    if (glyphType) li.setGlyphType(glyphType);
+    idx++;
+    return li;
+  }
+
+  if (content.pembukaan) {
+    addPara(content.pembukaan, { spacing: 6 });
   }
 
   if (content.agenda && content.agenda.length) {
-    body.insertParagraph(idx, 'Dengan agenda sebagai berikut:');
-    idx++;
+    addPara('Dengan agenda sebagai berikut:', { bold: true, spacing: 6 });
+    var isFirstInduk = true;
+    var indukNumber = 0;
     content.agenda.forEach(function (a) {
-      var li = body.insertListItem(idx, _cleanItem(a));
-      // INDUK (diawali angka) = NUMBER, ANAK (diawali spasi) = BULLET
-      if (/^\d+\.\s/.test(a)) {
-        li.setGlyphType(DocumentApp.GlyphType.NUMBER);
+      var clean = _cleanItem(a);
+      if (/^\d+\.\s/.test(clean)) {
+        // INDUK — nomor sudah ada di teks, pakai paragraf biasa
+        addPara(clean, { indent: 0, spacing: 4 });
       } else {
-        li.setGlyphType(DocumentApp.GlyphType.BULLET);
+        // ANAK — indent + teks polos
+        addPara(clean, { indent: 36, spacing: 2 });
       }
-      idx++;
     });
   }
 
@@ -1772,35 +1795,29 @@ function _fillNotulaContent(body, isiNotula) {
     content.pembahasan.forEach(function (session) {
       if (!session.speaker || !session.items || !session.items.length) return;
       if (firstSpeaker) {
-        body.insertParagraph(idx, 'Adapun pendapat dan/atau saran/masukan antara lain:');
-        idx++;
+        addPara('Adapun pendapat dan/atau saran/masukan antara lain:', { bold: true, spacing: 6 });
         firstSpeaker = false;
       }
-      var p = body.insertParagraph(idx, session.speaker);
-      p.setHeading(DocumentApp.ParagraphHeading.HEADING4);
-      p.setBold(true);
-      idx++;
+      addPara(session.speaker, { bold: true, heading: DocumentApp.ParagraphHeading.HEADING4, spacing: 4 });
       session.items.forEach(function (item) {
-        var li = body.insertListItem(idx, _cleanItem(item));
-        li.setGlyphType(DocumentApp.GlyphType.BULLET);
-        idx++;
+        addListItem(_cleanItem(item), DocumentApp.GlyphType.BULLET);
       });
     });
+    if (firstSpeaker === false) {
+      // sudah ada pembahasan — beri jarak
+    }
   }
 
   if (content.keputusan && content.keputusan.length) {
-    body.insertParagraph(idx, 'Keputusan Rapat');
-    idx++;
+    addPara('Keputusan Rapat', { bold: true, spacing: 6 });
     content.keputusan.forEach(function (k) {
       if (!k) return;
-      var li = body.insertListItem(idx, _cleanItem(k));
-      li.setGlyphType(DocumentApp.GlyphType.NUMBER);
-      idx++;
+      addListItem(_cleanItem(k), DocumentApp.GlyphType.NUMBER);
     });
   }
 
   if (content.penutup) {
-    body.insertParagraph(idx, content.penutup);
+    addPara(content.penutup, { spacing: 6 });
   }
 }
 
