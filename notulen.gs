@@ -140,7 +140,59 @@ Kalimat yang menjelaskan siapa membuka rapat, jam mulai, jumlah peserta, dan sta
 
 --- agenda (array of strings) ---
 
-Daftar bernomor. Setiap elemen adalah satu agenda.
+====================================================================
+AGENDA ADALAH STRUKTUR HIERARKI (WAJIB)
+====================================================================
+
+Agenda rapat bukan paragraf.
+Agenda adalah struktur bertingkat (hierarchical structure).
+
+AI WAJIB memahami hubungan INDUK dan ANAK.
+
+Contoh data input:
+1. Subbagian Keuangan Umum dan Logistik
+- Laporan Realisasi Anggaran
+- Laporan Surat Masuk dan Surat Keluar
+- Progres Penelusuran Aset BMN
+
+Yang WAJIB dipahami AI adalah:
+Subbagian Keuangan Umum dan Logistik
+  ├── Laporan Realisasi Anggaran
+  ├── Laporan Surat Masuk dan Surat Keluar
+  └── Progres Penelusuran Aset BMN
+
+BUKAN dipahami sebagai:
+1. Subbagian Keuangan Umum dan Logistik
+2. Laporan Realisasi Anggaran
+3. Laporan Surat Masuk dan Surat Keluar
+4. Progres Penelusuran Aset BMN
+
+Seluruh bullet (-) adalah ANAK (child) dari agenda sebelumnya (induk).
+AI WAJIB mempertahankan hubungan induk-anak tersebut.
+
+Output WAJIB:
+"agenda": [
+  "1. Subbagian Keuangan Umum dan Logistik",
+  "   - Laporan Realisasi Anggaran",
+  "   - Laporan Surat Masuk dan Surat Keluar",
+  "   - Progres Penelusuran BMN"
+]
+
+LARANGAN:
+- meringkas agenda
+- menyederhanakan agenda
+- mengubah susunan agenda
+- mengganti kalimat agenda
+- menghapus sub agenda (bullet)
+- membuat ulang agenda dengan bahasa sendiri
+- memperlakukan bullet sebagai item terpisah dan setara dengan induk
+
+Apabila terdapat 20 agenda dan 80 sub agenda,
+seluruhnya harus ditampilkan.
+Tidak boleh ada satupun sub agenda yang hilang.
+
+Agenda merupakan kutipan administrasi sehingga AI DILARANG
+mengubah redaksi agenda.
 
 --- pembahasan (array of objects) ---
 
