@@ -401,16 +401,21 @@
                         <div class="step-connector"></div>
                         <div class="step-item" data-step="2">
                             <div class="step-circle" id="stepCircle2">2</div>
-                            <span class="step-label">Jalannya Rapat</span>
+                            <span class="step-label">Agenda Rapat</span>
                         </div>
                         <div class="step-connector"></div>
                         <div class="step-item" data-step="3">
                             <div class="step-circle" id="stepCircle3">3</div>
-                            <span class="step-label">Poin & TL</span>
+                            <span class="step-label">Jalannya Rapat</span>
                         </div>
                         <div class="step-connector"></div>
                         <div class="step-item" data-step="4">
                             <div class="step-circle" id="stepCircle4">4</div>
+                            <span class="step-label">Poin & TL</span>
+                        </div>
+                        <div class="step-connector"></div>
+                        <div class="step-item" data-step="5">
+                            <div class="step-circle" id="stepCircle5">5</div>
                             <span class="step-label">Review</span>
                         </div>
                     </div>
@@ -484,8 +489,38 @@
                         </div>
                     </div>
 
-                    <!-- ===== STEP 2: JALANNYA RAPAT ===== -->
+                    <!-- ===== STEP 2: AGENDA RAPAT ===== -->
                     <div id="notulenStep2" class="notulen-step" style="display:none;">
+                        <div class="card-white" style="padding:24px;">
+                            <h3 style="font-size:16px;font-weight:700;margin:0 0 18px;"><i
+                                    class="fas fa-calendar-alt"></i> Agenda Rapat</h3>
+                            <p style="font-size:13px;color:#64748b;margin:0 0 16px;">Tulis agenda rapat secara manual.
+                                Kosongkan jika ingin digenerate otomatis berdasarkan poin rapat.</p>
+                            <div class="form-group">
+                                <label>Agenda Rapat</label>
+                                <textarea id="notulenAgenda" class="form-control"
+                                    style="min-height:200px;width:100%;resize:vertical;font-size:14px;line-height:1.6;font-family:monospace;"
+                                    placeholder="Contoh:
+1. Pembukaan
+2. Evaluasi Kinerja Triwulan
+3. Pembahasan Anggaran
+4. Penutup"
+                                    oninput="simpanDraft()"></textarea>
+                            </div>
+                            <p style="font-size:12px;color:#94a3b8;margin:8px 0 0;"><i class="fas fa-info-circle"></i>
+                            Format: tiap baris = satu item agenda. Awali dengan nomor untuk hierarki (1., 2., dst)
+                            atau gunakan indentasi untuk sub-item.</p>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;margin-top:16px;">
+                            <button class="btn-secondary" onclick="prevStep()"><i class="fas fa-arrow-left"></i>
+                                Sebelumnya</button>
+                            <button class="btn-primary" onclick="nextStep()">Selanjutnya <i
+                                    class="fas fa-arrow-right"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- ===== STEP 3: JALANNYA RAPAT ===== -->
+                    <div id="notulenStep3" class="notulen-step" style="display:none;">
                         <div class="card-white" style="padding:24px;">
                             <div
                                 style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
@@ -513,8 +548,8 @@
                         </div>
                     </div>
 
-                    <!-- ===== STEP 3: POIN & TL ===== -->
-                    <div id="notulenStep3" class="notulen-step" style="display:none;">
+                    <!-- ===== STEP 4: POIN & TL ===== -->
+                    <div id="notulenStep4" class="notulen-step" style="display:none;">
                         <div class="card-white" style="padding:24px;">
                             <div
                                 style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
@@ -540,8 +575,8 @@
                         </div>
                     </div>
 
-                    <!-- ===== STEP 4: REVIEW ===== -->
-                    <div id="notulenStep4" class="notulen-step" style="display:none;">
+                    <!-- ===== STEP 5: REVIEW ===== -->
+                    <div id="notulenStep5" class="notulen-step" style="display:none;">
                         <div class="card-white" style="padding:24px;">
                             <h3 style="font-size:16px;font-weight:700;margin:0 0 18px;"><i
                                     class="fas fa-check-circle"></i> Review & Simpan</h3>
@@ -1627,7 +1662,8 @@
                 judul: document.getElementById('notulenJudul').value,
                 pimpinan: document.getElementById('notulenPimpinan').value,
                 notulis: document.getElementById('notulenNotulis').value,
-                undangan: document.getElementById('notulenUndangan').value
+                undangan: document.getElementById('notulenUndangan').value,
+                agendaRapat: document.getElementById('notulenAgenda').value
             };
             draft.jalannyaRapat = ambilPembahasanDariDOM();
             draft.poinList = ambilPoinDariDOM();
@@ -1653,6 +1689,7 @@
             }
             notulisSelect.value = restoredNotulis;
             document.getElementById('notulenUndangan').value = draft.info.undangan || '';
+            document.getElementById('notulenAgenda').value = draft.info.agendaRapat || '';
 
             // === RESET JALANNYA RAPAT ===
             var pembContainer = document.getElementById('pembahasanContainer');
@@ -1797,6 +1834,7 @@
         function initFreshForm() {
             var profile = window.currentUser || JSON.parse(localStorage.getItem('userProfile') || '{}');
             document.getElementById('notulenTanggal').value = new Date().toISOString().split('T')[0];
+            document.getElementById('notulenAgenda').value = '';
             notulenCurrentStep = 1;
             aktifkanStep(1);
         }
@@ -1806,7 +1844,7 @@
         // ======================
         function aktifkanStep(step) {
             notulenCurrentStep = step;
-            for (var s = 1; s <= 4; s++) {
+            for (var s = 1; s <= 5; s++) {
                 var circle = document.getElementById('stepCircle' + s);
                 var stepEl = document.getElementById('notulenStep' + s);
                 if (s === step) {
@@ -1831,10 +1869,10 @@
                 if (!jenis) { Swal.fire('Validasi', 'Jenis rapat wajib diisi', 'warning'); return; }
                 if (!judul) { Swal.fire('Validasi', 'Judul rapat wajib diisi', 'warning'); return; }
             }
-            if (notulenCurrentStep < 4) {
+            if (notulenCurrentStep < 5) {
                 simpanDraft();
                 aktifkanStep(notulenCurrentStep + 1);
-                if (notulenCurrentStep === 4) generateReview();
+                if (notulenCurrentStep === 5) generateReview();
             }
         }
 
@@ -1898,6 +1936,10 @@
                 (draft.info.undangan ? '<tr><td style="padding:4px 8px;color:#64748b;">Undangan</td><td style="padding:4px 8px;"><a href="' + draft.info.undangan + '" target="_blank">Lihat Link</a></td></tr>' : '') +
                 '</table>' +
                 '</div>' +
+                (draft.info.agendaRapat ? '<div style="background:#f9fafb;border-radius:12px;padding:16px;margin-bottom:16px;">' +
+                '<h4 style="font-size:14px;font-weight:700;margin:0 0 8px;"><i class="fas fa-calendar-alt"></i> Agenda Rapat</h4>' +
+                '<pre style="font-size:13px;font-family:monospace;white-space:pre-wrap;margin:0;color:#1e293b;">' + draft.info.agendaRapat + '</pre>' +
+                '</div>' : '') +
                 '<div style="background:#f9fafb;border-radius:12px;padding:16px;margin-bottom:16px;">' +
                 '<h4 style="font-size:14px;font-weight:700;margin:0 0 8px;"><i class="fas fa-comments"></i> Jalannya Rapat (' + (draft.jalannyaRapat || []).length + ')</h4>' +
                 jalannyaHtml +
@@ -2347,6 +2389,7 @@
                 pimpinan: draft.info.pimpinan || '',
                 notulis: draft.info.notulis || '',
                 undangan: draft.info.undangan || '',
+                agendaRapat: draft.info.agendaRapat || '',
                 userEmail: profile.email,
                 jalannyaList: draft.jalannyaRapat || [],
                 poinList: draft.poinList || [],
@@ -2437,7 +2480,7 @@
             var bannerEl = document.getElementById('notulenDraftBanner');
             if (draft && draft.info && draft.info.judul) {
                 bannerEl.style.display = 'block';
-                document.getElementById('draftBannerInfo').textContent = '— "' + draft.info.judul + '" (Step ' + draft.step + '/4)';
+                document.getElementById('draftBannerInfo').textContent = '— "' + draft.info.judul + '" (Step ' + draft.step + '/5)';
             } else {
                 bannerEl.style.display = 'none';
             }
@@ -2558,6 +2601,18 @@
 
                         /* ---------- ACCORDION SECTIONS ---------- */
                         var accordionHtml = '';
+                        if (n.agendaRapat) {
+                            accordionHtml +=
+                                '<div class="accordion-section">' +
+                                '<div class="accordion-header" onclick="toggleAccordion(\'acc-agenda\')">' +
+                                '<span class="title"><span style="width:4px;height:16px;background:#f59e0b;border-radius:4px;display:inline-block;"></span> Agenda Rapat</span>' +
+                                '<i class="fas fa-chevron-right accordion-icon" id="acc-agenda-icon"></i>' +
+                                '</div>' +
+                                '<div class="accordion-body" id="acc-agenda-body" style="display:none;">' +
+                                '<pre style="font-size:13px;font-family:monospace;white-space:pre-wrap;margin:8px 0;color:#1e293b;">' + n.agendaRapat + '</pre>' +
+                                '</div>' +
+                                '</div>';
+                        }
                         if (jalannyaItems) {
                             accordionHtml +=
                                 '<div class="accordion-section">' +
@@ -2994,7 +3049,8 @@
                                 judul: n.judul || '',
                                 pimpinan: n.pimpinan || '',
                                 notulis: n.notulis || '',
-                                undangan: n.undanganLink || ''
+                                undangan: n.undanganLink || '',
+                                agendaRapat: n.agendaRapat || ''
                             },
                             jalannyaRapat: (n.jalannyaList || []).map(function (j) {
                                 return { pembicara: j.pembicara, pokokBahasan: j.pokokBahasan };

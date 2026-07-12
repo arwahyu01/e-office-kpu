@@ -23,7 +23,7 @@ const NOTULEN_HEADERS = [
   'ID', 'TANGGAL', 'JENIS', 'JUDUL', 'PIMPINAN',
   'NOTULIS', 'JALANNYA_COUNT', 'POIN_COUNT', 'CREATED_AT',
   'DRIVE_URL', 'UNDANGAN_LINK', 'STATUS', 'PESERTA_JSON',
-  'SIGNED_PDF_URL', 'DRAFT_TOKEN', 'APPROVER_EMAIL', 'APPROVED_AT', 'REJECTION_NOTE'
+  'SIGNED_PDF_URL', 'DRAFT_TOKEN', 'APPROVER_EMAIL', 'APPROVED_AT', 'REJECTION_NOTE', 'AGENDA_RAW'
 ];
 const JALANNYA_HEADERS = [
   'ID', 'NOTULEN_ID', 'PEMBICARA', 'POKOK_BAHASAN', 'URUTAN'
@@ -116,8 +116,6 @@ ATURAN PENGISIAN SETIAP FIELD JSON
 6. "isi_notula" — HARUS berupa JSON OBJECT (bukan string) dengan struktur berikut:
 
 {
-  "pembukaan": "Kalimat pembukaan rapat...",
-  "agenda": ["1. Agenda pertama", "2. Agenda kedua"],
   "pembahasan": [
     {
       "speaker": "Ketua KPU Kabupaten Siak, Said Dharma Setiawan",
@@ -128,31 +126,16 @@ ATURAN PENGISIAN SETIAP FIELD JSON
   "penutup": "Rapat ditutup oleh..."
 }
 
+CATATAN: isi_notula TIDAK BOLEH mengandung field "agenda" atau "pembukaan". 
+Keduanya sudah diisi otomatis oleh sistem di template dokumen.
+AI hanya perlu membaca data agenda sebagai referensi untuk menyusun
+pembahasan, JANGAN menulisnya di output isi_notula.
+
 =====================================================================
 STRUKTUR WAJIB ISI_NOTULA
 =====================================================================
 
 Urutan pembahasan HARUS sama dengan urutan rapat. Jangan memindahkan atau menggabungkan agenda.
-
---- pembukaan (string) ---
-
-HANYA SATU kalimat: siapa membuka rapat, jam mulai, jumlah peserta, dan status kuorum.
-JANGAN sertakan daftar agenda di pembukaan. Daftar agenda akan diisi secara otomatis.
-
---- agenda (array of strings) ---
-
-====================================================================
-AGENDA (data tersedia di Poin / Keputusan)
-====================================================================
-
-Data agenda sudah dikelompokkan dengan label INDUK dan ANAK.
-
-AI hanya perlu menjadikannya referensi saat menulis isi notula.
-Format akhir array agenda akan diproses secara terpisah, sehingga
-AI tidak perlu khawatir tentang format output agenda.
-
-Yang penting: gunakan data agenda sebagai acuan saat menyusun
-pembukaan (menyebutkan agenda rapat) dan pembahasan.
 
 --- pembahasan (array of objects) ---
 
@@ -172,15 +155,28 @@ ATURAN PROSES DATA JALANNYA RAPAT:
 Data "Jalannya Rapat" memiliki format:
    - [Nama Pembicara]: [Teks yang disampaikan]
 
+CONTOH MAPPING:
+Data (5 baris):
+1. Pimpinan: Mengucapkan selamat datang dan membuka rapat
+2. Kasubbag A: Melaporkan realisasi anggaran
+3. Kasubbag B: Menyampaikan progres kegiatan
+4. Anggota X: Memberikan saran evaluasi
+5. Pimpinan: Menutup rapat
+
+Output HARUS:
+pembahasan = [baris 1, 2, 3, 4] → 4 objek speaker (Pimpinan, Kasubbag A, Kasubbag B, Anggota X)
+penutup = "Rapat ditutup oleh Pimpinan pada pukul 12.00 WIB." → dari baris 5
+
 AI WAJIB:
-1. JANGAN menghilangkan satupun pembicara — setiap baris = satu objek pembahasan
+1. SETIAP baris data = satu objek speaker + items di pembahasan.
+   TIDAK BOLEH ada baris yang dihilangkan, digabung, atau diringkas.
 2. Jika dalam teks pembicara terdapat bullet (-) atau paragraf terpisah,
    PISAHKAN masing-masing menjadi ITEM terpisah di dalam items[]
-3. Pembicara pertama yang membuka rapat → jadikan acuan pembukaan
-4. Pembicara terakhir yang menutup rapat → jadikan acuan penutup
-5. Nama pembicara HARUS menyertakan jabatan lengkap
-6. Jika ada 10 baris Jalannya Rapat → pembahasan harus berisi 10 objek
-   (dikurangi 1 untuk pembukaan dan 1 untuk penutup = minimal 8 objek)
+3. HANYA baris TERAKHIR (penutup rapat) → jadikan string penutup, BUKAN objek pembahasan.
+   SEMUA baris LAINNYA, termasuk baris PERTAMA, WAJIB menjadi objek pembahasan.
+4. Nama pembicara HARUS menyertakan jabatan lengkap (gunakan data pimpinan untuk Ketua/Anggota KPU)
+5. JUMLAH objek pembahasan = total baris Jalannya Rapat - 1 (baris terakhir = penutup)
+6. Jika ada 2 baris berurutan dengan pembicara yang SAMA, items[] digabung dalam SATU objek pembahasan
 
 CONTOH:
 Data input: "- Kasubbag Parmas & SDM, Fresly Gunata: - Terkait komunikasi dengan kominfo, kpu siak akan menyerahkan 4 video. - Kamis, 9 Juli 2026 CPNS akan MCU di RSUD Siak - SKP Pegawai triwulan ke 2 harus segera di selesaikan"
@@ -203,6 +199,9 @@ ATURAN KETAT:
 - Gunakan Bahasa Indonesia resmi pemerintahan dalam items[]
 - Awali setiap item dengan kata kerja aktif (Menyampaikan, Menjelaskan, Mengingatkan, Menanyakan, dll)
 - Pahami isi agenda & dan rapat dengan baik
+- JANGAN PERNAH menghilangkan satu pun pembicara. Setiap nama pembicara di data WAJIB muncul di pembahasan.
+  Jika data memiliki 7 pembicara berbeda, pembahasan WAJIB memiliki 7 objek speaker (dikurangi 1 penutup = 6).
+  HILANGNYA SATU PEMBICARA SAJA = OUTPUT SALAH TOTAL.
 
 --- keputusan (array of strings) ---
 
@@ -350,6 +349,7 @@ function getListNotulen(params) {
         status: row[11] || NOTULEN_STATUS.DRAFT,
         pesertaList: pesertaList,
         signedPdfUrl: row[13] || '',
+        agendaRapat: row[18] || '',
         draftToken: row[14] || '',
         approverEmail: row[15] || '',
         approvedAt: row[16] ? _fmtDate(row[16]) : '',
@@ -390,7 +390,8 @@ function getDetailNotulen(params) {
           draftToken: rows[i][14] || '',
           approverEmail: rows[i][15] || '',
           approvedAt: rows[i][16] ? _fmtDate(rows[i][16]) : '',
-          rejectionNote: rows[i][17] || ''
+          rejectionNote: rows[i][17] || '',
+          agendaRapat: rows[i][18] || ''
         };
         break;
       }
@@ -496,7 +497,8 @@ function simpanNotulen(data) {
       data.pimpinan || '', data.notulis || '',
       jalannyaList.length, poinList.length, now,
       driveUrl, data.undangan || '', status,
-      data.pesertaJson || '', '', draftToken, approverEmail, '', ''
+      data.pesertaJson || '', '', draftToken, approverEmail, '', '',
+      data.agendaRapat || ''
     ]);
 
     if (jalannyaList.length) {
@@ -560,6 +562,7 @@ function _updateNotulenInternal(data, ss, notulenSheet) {
   }
   notulenSheet.getRange(rowIndex, 13).setValue(data.pesertaJson || '');
   if (data.undangan !== undefined) notulenSheet.getRange(rowIndex, 11).setValue(data.undangan || '');
+  if (data.agendaRapat !== undefined) notulenSheet.getRange(rowIndex, 19).setValue(data.agendaRapat || '');
 
   try {
     var driveUrl = simpanNotulenKeDrive(id, data);
@@ -783,7 +786,8 @@ function getPengajuanNotulen(params) {
           createdAt: _fmtDate(row[8]), driveUrl: row[9],
           undanganLink: row[10], status: status,
           pesertaList: pesertaList, signedPdfUrl: row[13] || '',
-          draftToken: row[14] || '', approverEmail: approver
+          draftToken: row[14] || '', approverEmail: approver,
+          agendaRapat: row[18] || ''
         });
       }
     }
@@ -964,6 +968,7 @@ function updateNotulen(data) {
     notulenSheet.getRange(rowIndex, 13).setValue(data.pesertaJson || '');
     if (data.undangan !== undefined) notulenSheet.getRange(rowIndex, 11).setValue(data.undangan || '');
     if (data.draftToken) notulenSheet.getRange(rowIndex, 15).setValue(data.draftToken);
+    if (data.agendaRapat !== undefined) notulenSheet.getRange(rowIndex, 19).setValue(data.agendaRapat || '');
 
     // Re-generate file notulen di Drive
     try {
@@ -1462,14 +1467,20 @@ function generateNotulaAI(notulenId) {
       aiResult.peserta = pesertaText.trim();
     }
 
-    // Override agenda — AI tidak kompeten menjaga hierarki, kita generate langsung
-    if (n.poinList && n.poinList.length) {
-      aiResult.isi_notula = aiResult.isi_notula || {};
-      aiResult.isi_notula.agenda = _generateAgendaArray(n.poinList);
-    }
-
     // Default tempat jika AI tidak menyimpulkan
     if (!aiResult.tempat) aiResult.tempat = "Aula Rapat Lt.2 KPU Kabupaten Siak";
+
+    // === ISI TEMPLATE PLACEHOLDER LAIN ===
+    var pimpinanInfo = _parsePimpinan(n.pimpinan || '');
+    var agendaText = n.agendaRapat || '';
+    if (!agendaText && n.poinList && n.poinList.length) {
+      agendaText = _generateAgendaArray(n.poinList).join('\n');
+    }
+    aiResult.agendaRapat = agendaText;
+    aiResult.jabatanPimpinan = pimpinanInfo.jabatan;
+    aiResult.namaPimpinan = pimpinanInfo.nama;
+    aiResult.jamMulai = '10.30';
+    aiResult.jumlahPeserta = String(n.pesertaList ? n.pesertaList.length : 0);
 
     var folderId = getOrCreateNotulenFolder(n.tanggal);
 
@@ -1492,6 +1503,27 @@ function generateNotulaAI(notulenId) {
   } catch (err) {
     return { success: false, message: err.message };
   }
+}
+
+function _parsePimpinan(pimpinanStr) {
+  if (!pimpinanStr) return { jabatan: 'Pimpinan Rapat', nama: '' };
+  // Format: "Jabatan, Nama" atau hanya "Nama"
+  var comma = pimpinanStr.indexOf(',');
+  if (comma !== -1) {
+    var jabatan = pimpinanStr.substring(0, comma).trim();
+    var nama = pimpinanStr.substring(comma + 1).trim();
+    return { jabatan: jabatan, nama: nama };
+  }
+  // Hanya nama — cari jabatan dari master pegawai
+  try {
+    var list = getAllPegawai();
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].nama && list[i].nama.toLowerCase().trim() === pimpinanStr.toLowerCase().trim()) {
+        return { jabatan: list[i].jabatan || 'Pimpinan Rapat', nama: pimpinanStr };
+      }
+    }
+  } catch (e) {}
+  return { jabatan: 'Pimpinan Rapat', nama: pimpinanStr };
 }
 
 function _inferHari(tanggalStr) {
@@ -1691,7 +1723,12 @@ function _createNotulaDocument(aiResult, folderId, notulenId) {
     "{{ATASAN_LANGSUNG}}": aiResult.atasan_langsung || "",
     "{{NOTULIS}}": aiResult.notulis || "",
     "{{JABATAN_ATASAN}}": aiResult.jabatan_atasan || "",
-    "{{JABATAN_NOTULIS}}": aiResult.jabatan_notulis || ""
+    "{{JABATAN_NOTULIS}}": aiResult.jabatan_notulis || "",
+    "{{AGENDA_RAPAT}}": aiResult.agendaRapat || "",
+    "{{JABATAN_PIMPINAN_RAPAT}}": aiResult.jabatanPimpinan || "",
+    "{{NAMA_PIMPINAN_RAPAT}}": aiResult.namaPimpinan || "",
+    "{{JAM_MULAI_RAPAT}}": aiResult.jamMulai || "",
+    "{{JUMLAH_PESERTA}}": aiResult.jumlahPeserta || ""
   };
 
   for (var key in replacements) {
@@ -1770,35 +1807,15 @@ function _fillNotulaContent(body, isiNotula) {
     return li;
   }
 
-  if (content.pembukaan) {
-    addPara(content.pembukaan, { spacing: 6 });
-  }
-
-  if (content.agenda && content.agenda.length) {
-    addPara('Dengan agenda sebagai berikut:', { bold: true, spacing: 6 });
-    var isFirstInduk = true;
-    var indukNumber = 0;
-    content.agenda.forEach(function (a) {
-      var clean = _cleanItem(a);
-      if (/^\d+\.\s/.test(clean)) {
-        // INDUK — nomor sudah ada di teks, pakai paragraf biasa
-        addPara(clean, { indent: 0, spacing: 4 });
-      } else {
-        // ANAK — indent + teks polos
-        addPara(clean, { indent: 36, spacing: 2 });
-      }
-    });
-  }
-
   if (content.pembahasan && content.pembahasan.length) {
     var firstSpeaker = true;
     content.pembahasan.forEach(function (session) {
       if (!session.speaker || !session.items || !session.items.length) return;
       if (firstSpeaker) {
-        addPara('Adapun pendapat dan/atau saran/masukan antara lain:', { bold: true, spacing: 6 });
+        addPara('Adapun pendapat dan/atau saran/masukan antara lain:', { spacing: 6 });
         firstSpeaker = false;
       }
-      addPara(session.speaker, { bold: true, heading: DocumentApp.ParagraphHeading.HEADING4, spacing: 4 });
+      addPara(session.speaker, { spacing: 4 });
       session.items.forEach(function (item) {
         addListItem(_cleanItem(item), DocumentApp.GlyphType.BULLET);
       });
@@ -1809,7 +1826,7 @@ function _fillNotulaContent(body, isiNotula) {
   }
 
   if (content.keputusan && content.keputusan.length) {
-    addPara('Keputusan Rapat', { bold: true, spacing: 6 });
+    addPara('Keputusan Rapat', { spacing: 6 });
     content.keputusan.forEach(function (k) {
       if (!k) return;
       addListItem(_cleanItem(k), DocumentApp.GlyphType.NUMBER);
@@ -1883,10 +1900,7 @@ function buildIsiNotulaApaAdanya(n) {
   if (n.poinList && n.poinList.length) {
     n.poinList.forEach(function (p) { keputusan.push(p.isi || ''); });
   }
-  var agendaArr = (n.poinList && n.poinList.length) ? _generateAgendaArray(n.poinList) : ['1. ' + (n.judul || '-')];
   return {
-    pembukaan: 'Rapat dibuka oleh ' + (n.pimpinan || 'Pimpinan Rapat') + ' pada pukul 09.20 WIB. Rapat dinyatakan kuorum.',
-    agenda: agendaArr,
     pembahasan: pembahasan,
     keputusan: keputusan,
     penutup: 'Rapat ditutup oleh ' + (n.pimpinan || 'Pimpinan Rapat') + ' pada pukul 12.00 WIB.'
@@ -1930,6 +1944,18 @@ function generateNotulaApaAdanya(notulenId) {
       });
       aiResult.peserta = pesertaText.trim();
     }
+
+    // === ISI TEMPLATE PLACEHOLDER LAIN ===
+    var pimpinanInfo = _parsePimpinan(n.pimpinan || '');
+    var agendaText = n.agendaRapat || '';
+    if (!agendaText && n.poinList && n.poinList.length) {
+      agendaText = _generateAgendaArray(n.poinList).join('\n');
+    }
+    aiResult.agendaRapat = agendaText;
+    aiResult.jabatanPimpinan = pimpinanInfo.jabatan;
+    aiResult.namaPimpinan = pimpinanInfo.nama;
+    aiResult.jamMulai = '10.30';
+    aiResult.jumlahPeserta = String(n.pesertaList ? n.pesertaList.length : 0);
 
     if (!aiResult.tempat) aiResult.tempat = 'Aula Rapat Lt.2 KPU Kabupaten Siak';
 

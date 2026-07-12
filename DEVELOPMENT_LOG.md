@@ -828,3 +828,61 @@ Notulen yang dibuat oleh USER/ADMIN/JAGAT_SAKSANA langsung terbit & eksekusi TL 
 - `notulen.gs` — 4 status constants, AUTO_PUBLISH_ROLES, 3 kolom baru, migration, _ensureNotulenColumns, approval API (ajukan/getPengajuan/setujui/tolak/getPengajuanCount), _executeTindakLanjut, _getHakAksesByEmail, _getAtasanEmailByEmail, _getNamaByEmail, simpanNotulen auto-publish, _updateNotulenInternal status preserve, updateNotulen no-TL
 - `index.html` — formatStatus/statusBadge/canApprove, status filter, Persetujuan button+badge, approval action buttons di card, ajukanNotulen/setujuiNotulen/tolakNotulen/loadNotulenPengajuan/showNotulenAjuan, detail modal approval info & buttons, loadNotulenPengajuan di showDashboard & initNotulen
 - `style.html` — .badge-draft/menunggu/disetujui/ditolak, .btn-setujui, .btn-approve
+
+---
+
+## v2.24.0 — 13 Jul 2026 (AGENDA_RAW + Wizard Step 2 + Template Placeholders + Duplikasi Fix + Prompt Perkuat Speaker)
+
+### Perubahan
+
+#### 1. AGENDA_RAW (NOTULEN col 19)
+- **[New] `AGENDA_RAW`** di `NOTULEN_HEADERS` — kolom ke-19 untuk agenda manual dari user
+- **[New] `_ensureNotulenColumns()`** — migrasi otomatis tambah kolom AGENDA_RAW
+- **[Ubah] `_updateNotulenInternal()`** — write col 19
+- **[Ubah] `simpanNotulen()`** — include `data.agendaRapat` di row baru
+- **[Ubah] `updateNotulen()`** — write col 19 saat edit
+- **[Ubah] `getListNotulen()` / `getDetailNotulen()` / `getPengajuanNotulen()`** — return `agendaRapat`
+
+#### 2. Frontend Wizard — Step 2 "Agenda Rapat"
+- **[New] Step 2**: Step baru antara Info Rapat dan Jalannya Rapat → wizard jadi **5 step**
+- **[New] Textarea `#notulenAgenda`**: Monospace, 200px min-height, placeholder contoh format
+- **[Ubah] Step indicator**: 5 step — Info Rapat → Agenda Rapat → Jalannya Rapat → Poin & TL → Review
+- **[Ubah] `simpanDraft()` / `resumeDraft()`** — save & restore `draft.info.agendaRapat`
+- **[Ubah] `generateReview()`** — display agenda di `<pre>` block
+- **[Ubah] `simpanNotulen()` payload / `editNotulen()`** — include `agendaRapat`
+- **[Ubah] `initFreshForm()`** — clear agenda textarea
+- **[Ubah] Draft banner**: Step count dari `/4` → `/5`
+- **[New] Detail modal**: Accordion section "Agenda Rapat"
+
+#### 3. Template Placeholders Baru
+- **[New] `_parsePimpinan(pimpinanStr)`** — parse format "Jabatan, Nama" atau hanya "Nama" (fallback lookup ke MASTER_PEGAWAI)
+- **[New] 5 placeholder**: `{{AGENDA_RAPAT}}`, `{{JABATAN_PIMPINAN_RAPAT}}`, `{{NAMA_PIMPINAN_RAPAT}}`, `{{JAM_MULAI_RAPAT}}`, `{{JUMLAH_PESERTA}}`
+- **[Ubah] `generateNotulaAI()` / `generateNotulaApaAdanya()`** — populate new placeholders dari `n` (notulen detail)
+- **[Ubah] `_createNotulaDocument()`** — tambah 5 replacement key baru
+- **[Fix] Fallback agenda**: Jika `n.agendaRapat` kosong, generate dari `_generateAgendaArray(poinList)`
+
+#### 4. Hapus Duplikasi di Dokumen (Template handles it)
+- **[Hapus] `_fillNotulaContent()`** — hapus blok agenda — template pakai `{{AGENDA_RAPAT}}`
+- **[Hapus] `_fillNotulaContent()`** — hapus blok `pembukaan` — template pakai `{{JABATAN_PIMPINAN_RAPAT}}` dll
+- **[Hapus] `"agenda"` dan `"pembukaan"`** dari schema output AI prompt
+- **[Hapus] `buildIsiNotulaApaAdanya()`** — hapus `pembukaan` dan `agendaArr` dari return
+- **[Hapus] `generateNotulaAI()`** — hapus override `aiResult.isi_notula.agenda`
+- **[Ubah] Prompt**: Schema isi_notula sekarang hanya `pembahasan[]`, `keputusan[]`, `penutup`
+- Tambah catatan tegas: "isi_notula TIDAK BOLEH mengandung field agenda atau pembukaan"
+
+#### 5. Perkuat Prompt — AI Jangan Hilangkan Pembicara
+- **[Ubah] ATURAN PROSES DATA**: Tambah **CONTOH MAPPING** eksplisit (5 baris → 4 pembahasan + 1 penutup)
+- Rule 1: "SETIAP baris = satu objek speaker. TIDAK BOLEH dihilangkan"
+- Rule 3: "HANYA baris TERAKHIR → penutup. SEMUA baris LAINNYA (termasuk baris PERTAMA) → pembahasan"
+- Rule 5: "Jumlah objek pembahasan = total baris - 1"
+- **[Perkuat] ATURAN KETAT**: "HILANGNYA SATU PEMBICARA SAJA = OUTPUT SALAH TOTAL"
+
+#### 6. Hapus Bold dari Dokumen
+- **[Ubah] `_fillNotulaContent()`** — hapus `bold: true` dari semua `addPara()`:
+  - "Adapun pendapat dan/atau saran/masukan antara lain:" → plain
+  - Nama speaker → plain (tanpa heading4)
+  - "Keputusan Rapat" → plain
+
+### Files Changed
+- `notulen.gs` — AGENDA_RAW col 19 + migrasi, _updateNotulenInternal/updateNotulen write col 19, semua get mapping +agendaRapat, _parsePimpinan baru, _createNotulaDocument +5 replacements, kedua generate fungsi populate placeholders, _fillNotulaContent hapus agenda+pembukaan+bold, prompt AI hapus agenda/pembukaan schema + mapping speaker konkrit + rule ketat, buildIsiNotulaApaAdanya hapus agenda+pembukaan, generateNotulaAI hapus agenda override
+- `index.html` — Step 2 Agenda Rapat (5-step wizard), #notulenAgenda textarea, simpanDraft/resumeDraft/generateReview/simpanNotulen/editNotulen/initFreshForm +agendaRapat, draft banner /5, detail modal agenda accordion
