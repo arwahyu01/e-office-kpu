@@ -1948,9 +1948,9 @@
                 container.innerHTML = '<span style="font-size:13px;color:#94a3b8;">Belum ada peserta. Ketik nama untuk menambah.</span>';
                 return;
             }
-            var sorted = sortPesertaByJabatan(_selectedPeserta);
-            _selectedPeserta = sorted;
-            container.innerHTML = sorted.map(function (p, i) {
+            // Urut sesuai nomor database (bukan jabatan)
+            _selectedPeserta.sort(function(a, b) { return (a.no || 999) - (b.no || 999); });
+            container.innerHTML = _selectedPeserta.map(function (p, i) {
                 return '<span style="display:inline-flex;align-items:center;gap:4px;background:#eef2ff;color:#4338ca;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:500;">' +
                     (p.nama || '') + ' <span style="color:#64748b;font-weight:400;">' + (p.jabatan || '') + '</span>' +
                     '<span onclick="removePeserta(' + i + ')" style="cursor:pointer;margin-left:2px;color:#94a3b8;font-size:14px;line-height:1;">&times;</span>' +

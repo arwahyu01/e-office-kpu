@@ -1345,7 +1345,7 @@ function getDataPegawai() {
   try {
     return getAllPegawai().map(function(p) {
       return { nama: p.nama, jabatan: p.jabatan, email: p.email, subbag: p.subbag, hakAkses: p.hakAkses, no: p.no };
-    }).sort(function(a, b) { return a.nama.localeCompare(b.nama); });
+    }).sort(function(a, b) { return (a.no || 999) - (b.no || 999); });
   } catch (err) {
     return [];
   }
@@ -1529,11 +1529,6 @@ function buildNotulaPrompt(notulenData) {
   if (notulenData.pesertaList && notulenData.pesertaList.length) {
     context += '\n8. Peserta:\n';
     var sortedPeserta = notulenData.pesertaList.slice().sort(function(a, b) {
-      var ja = (a.jabatan || '').toUpperCase();
-      var jb = (b.jabatan || '').toUpperCase();
-      var pa = ja === 'KETUA' ? 1 : (ja.indexOf('WAKIL') !== -1 && ja.indexOf('KETUA') !== -1) ? 2 : ja === 'ANGGOTA' ? 3 : ja.indexOf('SEKRETARIS') !== -1 ? 4 : (ja.indexOf('KEPALA') !== -1 || ja === 'KASUBBAG') ? 5 : 99;
-      var pb = jb === 'KETUA' ? 1 : (jb.indexOf('WAKIL') !== -1 && jb.indexOf('KETUA') !== -1) ? 2 : jb === 'ANGGOTA' ? 3 : jb.indexOf('SEKRETARIS') !== -1 ? 4 : (jb.indexOf('KEPALA') !== -1 || jb === 'KASUBBAG') ? 5 : 99;
-      if (pa !== pb) return pa - pb;
       return (a.no || 999) - (b.no || 999);
     });
     sortedPeserta.forEach(function (p, i) {
