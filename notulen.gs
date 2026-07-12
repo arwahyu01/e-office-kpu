@@ -14,7 +14,7 @@ const NOTULEN_HEADERS = [
   'ID', 'TANGGAL', 'JENIS', 'JUDUL', 'PIMPINAN',
   'NOTULIS', 'JALANNYA_COUNT', 'POIN_COUNT', 'CREATED_AT',
   'DRIVE_URL', 'UNDANGAN_LINK', 'STATUS', 'PESERTA_JSON',
-  'SIGNED_PDF_URL'
+  'SIGNED_PDF_URL', 'DRAFT_TOKEN'
 ];
 const JALANNYA_HEADERS = [
   'ID', 'NOTULEN_ID', 'PEMBICARA', 'POKOK_BAHASAN', 'URUTAN'
@@ -306,7 +306,8 @@ function getListNotulen(params) {
         undanganLink: row[10],
         status: row[11] || 'tersimpan',
         pesertaList: pesertaList,
-        signedPdfUrl: row[13] || ''
+        signedPdfUrl: row[13] || '',
+        draftToken: row[14] || ''
       });
     }
     result.reverse();
@@ -338,7 +339,8 @@ function getDetailNotulen(params) {
           jalannyaCount: rows[i][6], poinCount: rows[i][7],
           createdAt: _fmtDate(rows[i][8]), driveUrl: rows[i][9],
           undanganLink: rows[i][10], status: rows[i][11] || 'tersimpan',
-          pesertaList: pesertaList, signedPdfUrl: rows[i][13] || ''
+          pesertaList: pesertaList, signedPdfUrl: rows[i][13] || '',
+          draftToken: rows[i][14] || ''
         };
         break;
       }
@@ -390,13 +392,35 @@ function simpanNotulen(data) {
       return { success: false, message: 'Data notulen tidak lengkap' };
     }
 
-    var id = Utilities.getUuid();
     var now = new Date();
     initAllSheets();
-    var sheetNotulen = getSS();
+    var ss = getSS();
+    var notulenSheet = ss.getSheetByName(NOTULEN_SHEET_NAME);
 
-    // Simpan ke NOTULEN
-    var notulenSheet = sheetNotulen.getSheetByName(NOTULEN_SHEET_NAME);
+    var draftToken = data.draftToken || '';
+    var existingId = '';
+
+    // === UPSERT: cek apakah draftToken sudah ada di database ===
+    if (draftToken) {
+      var allRows = _readSheet(notulenSheet, NOTULEN_HEADERS.length);
+      for (var r = 1; r < allRows.length; r++) {
+        if (String(allRows[r][14] || '').trim() === draftToken) {
+          existingId = allRows[r][0];
+          break;
+        }
+      }
+    }
+
+    if (existingId) {
+      // UPDATE — reuse row ID yang sudah ada
+      data.id = existingId;
+      var updateResult = _updateNotulenInternal(data, ss, notulenSheet);
+      return updateResult;
+    }
+
+    // === INSERT BARU ===
+    var id = Utilities.getUuid();
+
     var driveUrl = '';
     try {
       driveUrl = simpanNotulenKeDrive(id, data);
@@ -412,18 +436,18 @@ function simpanNotulen(data) {
       data.pimpinan || '', data.notulis || '',
       jalannyaList.length, poinList.length, now,
       driveUrl, data.undangan || '', 'tersimpan',
-      data.pesertaJson || '', ''
+      data.pesertaJson || '', '', draftToken
     ]);
 
     if (jalannyaList.length) {
-      var jSh = getOrInitSheet(sheetNotulen, JALANNYA_SHEET_NAME, JALANNYA_HEADERS);
+      var jSh = getOrInitSheet(ss, JALANNYA_SHEET_NAME, JALANNYA_HEADERS);
       for (var j = 0; j < jalannyaList.length; j++) {
         jSh.appendRow([Utilities.getUuid(), id, jalannyaList[j].pembicara || '', jalannyaList[j].pokokBahasan || '', j + 1]);
       }
     }
 
     if (poinList.length) {
-      var pSh = getOrInitSheet(sheetNotulen, POIN_RAPAT_SHEET_NAME, POIN_RAPAT_HEADERS);
+      var pSh = getOrInitSheet(ss, POIN_RAPAT_SHEET_NAME, POIN_RAPAT_HEADERS);
       for (var p = 0; p < poinList.length; p++) {
         pSh.appendRow([Utilities.getUuid(), id, poinList[p].isi, poinList[p].tindakLanjut || 'TANPA_TL', poinList[p].assignSubbag || '', poinList[p].agendaId || '', p + 1]);
       }
@@ -456,11 +480,107 @@ function simpanNotulen(data) {
 
     return {
       success: true, message: 'Notulen tersimpan',
-      agendaCount: agendaCount, updateCount: updateCount, driveUrl: driveUrl
+      agendaCount: agendaCount, updateCount: updateCount, driveUrl: driveUrl, isNew: true
     };
   } catch (err) {
     return { success: false, message: err.message };
   }
+}
+
+function _updateNotulenInternal(data, ss, notulenSheet) {
+  var id = data.id;
+  var rows = _readSheet(notulenSheet, NOTULEN_HEADERS.length);
+  var rowIndex = -1;
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] === id) { rowIndex = i + 1; break; }
+  }
+  if (rowIndex === -1) return { success: false, message: 'Notulen tidak ditemukan' };
+
+  var jalannyaList = data.jalannyaList || [];
+  var poinList = data.poinList || [];
+  var now = new Date();
+
+  notulenSheet.getRange(rowIndex, 2).setValue(data.tanggal);
+  notulenSheet.getRange(rowIndex, 3).setValue(data.jenis);
+  notulenSheet.getRange(rowIndex, 4).setValue(data.judul);
+  notulenSheet.getRange(rowIndex, 5).setValue(data.pimpinan || '');
+  notulenSheet.getRange(rowIndex, 6).setValue(data.notulis || '');
+  notulenSheet.getRange(rowIndex, 7).setValue(jalannyaList.length);
+  notulenSheet.getRange(rowIndex, 8).setValue(poinList.length);
+  notulenSheet.getRange(rowIndex, 12).setValue('tersimpan');
+  notulenSheet.getRange(rowIndex, 13).setValue(data.pesertaJson || '');
+  if (data.undangan !== undefined) notulenSheet.getRange(rowIndex, 11).setValue(data.undangan || '');
+
+  try {
+    var driveUrl = simpanNotulenKeDrive(id, data);
+    notulenSheet.getRange(rowIndex, 10).setValue(driveUrl);
+  } catch (e) {
+    console.warn('Gagal update file Drive:', e.message);
+  }
+
+  // Hapus jalannya & poin lama
+  var jSh = ss.getSheetByName(JALANNYA_SHEET_NAME);
+  if (jSh) {
+    var jRows = _readSheet(jSh, 2);
+    for (var j = jRows.length - 1; j >= 1; j--) {
+      if (jRows[j][1] === id) jSh.deleteRow(j + 1);
+    }
+  }
+
+  var pSh = ss.getSheetByName(POIN_RAPAT_SHEET_NAME);
+  if (pSh) {
+    var pRows = _readSheet(pSh, 2);
+    for (var p = pRows.length - 1; p >= 1; p--) {
+      if (pRows[p][1] === id) pSh.deleteRow(p + 1);
+    }
+  }
+
+  // Insert ulang jalannya
+  if (jalannyaList.length) {
+    var jSh2 = getOrInitSheet(ss, JALANNYA_SHEET_NAME, JALANNYA_HEADERS);
+    for (var j2 = 0; j2 < jalannyaList.length; j2++) {
+      jSh2.appendRow([Utilities.getUuid(), id, jalannyaList[j2].pembicara || '', jalannyaList[j2].pokokBahasan || '', j2 + 1]);
+    }
+  }
+
+  // Insert ulang poin
+  if (poinList.length) {
+    var pSh2 = getOrInitSheet(ss, POIN_RAPAT_SHEET_NAME, POIN_RAPAT_HEADERS);
+    for (var p2 = 0; p2 < poinList.length; p2++) {
+      pSh2.appendRow([Utilities.getUuid(), id, poinList[p2].isi, poinList[p2].tindakLanjut || 'TANPA_TL', poinList[p2].assignSubbag || '', poinList[p2].agendaId || '', p2 + 1]);
+    }
+  }
+
+  // TL actions
+  var agendaCount = 0, updateCount = 0;
+  for (var p3 = 0; p3 < poinList.length; p3++) {
+    var poin = poinList[p3];
+    if (poin.tindakLanjut === 'BUAT_AGENDA') {
+      var kepalaEmail = getKepalaSubbagEmail(poin.assignSubbag);
+      var result = createAgenda({
+        judul: '[Notulen] ' + poin.isi.substring(0, 100),
+        picEmail: kepalaEmail || data.userEmail,
+        sumber: 'RAPAT',
+        jenis: data.jenis === 'RAPAT_PLENO' ? 'RAPAT' : 'LAINNYA',
+        subbagian: poin.assignSubbag || '',
+        prioritas: 'SEDANG',
+        deskripsi: 'Dari notulen: ' + data.judul + '\n\nPoin:\n' + poin.isi,
+        dasarAgenda: 'HASIL_RAPAT_PLENO',
+        targetOutput: '',
+        createdByEmail: data.userEmail || '',
+        userEmail: data.userEmail || ''
+      });
+      if (result.success) agendaCount++;
+    }
+    if (poin.tindakLanjut === 'UPDATE_PROGRES' && poin.agendaId) {
+      if (updateProgressFromNotulen(poin.agendaId, poin.isi, data.userEmail)) updateCount++;
+    }
+  }
+
+  return {
+    success: true, message: 'Notulen diperbarui',
+    agendaCount: agendaCount, updateCount: updateCount, isUpdate: true
+  };
 }
 
 // =============================================
@@ -498,6 +618,8 @@ function updateNotulen(data) {
     notulenSheet.getRange(rowIndex, 8).setValue(poinList.length);
     notulenSheet.getRange(rowIndex, 12).setValue('tersimpan');
     notulenSheet.getRange(rowIndex, 13).setValue(data.pesertaJson || '');
+    if (data.undangan !== undefined) notulenSheet.getRange(rowIndex, 11).setValue(data.undangan || '');
+    if (data.draftToken) notulenSheet.getRange(rowIndex, 15).setValue(data.draftToken);
 
     // Re-generate file notulen di Drive
     try {

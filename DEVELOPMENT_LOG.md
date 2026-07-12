@@ -716,3 +716,40 @@ ed2b664 ganti table agenda jadi card + skeleton loading
 - **Kelola Dokumen modal**: Satu modal untuk lihat histori generate + upload TTD
 - **Branding**: "E-Office" (tanpa strip), tagline "Rencanakan. Kerjakan. Selesaikan.", versi v1.1.0
 - **Responsive modal**: CSS fixes untuk form modal di layar kecil
+
+---
+
+## v2.22.0 — 12 Jul 2026 (Cegah Duplikat Notulen via DraftToken Upsert)
+
+### Masalah
+Dua notulen dengan data identik (judul, tanggal, poin sama) bisa tersimpan karena:
+1. Tab ditutup sebelum `clearDraft()` sukses handler berjalan
+2. Draft masih di localStorage → user lanjutkan dan simpan ulang → **insert baru**, bukan update
+
+### Perubahan
+
+#### 1. Kolom Baru: `DRAFT_TOKEN` (NOTULEN sheet, col 15)
+- **[New] `DRAFT_TOKEN`** di `NOTULEN_HEADERS` — identifier unik yang dibuat sekali di client saat pertama buka form
+- `getListNotulen()` / `getDetailNotulen()` — mapping `draftToken` di response
+
+#### 2. Frontend: Generate & Kirim DraftToken
+- **[New] `notulenDraftToken`** — variabel client untuk menyimpan token sesi
+- **[Ubah] `simpanDraft()`** — generate token `NT-{timestamp}-{random}` sekali saat draft pertama; simpan di localStorage
+- **[Ubah] `resumeDraft()`** — restore `notulenDraftToken` dari draft
+- **[Ubah] Payload `simpanNotulen()`** — kirim `draftToken` ke server
+- **[Ubah] `resetFormState()`** — reset `notulenDraftToken`
+
+#### 3. Backend: Upsert Logic
+- **[Ubah] `simpanNotulen()`** — sebelum insert, cek apakah `draftToken` sudah ada di database
+  - Jika ditemukan → panggil `_updateNotulenInternal()` (update row + ganti jalannya/poin + regenerate Drive file + TL actions)
+  - Jika tidak → insert baru dengan `draftToken`
+- **[New] `_updateNotulenInternal()`** — fungsi internal reusable untuk update notulen; dipanggil baik dari upsert `simpanNotulen` maupun `updateNotulen`
+- **[Ubah] `updateNotulen()`** — simpan `draftToken` dan `undangan` jika dikirim
+
+### Dampak
+- Duplikat notulen tidak akan terjadi lagi — simpanan kedua dengan draftToken yang sama akan update, bukan insert
+- Backward compatible: notulen lama tanpa `DRAFT_TOKEN` tetap bisa di-edit via `updateNotulen` biasa
+
+### Files Changed
+- `notulen.gs` — NOTULEN_HEADERS (+DRAFT_TOKEN), simpanNotulen upsert, _updateNotulenInternal baru, updateNotulen (+draftToken), getListNotulen & getDetailNotulen mapping
+- `index.html` — notulenDraftToken var, simpanDraft() generate token, resumeDraft() restore, payload draftToken, resetFormState()

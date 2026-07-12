@@ -440,8 +440,10 @@
                                         placeholder="Nama pimpinan" oninput="simpanDraft()">
                                 </div>
                                 <div class="form-group">
-                                    <label>Notulis</label>
-                                    <input type="text" id="notulenNotulis" class="form-control" readonly>
+                                    <label>Notulis <span style="color:#dc2626;">*</span></label>
+                                    <select id="notulenNotulis" class="form-control" onchange="simpanDraft()">
+                                        <option value="">Pilih notulis</option>
+                                    </select>
                                 </div>
                                 <div class="form-group">
                                     <label>Undangan (Link)</label>
@@ -1584,6 +1586,7 @@
         let notulenPoinCount = 0;
         let notulenPembahasanCount = 0;
         let notulenCurrentStep = 1;
+        let notulenDraftToken = '';
 
         const DRAFT_KEY = 'notulen_draft';
 
@@ -1600,7 +1603,13 @@
         }
 
         function simpanDraft() {
-            var draft = getDraft() || { step: notulenCurrentStep, info: {}, jalannyaRapat: [], poinList: [], pesertaList: [] };
+            var draft = getDraft() || { step: notulenCurrentStep, info: {}, jalannyaRapat: [], poinList: [], pesertaList: [], draftToken: '' };
+            if (!draft.draftToken) {
+                draft.draftToken = 'NT-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 8);
+                notulenDraftToken = draft.draftToken;
+            } else {
+                notulenDraftToken = draft.draftToken;
+            }
             draft.step = notulenCurrentStep;
             draft.info = {
                 tanggal: document.getElementById('notulenTanggal').value,
@@ -1619,6 +1628,7 @@
         function resumeDraft(draft) {
             if (!draft) return;
             notulenCurrentStep = draft.step || 1;
+            notulenDraftToken = draft.draftToken || '';
 
             document.getElementById('notulenTanggal').value = draft.info.tanggal || '';
             document.getElementById('notulenJenis').value = draft.info.jenis || '';
@@ -1711,13 +1721,17 @@
                 resetFormState();
                 loadNotulenList();
             }
-            if (view === 'form' && !skipDraft) {
-                var draft = getDraft();
-                if (draft && draft.info && draft.info.judul) {
-                    resumeDraft(draft);
-                } else {
-                    initFreshForm();
-                }
+            if (view === 'form') {
+                loadNotulisDropdown(function () {
+                    if (!skipDraft) {
+                        var draft = getDraft();
+                        if (draft && draft.info && draft.info.judul) {
+                            resumeDraft(draft);
+                        } else {
+                            initFreshForm();
+                        }
+                    }
+                });
             }
         }
 
@@ -1733,10 +1747,30 @@
             }
         });
 
+        function loadNotulisDropdown(callback) {
+            var notulisEl = document.getElementById('notulenNotulis');
+            if (notulisEl.options.length > 1) {
+                if (callback) callback();
+                return;
+            }
+            var profile = window.currentUser || JSON.parse(localStorage.getItem('userProfile') || '{}');
+            var load = function (list) {
+                notulisEl.innerHTML = '<option value="">Pilih notulis</option>';
+                list.forEach(function (p) {
+                    var sel = p.email === profile.email ? ' selected' : '';
+                    notulisEl.innerHTML += '<option value="' + p.nama + '"' + sel + '>' + p.nama + ' — ' + (p.jabatan || '-') + '</option>';
+                });
+                if (callback) callback();
+            };
+            if (typeof pegawaiCache !== 'undefined' && pegawaiCache.length) {
+                load(pegawaiCache);
+            } else {
+                google.script.run.withSuccessHandler(load).getDataPegawai();
+            }
+        }
+
         function initFreshForm() {
             var profile = window.currentUser || JSON.parse(localStorage.getItem('userProfile') || '{}');
-            var notulisEl = document.getElementById('notulenNotulis');
-            if (notulisEl) notulisEl.value = profile.nama || '-';
             document.getElementById('notulenTanggal').value = new Date().toISOString().split('T')[0];
             notulenCurrentStep = 1;
             aktifkanStep(1);
@@ -2243,6 +2277,7 @@
             notulenCurrentStep = 1;
             notulenPembahasanCount = 0;
             notulenPoinCount = 0;
+            notulenDraftToken = '';
             document.getElementById('pembahasanContainer').innerHTML = '' +
                 '<div class="empty-state" id="pembahasanEmptyState">' +
                 '<i class="fas fa-comment-dots"></i>' +
@@ -2290,7 +2325,8 @@
                 userEmail: profile.email,
                 jalannyaList: draft.jalannyaRapat || [],
                 poinList: draft.poinList || [],
-                pesertaJson: JSON.stringify(draft.pesertaList || [])
+                pesertaJson: JSON.stringify(draft.pesertaList || []),
+                draftToken: draft.draftToken || ''
             };
 
             if (isEdit) payload.id = editingNotulenId;
@@ -2370,33 +2406,33 @@
                             return;
                         }
 
-                        var html = '';
+                        var html = '<div class="notulen-grid">';
                         list.forEach(function (n) {
                             html += '' +
-                                '<div class="card-white" style="margin-bottom:12px;padding:18px 20px;cursor:pointer;" onclick="showDetailNotulen(\'' + n.id + '\')">' +
-                                '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">' +
-                                '<div style="flex:1;">' +
-                                '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">' +
+                                '<div class="notulen-card" onclick="showDetailNotulen(\'' + n.id + '\')">' +
+                                '<div class="notulen-card-header">' +
                                 '<span class="badge badge-outline">' + formatJenis(n.jenis) + '</span>' +
-                                '<span style="font-size:12px;color:#64748b;">' + (n.tanggal || '') + '</span>' +
+                                '<span class="notulen-card-date">' + (n.tanggal || '') + '</span>' +
                                 (n.jalannyaCount > 0 ? '<span class="badge badge-info" style="font-size:10px;">' + n.jalannyaCount + ' pembahasan</span>' : '') +
                                 '</div>' +
-                                '<h3 style="font-size:16px;font-weight:600;margin:6px 0;">' + (n.judul || '(tanpa judul)') + '</h3>' +
-                                '<div style="display:flex;gap:16px;font-size:13px;color:#64748b;">' +
+                                '<div class="notulen-card-title">' + (n.judul || '(tanpa judul)') + '</div>' +
+                                '<div class="notulen-card-meta">' +
                                 '<span><i class="fas fa-user"></i> ' + (n.pimpinan || '-') + '</span>' +
                                 '<span><i class="fas fa-pen"></i> ' + (n.notulis || '-') + '</span>' +
                                 '<span><i class="fas fa-list-ol"></i> ' + (n.poinCount || 0) + ' poin</span>' +
                                 '</div>' +
+                                (n.undanganLink || n.signedPdfUrl ? '<div class="notulen-card-links">' +
+                                    (n.undanganLink ? '<a href="' + n.undanganLink + '" target="_blank" onclick="event.stopPropagation();"><i class="fas fa-link"></i> Undangan</a>' : '') +
+                                    (n.signedPdfUrl ? '<a href="' + n.signedPdfUrl + '" target="_blank" onclick="event.stopPropagation();" style="color:#059669;"><i class="fas fa-file-pdf"></i> TTD</a>' : '') +
+                                    '</div>' : '') +
+                                '<div class="notulen-card-actions">' +
+                                '<button onclick="event.stopPropagation();showUndanganUpload(\'' + n.id + '\')" title="Upload Undangan"><i class="fas fa-paperclip"></i> Undangan</button>' +
+                                '<button onclick="event.stopPropagation();showKelolaDokumen(\'' + n.id + '\')" title="Kelola Dokumen"><i class="fas fa-file-alt"></i> Dokumen</button>' +
+                                '<button onclick="event.stopPropagation();hapusNotulen(\'' + n.id + '\')" title="Hapus" class="btn-danger"><i class="fas fa-trash"></i></button>' +
                                 '</div>' +
-                                '<div style="display:flex;gap:6px;flex-shrink:0;">' +
-                                '<button class="btn-secondary" style="padding:8px 12px;font-size:12px;" onclick="event.stopPropagation();showUndanganUpload(\'' + n.id + '\')" title="Upload Undangan"><i class="fas fa-paperclip"></i></button>' +
-                                '<button class="btn-primary" style="padding:8px 12px;font-size:12px;background:#059669;border-color:#059669;" onclick="event.stopPropagation();showKelolaDokumen(\'' + n.id + '\')" title="Kelola Dokumen & Upload TTD"><i class="fas fa-file-alt"></i></button>' +
-                                '<button class="btn-danger" style="padding:8px 12px;font-size:12px;" onclick="event.stopPropagation();hapusNotulen(\'' + n.id + '\')" title="Hapus"><i class="fas fa-trash"></i></button>' +
-                                '</div>' +
-                                (n.undanganLink ? '<div style="margin-top:8px;font-size:12px;"><i class="fas fa-link" style="color:#2563eb;"></i> <a href="' + n.undanganLink + '" target="_blank" onclick="event.stopPropagation();">Undangan Rapat</a></div>' : '') +
-                                (n.signedPdfUrl ? '<div style="margin-top:6px;font-size:12px;"><i class="fas fa-file-pdf" style="color:#059669;"></i> <a href="' + n.signedPdfUrl + '" target="_blank" onclick="event.stopPropagation();" style="color:#059669;">Notulen TTD</a></div>' : '') +
                                 '</div>';
                         });
+                        html += '</div>';
                         container.innerHTML = html;
                     } else {
                         container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><h3>Gagal memuat data</h3><p>' + (res.message || 'Terjadi kesalahan') + '</p></div>';
