@@ -353,6 +353,16 @@
                                 <option value="RAPAT_INTERNAL_SEKRETARIAT">Rapat Internal Sekretariat</option>
                                 <option value="RAPAT_INTERNAL_SUBBAGIAN">Rapat Internal Subbagian</option>
                             </select>
+                            <select id="notulenFilterStatus" class="filter-select" onchange="loadNotulenList()">
+                                <option value="">Semua Status</option>
+                                <option value="DRAFT">Draft</option>
+                                <option value="MENUNGGU_PERSETUJUAN">Menunggu Persetujuan</option>
+                                <option value="DISETUJUI">Disetujui</option>
+                                <option value="DITOLAK">Ditolak</option>
+                            </select>
+                            <button id="notulenBtnAjuan" class="btn-secondary" onclick="showNotulenAjuan()" title="Persetujuan">
+                                <i class="fas fa-check-double"></i> Persetujuan <span id="badgeAjuan" class="nav-badge" style="position:static;display:none;font-size:10px;padding:2px 6px;margin-left:4px;">0</span>
+                            </button>
                             <button class="btn-secondary" onclick="loadNotulenList()" title="Refresh"><i
                                     class="fas fa-sync-alt"></i></button>
                         </div>
@@ -1366,6 +1376,7 @@
             }
             loadDailyQuote();
             loadVerifikasi();
+            loadNotulenPengajuan();
         }
 
         const APP_URL = 'https://script.google.com/macros/s/AKfycbxejATwEFa6KmgBqjxFGiA2L_mEJGG0-CaHGsaIyxedRz5_vGA-QiAIhSE-mYwXFY_E/exec';
@@ -1738,6 +1749,7 @@
         function initNotulen() {
             initPeserta();
             showNotulenView('list');
+            loadNotulenPengajuan();
         }
 
         document.addEventListener('click', function (e) {
@@ -2344,10 +2356,15 @@
                         var filterSelect = document.getElementById('notulenFilterJenis');
                         if (searchInput) searchInput.value = '';
                         if (filterSelect) filterSelect.value = '';
-                        Swal.fire('Berhasil', isEdit ? 'Notulen diperbarui' : 'Notulen berhasil disimpan' + (res.agendaCount ? '. ' + res.agendaCount + ' agenda dibuat.' : ''), 'success');
+                        var msg = isEdit ? 'Notulen diperbarui' : (res.message || 'Notulen berhasil disimpan');
+                        if (res.agendaCount) msg += '. ' + res.agendaCount + ' agenda dibuat.';
+                        Swal.fire('Berhasil', msg, 'success');
                         showNotulenView('list');
                         if (typeof loadNotulenList === 'function') {
                             setTimeout(loadNotulenList, 100);
+                        }
+                        if (typeof loadNotulenPengajuan === 'function') {
+                            setTimeout(loadNotulenPengajuan, 200);
                         }
                     } else {
                         Swal.fire('Gagal', res.message || 'Terjadi kesalahan', 'error');
@@ -2372,10 +2389,35 @@
             return m[tl] || tl;
         }
 
+        function _normStatus(s) {
+            if (s === 'tersimpan') return 'DRAFT';
+            return s || 'DRAFT';
+        }
+
+        function formatStatus(s) {
+            var m = { 'DRAFT': 'Draft', 'MENUNGGU_PERSETUJUAN': 'Menunggu', 'DISETUJUI': 'Disetujui', 'DITOLAK': 'Ditolak' };
+            return m[_normStatus(s)] || s;
+        }
+
+        function statusBadge(s) {
+            var ns = _normStatus(s);
+            var cls = 'badge-draft';
+            if (ns === 'MENUNGGU_PERSETUJUAN') cls = 'badge-menunggu';
+            else if (ns === 'DISETUJUI') cls = 'badge-disetujui';
+            else if (ns === 'DITOLAK') cls = 'badge-ditolak';
+            return '<span class="' + cls + '">' + formatStatus(s) + '</span>';
+        }
+
+        function canApprove() {
+            var level = (window.currentUser || {}).level || '';
+            return level === 'KOMISIONER' || level === 'SEKRETARIS' || level === 'KASUBBAG';
+        }
+
         function loadNotulenList() {
             var container = document.getElementById('notulenListContainer');
             var search = document.getElementById('notulenSearch').value.toLowerCase();
             var filterJenis = document.getElementById('notulenFilterJenis').value;
+            var filterStatus = document.getElementById('notulenFilterStatus') ? document.getElementById('notulenFilterStatus').value : '';
             var draft = getDraft();
 
             // Banner draft
@@ -2399,6 +2441,7 @@
                     if (res.success && res.data) {
                         var list = res.data;
                         if (filterJenis) list = list.filter(function (n) { return n.jenis === filterJenis; });
+                        if (filterStatus) list = list.filter(function (n) { return _normStatus(n.status) === filterStatus; });
                         if (search) list = list.filter(function (n) { return (n.judul || '').toLowerCase().includes(search) || (n.jenis || '').toLowerCase().includes(search) || (n.pimpinan || '').toLowerCase().includes(search) || (n.notulis || '').toLowerCase().includes(search); });
 
                         if (list.length === 0) {
@@ -2407,10 +2450,21 @@
                         }
 
                         var html = '<div class="notulen-grid">';
+                        var currentEmail = (window.currentUser || {}).email || '';
                         list.forEach(function (n) {
+                            var statusHtml = statusBadge(n.status || 'DRAFT');
+                            var extraActions = '';
+                            if (n.status === 'DRAFT' || n.status === 'tersimpan') {
+                                extraActions += '<button class="btn-approve" onclick="event.stopPropagation();ajukanNotulen(\'' + n.id + '\')"><i class="fas fa-paper-plane"></i> Ajukan</button>';
+                            }
+                            if (n.status === 'MENUNGGU_PERSETUJUAN' && n.approverEmail === currentEmail && canApprove()) {
+                                extraActions += '<button class="btn-setujui" onclick="event.stopPropagation();setujuiNotulen(\'' + n.id + '\')"><i class="fas fa-check"></i> Setujui</button>';
+                                extraActions += '<button class="btn-danger" onclick="event.stopPropagation();tolakNotulen(\'' + n.id + '\')"><i class="fas fa-times"></i> Tolak</button>';
+                            }
                             html += '' +
                                 '<div class="notulen-card" onclick="showDetailNotulen(\'' + n.id + '\')">' +
                                 '<div class="notulen-card-header">' +
+                                statusHtml +
                                 '<span class="badge badge-outline">' + formatJenis(n.jenis) + '</span>' +
                                 '<span class="notulen-card-date">' + (n.tanggal || '') + '</span>' +
                                 (n.jalannyaCount > 0 ? '<span class="badge badge-info" style="font-size:10px;">' + n.jalannyaCount + ' pembahasan</span>' : '') +
@@ -2426,6 +2480,7 @@
                                     (n.signedPdfUrl ? '<a href="' + n.signedPdfUrl + '" target="_blank" onclick="event.stopPropagation();" style="color:#059669;"><i class="fas fa-file-pdf"></i> TTD</a>' : '') +
                                     '</div>' : '') +
                                 '<div class="notulen-card-actions">' +
+                                extraActions +
                                 '<button onclick="event.stopPropagation();showUndanganUpload(\'' + n.id + '\')" title="Upload Undangan"><i class="fas fa-paperclip"></i> Undangan</button>' +
                                 '<button onclick="event.stopPropagation();showKelolaDokumen(\'' + n.id + '\')" title="Kelola Dokumen"><i class="fas fa-file-alt"></i> Dokumen</button>' +
                                 '<button onclick="event.stopPropagation();hapusNotulen(\'' + n.id + '\')" title="Hapus" class="btn-danger"><i class="fas fa-trash"></i></button>' +
@@ -2451,6 +2506,7 @@
         function showDetailNotulen(id) {
             var modal = document.getElementById('modalDetailNotulen');
             var body = document.getElementById('detailNotulenBody');
+            var currentEmail = (window.currentUser || {}).email || '';
             body.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><h3>Memuat detail...</h3></div>';
             modal.style.display = 'flex';
 
@@ -2496,6 +2552,7 @@
                             '<div style="display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:20px;">' +
                             '<div style="flex:1;min-width:200px;">' +
                             '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">' +
+                            statusBadge(n.status || 'DRAFT') +
                             '<span class="badge badge-outline" style="font-size:12px;padding:3px 12px;">' + formatJenis(n.jenis) + '</span>' +
                             '<span style="font-size:13px;color:#64748b;"><i class="far fa-calendar-alt"></i> ' + (n.tanggal || '') + '</span>' +
                             '</div>' +
@@ -2548,11 +2605,19 @@
                             (poinHtml || '<div style="padding:20px;text-align:center;background:#fafafa;border:1px dashed #d1d5db;border-radius:10px;color:#94a3b8;font-size:14px;"><i class="fas fa-list"></i> Tidak ada poin rapat.</div>') +
                             '</div>' +
 
+                            /* === APPROVAL INFO === */
+                            (n.rejectionNote ? '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:14px 16px;margin-bottom:16px;"><span style="font-weight:700;color:#dc2626;"><i class="fas fa-times-circle"></i> Alasan Ditolak:</span><p style="margin:6px 0 0;font-size:14px;color:#7f1d1d;">' + n.rejectionNote + '</p></div>' : '') +
+                            (n.approvedAt && n.status === 'DISETUJUI' ? '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px 16px;margin-bottom:16px;"><span style="font-weight:700;color:#16a34a;"><i class="fas fa-check-circle"></i> Disetujui</span><p style="margin:4px 0 0;font-size:13px;color:#166534;">' + (n.approvedAt ? n.approvedAt : '') + '</p></div>' : '') +
+
                             /* === ACTION BUTTONS === */
                             '<hr style="border:none;border-top:2px solid #e9edf4;margin:20px 0;">' +
                             '<div style="display:flex;gap:10px;flex-wrap:wrap;">' +
                             '<button class="btn-secondary" onclick="closeModalDetailNotulen()" style="padding:9px 20px;font-size:13px;"><i class="fas fa-times"></i> Tutup</button>' +
-                            '<button class="btn-primary" onclick="closeModalDetailNotulen();editNotulen(\'' + n.id + '\')" style="padding:9px 20px;font-size:13px;"><i class="fas fa-edit"></i> Edit</button>' +
+                            (n.status === 'MENUNGGU_PERSETUJUAN' && n.approverEmail === currentEmail && canApprove() ?
+                            '<button class="btn-setujui" onclick="closeModalDetailNotulen();setujuiNotulen(\'' + n.id + '\')" style="padding:9px 20px;font-size:13px;"><i class="fas fa-check"></i> Setujui</button>' +
+                            '<button class="btn-danger" onclick="closeModalDetailNotulen();tolakNotulen(\'' + n.id + '\')" style="padding:9px 20px;font-size:13px;"><i class="fas fa-times"></i> Tolak</button>' : '') +
+                            ((n.status === 'DRAFT' || n.status === 'tersimpan') ? '<button class="btn-primary" style="background:#f59e0b;border-color:#f59e0b;padding:9px 20px;font-size:13px;" onclick="closeModalDetailNotulen();ajukanNotulen(\'' + n.id + '\')"><i class="fas fa-paper-plane"></i> Ajukan</button>' : '') +
+                            (n.status !== 'DISETUJUI' && n.status !== 'MENUNGGU_PERSETUJUAN' ? '<button class="btn-primary" onclick="closeModalDetailNotulen();editNotulen(\'' + n.id + '\')" style="padding:9px 20px;font-size:13px;"><i class="fas fa-edit"></i> Edit</button>' : '') +
                             '<button class="btn-secondary" onclick="closeModalDetailNotulen();showUndanganUpload(\'' + n.id + '\')" style="padding:9px 20px;font-size:13px;"><i class="fas fa-paperclip"></i> Upload Undangan</button>' +
                             '<button class="btn-primary" style="background:#7c3aed;border-color:#7c3aed;padding:9px 20px;font-size:13px;" onclick="generateNotula(\'' + n.id + '\')"><i class="fas fa-robot"></i> Generate By AI</button>' +
                             '<button class="btn-primary" style="background:#0891b2;border-color:#0891b2;padding:9px 20px;font-size:13px;" onclick="generateNotulaApaAdanya(\'' + n.id + '\')"><i class="fas fa-file-lines"></i> Generate Tanpa AI</button>' +
@@ -2906,6 +2971,163 @@
                         .hapusNotulen({ id: id });
                 }
             });
+        }
+
+        // =============================================
+        // PERSETUJUAN NOTULEN
+        // =============================================
+        function ajukanNotulen(id) {
+            var profile = window.currentUser || JSON.parse(localStorage.getItem('userProfile') || '{}');
+            if (!profile.email) { Swal.fire('Error', 'Sesi tidak valid', 'error'); return; }
+            Swal.fire({
+                title: 'Ajukan Notulen?',
+                text: 'Notulen akan dikirim ke atasan langsung untuk persetujuan.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Ajukan',
+                cancelButtonText: 'Batal'
+            }).then(function (r) {
+                if (!r.isConfirmed) return;
+                showLoading('Mengajukan notulen...');
+                google.script.run
+                    .withSuccessHandler(function (res) {
+                        hideLoading();
+                        if (!res) { Swal.fire('Error', 'Tidak ada respons', 'error'); return; }
+                        if (res.success) {
+                            Swal.fire('Berhasil', res.message, 'success');
+                            loadNotulenList();
+                        } else {
+                            Swal.fire('Gagal', res.message, 'error');
+                        }
+                    })
+                    .withFailureHandler(function (err) { hideLoading(); Swal.fire('Error', err.message, 'error'); })
+                    .ajukanNotulen({ id: id, userEmail: profile.email });
+            });
+        }
+
+        function setujuiNotulen(id) {
+            var profile = window.currentUser || JSON.parse(localStorage.getItem('userProfile') || '{}');
+            if (!profile.email) { Swal.fire('Error', 'Sesi tidak valid', 'error'); return; }
+            Swal.fire({
+                title: 'Setujui Notulen?',
+                text: 'Tindak lanjut (agenda/update progres) akan langsung dieksekusi.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Setujui',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#16a34a'
+            }).then(function (r) {
+                if (!r.isConfirmed) return;
+                showLoading('Menyetujui notulen...');
+                google.script.run
+                    .withSuccessHandler(function (res) {
+                        hideLoading();
+                        if (!res) { Swal.fire('Error', 'Tidak ada respons', 'error'); return; }
+                        if (res.success) {
+                            var msg = res.message || 'Notulen disetujui';
+                            if (res.agendaCount) msg += '. ' + res.agendaCount + ' agenda telah dibuat.';
+                            Swal.fire('Berhasil', msg, 'success');
+                            loadNotulenList();
+                            loadNotulenPengajuan();
+                        } else {
+                            Swal.fire('Gagal', res.message, 'error');
+                        }
+                    })
+                    .withFailureHandler(function (err) { hideLoading(); Swal.fire('Error', err.message, 'error'); })
+                    .setujuiNotulen({ id: id, approverEmail: profile.email });
+            });
+        }
+
+        function tolakNotulen(id) {
+            var profile = window.currentUser || JSON.parse(localStorage.getItem('userProfile') || '{}');
+            if (!profile.email) { Swal.fire('Error', 'Sesi tidak valid', 'error'); return; }
+            Swal.fire({
+                title: 'Tolak Notulen',
+                input: 'textarea',
+                inputPlaceholder: 'Alasan penolakan...',
+                showCancelButton: true,
+                confirmButtonText: 'Tolak',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#dc2626'
+            }).then(function (r) {
+                if (!r.isConfirmed) return;
+                showLoading('Menolak notulen...');
+                google.script.run
+                    .withSuccessHandler(function (res) {
+                        hideLoading();
+                        if (!res) { Swal.fire('Error', 'Tidak ada respons', 'error'); return; }
+                        if (res.success) {
+                            Swal.fire('Ditolak', 'Notulen telah ditolak', 'info');
+                            loadNotulenList();
+                            loadNotulenPengajuan();
+                        } else {
+                            Swal.fire('Gagal', res.message, 'error');
+                        }
+                    })
+                    .withFailureHandler(function (err) { hideLoading(); Swal.fire('Error', err.message, 'error'); })
+                    .tolakNotulen({ id: id, approverEmail: profile.email, catatan: r.value || '' });
+            });
+        }
+
+        function loadNotulenPengajuan() {
+            var profile = window.currentUser || JSON.parse(localStorage.getItem('userProfile') || '{}');
+            if (!profile.email || !canApprove()) return;
+            google.script.run
+                .withSuccessHandler(function (res) {
+                    var badge = document.getElementById('badgeAjuan');
+                    if (!badge) return;
+                    var count = (res && res.count) || 0;
+                    if (count > 0) {
+                        badge.style.display = 'inline-flex';
+                        badge.textContent = count;
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                })
+                .withFailureHandler(function () {})
+                .getPengajuanCount({ email: profile.email });
+        }
+
+        function showNotulenAjuan() {
+            var profile = window.currentUser || JSON.parse(localStorage.getItem('userProfile') || '{}');
+            if (!profile.email) { Swal.fire('Error', 'Sesi tidak valid', 'error'); return; }
+            showLoading('Memuat pengajuan...');
+            google.script.run
+                .withSuccessHandler(function (res) {
+                    hideLoading();
+                    if (!res || !res.success) {
+                        Swal.fire('Info', 'Gagal memuat pengajuan', 'info');
+                        return;
+                    }
+                    var list = res.data || [];
+                    if (!list.length) {
+                        Swal.fire('Info', 'Tidak ada pengajuan yang menunggu persetujuan Anda', 'info');
+                        return;
+                    }
+                    var html = '<div style="max-height:70vh;overflow-y:auto;">';
+                    list.forEach(function (n) {
+                        html += '' +
+                            '<div style="border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;margin-bottom:10px;">' +
+                            '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">' +
+                            '<div style="flex:1;">' +
+                            '<strong style="font-size:14px;">' + (n.judul || '-') + '</strong>' +
+                            '<p style="font-size:12px;color:#64748b;margin:4px 0;">' + formatJenis(n.jenis) + ' &middot; ' + (n.tanggal || '') + ' &middot; Notulis: ' + (n.notulis || '-') + '</p>' +
+                            '</div>' +
+                            '<div style="display:flex;gap:6px;flex-shrink:0;">' +
+                            '<button class="btn-setujui" onclick="setujuiNotulen(\'' + n.id + '\');Swal.close();" style="font-size:12px;padding:6px 12px;"><i class="fas fa-check"></i> Setujui</button>' +
+                            '<button class="btn-danger" onclick="tolakNotulen(\'' + n.id + '\');Swal.close();" style="font-size:12px;padding:6px 12px;"><i class="fas fa-times"></i> Tolak</button>' +
+                            '</div></div></div>';
+                    });
+                    html += '</div>';
+                    Swal.fire({
+                        title: 'Persetujuan Notulen (' + list.length + ')',
+                        html: html,
+                        confirmButtonText: 'Tutup',
+                        width: 640
+                    });
+                })
+                .withFailureHandler(function (err) { hideLoading(); Swal.fire('Error', err.message, 'error'); })
+                .getPengajuanNotulen({ email: profile.email });
         }
 
         var QUOTE_URL = 'https://raw.githubusercontent.com/arwahyu01/kata-kata-motivasi/main/words';

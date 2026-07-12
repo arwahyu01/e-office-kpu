@@ -23,6 +23,7 @@
 | 17 | Testing & validasi | ⏳ Pending |
 | 18 | Notula JSON Terstruktur + .docx Export | ✅ Selesai |
 | 19 | Evidence Drive + Base64 Upload + Tanggal LKH Manual | ✅ Selesai |
+| 20 | Approval Workflow Notulen (Persetujuan Atasan) | ✅ Selesai |
 
 ---
 
@@ -69,6 +70,7 @@
 - [x] Tanggal LKH manual — input tanggal terpisah dari tanggal selesai progress
 - [x] Responsive form modal (agenda, workflow, progress)
 - [x] Rebrand: E-LKH → E-Office, tagline, versi seragam v1.1.0
+- [x] Approval workflow notulen (DRAFT → MENUNGGU → DISETUJUI/DITOLAK)
 - [ ] Testing CRUD end-to-end
 - [ ] UAT
 
@@ -272,7 +274,6 @@
 ### Planned
 - Notifikasi email assignment / reminder rapat
 - Template notulen multiple (Coktas/Pleno/Rakor/Bimtek/Sosialisasi)
-- Approval workflow
 - Komentar / diskusi per agenda
 
 ---
@@ -322,8 +323,8 @@
 
 ### Spreadsheet: `1hC8lzsHoukbQIfv-JNmZzx3u5pBoU7uY7bmktgU2_uA`
 
-**NOTULEN** (14 kolom)
-| ID | TANGGAL | JENIS | JUDUL | PIMPINAN | NOTULIS | JALANNYA_COUNT | POIN_COUNT | CREATED_AT | DRIVE_URL | UNDANGAN_LINK | STATUS | PESERTA_JSON | SIGNED_PDF_URL |
+**NOTULEN** (18 kolom)
+| ID | TANGGAL | JENIS | JUDUL | PIMPINAN | NOTULIS | JALANNYA_COUNT | POIN_COUNT | CREATED_AT | DRIVE_URL | UNDANGAN_LINK | STATUS | PESERTA_JSON | SIGNED_PDF_URL | DRAFT_TOKEN | APPROVER_EMAIL | APPROVED_AT | REJECTION_NOTE |
 
 **JALANNYA_RAPAT**
 | ID | NOTULEN_ID | PEMBICARA | POKOK_BAHASAN | URUTAN |
@@ -510,8 +511,8 @@
 - **All notulen backend** is in `notulen.gs` (standalone, self-contained, ~893 lines)
 - **AI Notula**: Hanya 6 field dari AI (`judul`, `hari`, `tanggal`, `tempat`, `peserta`, `isi_notula`); `atasan_langsung`, `notulis`, `jabatan_atasan`, `jabatan_notulis` diisi dari database pegawai
 - **Template placeholders (10)**: `{{JUDUL}}`, `{{HARI}}`, `{{TANGGAL}}`, `{{TEMPAT}}`, `{{PESERTA}}`, `{{ISI_NOTULA}}`, `{{ATASAN_LANGSUNG}}`, `{{NOTULIS}}`, `{{JABATAN_ATASAN}}`, `{{JABATAN_NOTULIS}}`
-- **Notulen endpoints**: `getListNotulen`, `getDetailNotulen`, `simpanNotulen`, `updateNotulen`, `uploadUndanganFile`, `uploadUndanganLink`, `uploadSignedNotulen`, `hapusNotulen`, `getListAgendaForNotulen`, `generateNotulaAI`, `getDataPegawai`
-- **NOTULEN sheet columns (14)**: ID, TANGGAL, JENIS, JUDUL, PIMPINAN, NOTULIS, JALANNYA_COUNT, POIN_COUNT, CREATED_AT, DRIVE_URL, UNDANGAN_LINK, STATUS, PESERTA_JSON, SIGNED_PDF_URL
+- **Notulen endpoints**: `getListNotulen`, `getDetailNotulen`, `simpanNotulen`, `updateNotulen`, `uploadUndanganFile`, `uploadUndanganLink`, `uploadSignedNotulen`, `hapusNotulen`, `getListAgendaForNotulen`, `generateNotulaAI`, `getDataPegawai`, `ajukanNotulen`, `getPengajuanNotulen`, `setujuiNotulen`, `tolakNotulen`, `getPengajuanCount`
+- **NOTULEN sheet columns (18)**: ID, TANGGAL, JENIS, JUDUL, PIMPINAN, NOTULIS, JALANNYA_COUNT, POIN_COUNT, CREATED_AT, DRIVE_URL, UNDANGAN_LINK, STATUS, PESERTA_JSON, SIGNED_PDF_URL, DRAFT_TOKEN, APPROVER_EMAIL, APPROVED_AT, REJECTION_NOTE
 - **CSS for step wizard & notulen badges** is in `style.html`
 - **Menu navigation** uses `switchMenu()` SPA pattern in `index.html`
 - **Evidence folder**: `kulkpusiak` (Google Drive ID: `1NWakHROG9ngRk_bSIZ9xYv2sQUt9pbS5`) — semua file evidence diupload ke sini, bukan `E-OFFICE/{agendaId}/`
@@ -753,3 +754,77 @@ Dua notulen dengan data identik (judul, tanggal, poin sama) bisa tersimpan karen
 ### Files Changed
 - `notulen.gs` — NOTULEN_HEADERS (+DRAFT_TOKEN), simpanNotulen upsert, _updateNotulenInternal baru, updateNotulen (+draftToken), getListNotulen & getDetailNotulen mapping
 - `index.html` — notulenDraftToken var, simpanDraft() generate token, resumeDraft() restore, payload draftToken, resetFormState()
+
+---
+
+## v2.23.0 — 12 Jul 2026 (Persetujuan Atasan — Approval Workflow Notulen)
+
+### Masalah
+Notulen yang dibuat oleh USER/ADMIN/JAGAT_SAKSANA langsung terbit & eksekusi TL tanpa persetujuan atasan. Padahal atasan perlu memverifikasi sebelum tindak lanjut dieksekusi.
+
+### Perubahan
+
+#### 1. Status Notulen (4 status)
+| Status | Arti |
+|--------|------|
+| `DRAFT` | Baru dibuat, bisa diedit |
+| `MENUNGGU_PERSETUJUAN` | Diajukan ke atasan, menunggu |
+| `DISETUJUI` | Disetujui atasan, TL dieksekusi |
+| `DITOLAK` | Ditolak atasan + catatan |
+
+#### 2. Backend — Approval API
+- **[New] `NOTULEN_STATUS`** — konstanta 4 status
+- **[New] `AUTO_PUBLISH_ROLES`** — `['KOMISIONER', 'SEKRETARIS', 'KASUBBAG']` — langsung terbit
+- **[New] 3 kolom**: `APPROVER_EMAIL` (col 16), `APPROVED_AT` (col 17), `REJECTION_NOTE` (col 18)
+- **[New] `_ensureNotulenColumns()`** — migrasi otomatis tambah kolom
+- **[New] `_getHakAksesByEmail()`** — cari hak akses dari MASTER_PEGAWAI
+- **[New] `_getAtasanEmailByEmail()`** — cari email atasan langsung dari MASTER_PEGAWAI.ATASAN
+- **[New] `_getNamaByEmail()`** — helper nama dari email
+- **[New] `_executeTindakLanjut()`** — ekstrak TL ke fungsi terpisah, panggil hanya saat DISETUJUI
+- **[New] `ajukanNotulen()`** — ubah DRAFT → MENUNGGU_PERSETUJUAN, set approver
+- **[New] `getPengajuanNotulen()`** — list notulen pending untuk atasan tertentu
+- **[New] `setujuiNotulen()`** — ubah → DISETUJUI + eksekusi TL + catat approved_at
+- **[New] `tolakNotulen()`** — ubah → DITOLAK + simpan catatan
+- **[New] `getPengajuanCount()`** — hitung jumlah pending (untuk badge)
+- **[Ubah] `simpanNotulen()`** — auto-publish untuk KASUBBAG/SEK/KOMISIONER, DRAFT untuk lainnya
+- **[Ubah] `_updateNotulenInternal()`** — pertahankan status existing (jangan reset ke 'tersimpan')
+- **[Ubah] `updateNotulen()`** — hapus setStatus ('tersimpan'), pertahankan status
+- **[Ubah] Kedua `updateNotulen` & `_updateNotulenInternal`** — TL tidak lagi dijalankan saat update (TL hanya saat DISETUJUI)
+
+#### 3. Frontend — List & Grid
+- **[New] `formatStatus()` / `statusBadge()`** — render badge warna: Draft (abu), Menunggu (kuning), Disetujui (hijau), Ditolak (merah)
+- **[New] `canApprove()`** — cek apakah user bisa approve (KOMISIONER/SEK/KASUBBAG)
+- **[New] Filter status** — dropdown `#notulenFilterStatus` (Semua/Draft/Menunggu/Disetujui/Ditolak)
+- **[New] Tombol "Persetujuan"** — `#notulenBtnAjuan` dengan badge count
+- **[New] Approval action buttons di card** — Ajukan (draft), Setujui/Tolak (menunggu & user adalah approver)
+
+#### 4. Frontend — Detail Modal
+- Status badge di header detail
+- Info penolakan (border merah) jika DITOLAK
+- Info persetujuan (border hijau) jika DISETUJUI
+- Tombol aksi sesuai status & role: Ajukan / Setujui / Tolak / Edit (kondisional)
+
+#### 5. Frontend — Modal Persetujuan (showNotulenAjuan)
+- List semua notulen pending approval untuk atasan yang login
+- Setujui / Tolak langsung dari modal
+- Badge count di tombol navigasi, auto-refresh
+
+#### 6. CSS Baru
+- `.badge-draft`, `.badge-menunggu`, `.badge-disetujui`, `.badge-ditolak`
+- `.btn-setujui` (hijau), `.btn-approve` (kuning)
+
+#### 7. Lainnya
+- `loadNotulenPengajuan()` dipanggil dari `showDashboard()` & `initNotulen()`
+- Success message `simpanNotulen()` dinamis — "diterbitkan" / "draft, ajukan ke atasan"
+
+### Alur Kerja
+1. **Notulis (USER/ADMIN/JAGAT_SAKSANA)** — simpan → status DRAFT → klik "Ajukan" → status MENUNGGU
+2. **Notulis (KASUBBAG/SEKRETARIS/KOMISIONER)** — simpan → langsung DISETUJUI + TL jalan
+3. **Atasan** — lihat badge merah "Persetujuan" → klik → lihat daftar → Setujui/Tolak
+4. **Setelah disetujui** — TL dieksekusi (BUAT_AGENDA / UPDATE_PROGRES)
+5. **Notulen DITOLAK** — notulis bisa edit → perbaiki → ajukan ulang
+
+### Files Changed
+- `notulen.gs` — 4 status constants, AUTO_PUBLISH_ROLES, 3 kolom baru, migration, _ensureNotulenColumns, approval API (ajukan/getPengajuan/setujui/tolak/getPengajuanCount), _executeTindakLanjut, _getHakAksesByEmail, _getAtasanEmailByEmail, _getNamaByEmail, simpanNotulen auto-publish, _updateNotulenInternal status preserve, updateNotulen no-TL
+- `index.html` — formatStatus/statusBadge/canApprove, status filter, Persetujuan button+badge, approval action buttons di card, ajukanNotulen/setujuiNotulen/tolakNotulen/loadNotulenPengajuan/showNotulenAjuan, detail modal approval info & buttons, loadNotulenPengajuan di showDashboard & initNotulen
+- `style.html` — .badge-draft/menunggu/disetujui/ditolak, .btn-setujui, .btn-approve
