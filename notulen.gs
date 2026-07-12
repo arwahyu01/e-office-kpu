@@ -166,35 +166,39 @@ Bagian TERPANJANG. Setiap elemen adalah objek dengan field:
   ]
 }
 
-ATURAN KETAT PEMBAHASAN:
+ATURAN PROSES DATA JALANNYA RAPAT:
 
-SATU ITEM = SATU POKOK BAHASAN.
+Data "Jalannya Rapat" memiliki format:
+   - [Nama Pembicara]: [Teks yang disampaikan]
 
-JANGAN pernah menggabungkan beberapa pokok bahasan menjadi satu item.
+AI WAJIB:
+1. Pisahkan setiap baris "Jalannya Rapat" menjadi SATU objek pembahasan
+2. Jika dalam teks pembicara terdapat bullet (-) atau paragraf terpisah,
+   PISAHKAN masing-masing menjadi ITEM terpisah di dalam items[]
+3. Pembicara pertama yang membuka rapat → jadikan acuan pembukaan
+4. Pembicara terakhir yang menutup rapat → jadikan acuan penutup
+5. Nama pembicara HARUS menyertakan jabatan lengkap
 
-CONTOH SALAH (JANGAN DITIRU):
+CONTOH:
+Data input: "- Kasubbag Parmas & SDM, Fresly Gunata: - Terkait komunikasi dengan kominfo, kpu siak akan menyerahkan 4 video. - Kamis, 9 Juli 2026 CPNS akan MCU di RSUD Siak - SKP Pegawai triwulan ke 2 harus segera di selesaikan"
 
-Jika Ketua menyampaikan:
-"Apakah pembuatan karya ilmiah ini dibuat secara tim atau pribadi? Pembuatan karya ilmiah tergantung dengan tim dari teknis, melibatkan lintas divisi/sub bagian. Jika dalam proses pembuatan karya ilmiah ada data di lintas divisi/sub bagian, mohon segera dikoordinasikan."
+Output WAJIB:
+{
+  "speaker": "Kepala Subbagian Partisipasi Hubungan Masyarakat dan SDM, Fresly Gunata",
+  "items": [
+    "Menyampaikan terkait komunikasi dengan Kominfo, KPU Siak akan menyerahkan 4 video untuk ditampilkan.",
+    "Menyampaikan bahwa pada Kamis, 9 Juli 2026 CPNS akan MCU di RSUD Siak.",
+    "Mengingatkan bahwa SKP Pegawai triwulan ke-2 harus segera diselesaikan oleh seluruh pegawai."
+  ]
+}
 
-Maka JANGAN dijadikan satu item:
-"Menanyakan pembuatan karya ilmiah dan meminta koordinasi lintas divisi."
-
-CONTOH BENAR:
-
-Harus dipecah menjadi TIGA item:
-
-"items": [
-  "Menanyakan apakah pembuatan karya ilmiah dibuat secara tim atau pribadi.",
-  "Menjelaskan bahwa pembuatan karya ilmiah tergantung tim dari teknis dan melibatkan lintas divisi/sub bagian.",
-  "Meminta apabila ada data di lintas divisi/sub bagian segera dikoordinasikan untuk melengkapi data yang dibutuhkan."
-]
-
-SETIAP pergantian topik = ITEM BARU.
-
-Jika Ketua bicara 11 hal berbeda, maka items[] harus berisi 11 item.
-
-Tidak boleh dikurangi. Tidak boleh digabung.
+ATURAN KETAT:
+- SATU ITEM = SATU POKOK BAHASAN
+- JANGAN menggabungkan pokok bahasan berbeda menjadi satu item
+- JANGAN mengurangi jumlah pokok bahasan
+- Jika pembicara menyampaikan 5 hal → items[] berisi 5 item
+- Gunakan Bahasa Indonesia resmi pemerintahan dalam items[]
+- Awali setiap item dengan kata kerja aktif (Menyampaikan, Menjelaskan, Mengingatkan, Menanyakan, dll)
 
 --- keputusan (array of strings) ---
 
