@@ -1476,11 +1476,12 @@ function generateNotulaAI(notulenId) {
     // Sanitasi: bersihkan jika AI masih nekat menulis struktur template
     aiResult = _sanitizeAIOutput(aiResult);
 
-    // Isi atasan_langsung dan notulis dari data pegawai, bukan dari AI
-    aiResult.atasan_langsung = _findAtasanLangsung(n.notulis);
-    aiResult.notulis = n.notulis || '';
+    // Isi atasan_langsung dan notulis dari data pegawai (pakai nama, bukan email)
+    var notulisNama = n.notulisNama || n.notulis || '';
+    aiResult.atasan_langsung = _findAtasanLangsung(notulisNama);
+    aiResult.notulis = notulisNama;
     aiResult.jabatan_atasan = _findJabatanPegawai(aiResult.atasan_langsung);
-    aiResult.jabatan_notulis = _findJabatanPegawai(n.notulis);
+    aiResult.jabatan_notulis = _findJabatanPegawai(notulisNama);
 
     // Timpa peserta — urut sesuai nomor dari database (bukan jabatan)
     if (n.pesertaList && n.pesertaList.length) {
@@ -1825,13 +1826,16 @@ function generateNotulaApaAdanya(notulenId) {
       tempat: 'Aula Rapat Lt.2 KPU Kabupaten Siak',
       peserta: '',
       isi_notula: isiNotula,
-      atasan_langsung: _findAtasanLangsung(n.notulis),
-      notulis: n.notulis || '',
+      atasan_langsung: '',
+      notulis: '',
       jabatan_atasan: '',
       jabatan_notulis: ''
     };
+    var notulisNama = n.notulisNama || n.notulis || '';
+    aiResult.atasan_langsung = _findAtasanLangsung(notulisNama);
+    aiResult.notulis = notulisNama;
     aiResult.jabatan_atasan = _findJabatanPegawai(aiResult.atasan_langsung);
-    aiResult.jabatan_notulis = _findJabatanPegawai(n.notulis);
+    aiResult.jabatan_notulis = _findJabatanPegawai(notulisNama);
 
     // Urut sesuai nomor dari database
     if (n.pesertaList && n.pesertaList.length) {
