@@ -562,13 +562,12 @@
 
             <!-- ========== MODAL DETAIL NOTULEN ========== -->
             <div id="modalDetailNotulen" class="modal" style="display:none;">
-                <div class="modal-content" style="max-width:960px;width:94%;max-height:90vh;overflow-y:auto;border-radius:16px;">
-                    <div class="modal-header" style="padding:20px 24px;border-bottom:1px solid #e9edf4;">
-                        <h2 style="font-size:18px;display:flex;align-items:center;gap:8px;"><i class="fas fa-file-pen" style="color:#1e293b;"></i> <b>Detail Notulen</b></h2>
-                        <button class="close-btn" onclick="closeModalDetailNotulen()"><i
-                                class="fas fa-times"></i></button>
+                <div class="modal-content modal-detail-content">
+                    <div class="modal-detail-header">
+                        <h2 style="font-size:18px;display:flex;align-items:center;gap:8px;margin:0;"><i class="fas fa-file-pen" style="color:#1e293b;"></i> <b>Detail Notulen</b></h2>
+                        <button class="close-btn" onclick="closeModalDetailNotulen()"><i class="fas fa-times"></i></button>
                     </div>
-                    <div id="detailNotulenBody" style="padding:24px;"></div>
+                    <div id="detailNotulenBody" class="modal-detail-body"></div>
                 </div>
             </div>
 
@@ -2530,112 +2529,152 @@
                     if (res.success && res.data) {
                         var n = res.data;
 
-                        var jalannyaHtml = '';
+                        /* ---------- ACCORDION ITEMS ---------- */
+                        var jalannyaItems = '';
                         if (n.jalannyaList && n.jalannyaList.length) {
-                            n.jalannyaList.forEach(function (j, i) {
-                                jalannyaHtml += '' +
-                                    '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;margin-bottom:8px;">' +
-                                    '<strong style="color:#2563eb;font-size:13px;"><i class="fas fa-user"></i> ' + (j.pembicara || '-') + '</strong>' +
-                                    '<p style="margin:4px 0 0;font-size:14px;">' + (j.pokokBahasan || '-') + '</p>' +
+                            n.jalannyaList.forEach(function (j) {
+                                jalannyaItems +=
+                                    '<div class="accordion-item">' +
+                                    '<div class="item-title"><i class="fas fa-user" style="font-size:11px"></i> ' + (j.pembicara || '-') + '</div>' +
+                                    '<p class="item-body">' + (j.pokokBahasan || '-') + '</p>' +
                                     '</div>';
                             });
-                        } else {
-                            jalannyaHtml = '<p style="color:#94a3b8;">Tidak ada catatan jalannya rapat.</p>';
                         }
 
-                        var poinHtml = '';
+                        var poinItems = '';
                         if (n.poinList && n.poinList.length) {
                             n.poinList.forEach(function (p, i) {
-                                poinHtml += '' +
-                                    '<div style="border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;margin-bottom:10px;">' +
-                                    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
-                                    '<strong style="color:#b30000;">Poin #' + (i + 1) + '</strong>' + formatTindakLanjut(p.tindakLanjut) +
+                                poinItems +=
+                                    '<div class="accordion-item poin-item">' +
+                                    '<div class="item-title">Poin #' + (i + 1) + '</div>' +
+                                    '<p class="item-body">' + p.isi + '</p>' +
+                                    '<div class="item-meta">' +
+                                    formatTindakLanjut(p.tindakLanjut) +
+                                    (p.assignSubbag ? ' <span><i class="fas fa-users"></i> ' + p.assignSubbag + '</span>' : '') +
                                     '</div>' +
-                                    '<p style="margin:0 0 6px;font-size:14px;">' + p.isi + '</p>' +
-                                    (p.assignSubbag ? '<span style="font-size:12px;color:#64748b;"><i class="fas fa-users"></i> ' + p.assignSubbag + '</span>' : '') +
                                     '</div>';
                             });
-                        } else {
-                            poinHtml = '<p style="color:#94a3b8;">Tidak ada poin rapat.</p>';
                         }
 
-                        body.innerHTML = '' +
-                            '<div style="max-width:100%;">' +
+                        /* ---------- ACCORDION SECTIONS ---------- */
+                        var accordionHtml = '';
+                        if (jalannyaItems) {
+                            accordionHtml +=
+                                '<div class="accordion-section">' +
+                                '<div class="accordion-header" onclick="toggleAccordion(\'acc-jalan\')">' +
+                                '<span class="title"><span style="width:4px;height:16px;background:#3b82f6;border-radius:4px;display:inline-block;"></span> Jalannya Rapat <span class="count-badge">' + n.jalannyaList.length + '</span></span>' +
+                                '<i class="fas fa-chevron-right accordion-icon" id="acc-jalan-icon"></i>' +
+                                '</div>' +
+                                '<div class="accordion-body" id="acc-jalan-body" style="display:none;">' + jalannyaItems + '</div>' +
+                                '</div>';
+                        }
+                        if (poinItems) {
+                            accordionHtml +=
+                                '<div class="accordion-section">' +
+                                '<div class="accordion-header" onclick="toggleAccordion(\'acc-poin\')">' +
+                                '<span class="title"><span style="width:4px;height:16px;background:#ef4444;border-radius:4px;display:inline-block;"></span> Poin Rapat <span class="count-badge">' + n.poinList.length + '</span></span>' +
+                                '<i class="fas fa-chevron-right accordion-icon" id="acc-poin-icon"></i>' +
+                                '</div>' +
+                                '<div class="accordion-body" id="acc-poin-body" style="display:none;">' + poinItems + '</div>' +
+                                '</div>';
+                        }
 
-                            /* === HEADER CARD === */
-                            '<div style="display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:20px;">' +
+                        /* ---------- APPROVAL BANNERS ---------- */
+                        var approvalHtml = '';
+                        if (n.rejectionNote) {
+                            approvalHtml +=
+                                '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px 16px;margin-bottom:14px;">' +
+                                '<span style="font-weight:700;color:#dc2626;font-size:13px;"><i class="fas fa-times-circle"></i> Alasan Ditolak:</span>' +
+                                '<p style="margin:4px 0 0;font-size:13px;color:#7f1d1d;">' + n.rejectionNote + '</p></div>';
+                        }
+                        if (n.approvedAt && n.status === 'DISETUJUI') {
+                            approvalHtml +=
+                                '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 16px;margin-bottom:14px;">' +
+                                '<span style="font-weight:700;color:#16a34a;font-size:13px;"><i class="fas fa-check-circle"></i> Disetujui</span>' +
+                                '<p style="margin:2px 0 0;font-size:12px;color:#166534;">' + n.approvedAt + '</p></div>';
+                        }
+
+                        /* ---------- ACTION BUTTONS ---------- */
+                        var isWaiting = n.status === 'MENUNGGU_PERSETUJUAN';
+                        var isDraft = n.status === 'DRAFT' || n.status === 'tersimpan';
+                        var canApproveAction = isWaiting && n.approverEmail === currentEmail && canApprove();
+
+                        var actionHtml =
+                            '<div class="action-bar">' +
+                            '<button class="btn-secondary" onclick="closeModalDetailNotulen()" style="padding:9px 20px;font-size:13px;"><i class="fas fa-times"></i> Tutup</button>';
+
+                        if (canApproveAction) {
+                            actionHtml +=
+                                '<button class="btn-setujui" onclick="closeModalDetailNotulen();setujuiNotulen(\'' + n.id + '\')" style="padding:9px 20px;font-size:13px;"><i class="fas fa-check"></i> Setujui</button>' +
+                                '<button class="btn-danger" onclick="closeModalDetailNotulen();tolakNotulen(\'' + n.id + '\')" style="padding:9px 20px;font-size:13px;"><i class="fas fa-times"></i> Tolak</button>';
+                        }
+                        if (isDraft) {
+                            actionHtml +=
+                                '<button class="btn-primary" style="background:#f59e0b;border-color:#f59e0b;padding:9px 20px;font-size:13px;" onclick="closeModalDetailNotulen();ajukanNotulen(\'' + n.id + '\')"><i class="fas fa-paper-plane"></i> Ajukan</button>';
+                        }
+                        if (n.status !== 'DISETUJUI' && !isWaiting) {
+                            actionHtml +=
+                                '<button class="btn-primary" onclick="closeModalDetailNotulen();editNotulen(\'' + n.id + '\')" style="padding:9px 20px;font-size:13px;"><i class="fas fa-edit"></i> Edit</button>';
+                        }
+                        actionHtml +=
+                            '<button class="btn-secondary" onclick="closeModalDetailNotulen();showUndanganUpload(\'' + n.id + '\')" style="padding:9px 20px;font-size:13px;"><i class="fas fa-paperclip"></i> Upload Undangan</button>' +
+                            '<button class="btn-primary" style="background:#7c3aed;border-color:#7c3aed;padding:9px 20px;font-size:13px;" onclick="generateNotula(\'' + n.id + '\')"><i class="fas fa-robot"></i> Generate By AI</button>' +
+                            '<button class="btn-primary" style="background:#0891b2;border-color:#0891b2;padding:9px 20px;font-size:13px;" onclick="generateNotulaApaAdanya(\'' + n.id + '\')"><i class="fas fa-file-lines"></i> Generate Tanpa AI</button>' +
+                            '</div>';
+
+                        /* ---------- COMPLETE BODY ---------- */
+                        body.innerHTML =
+                            '<div>' +
+
+                            /* Summary header */
+                            '<div style="display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px;">' +
                             '<div style="flex:1;min-width:200px;">' +
                             '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">' +
                             statusBadge(n.status || 'DRAFT') +
                             '<span class="badge badge-outline" style="font-size:12px;padding:3px 12px;">' + formatJenis(n.jenis) + '</span>' +
                             '<span style="font-size:13px;color:#64748b;"><i class="far fa-calendar-alt"></i> ' + (n.tanggal || '') + '</span>' +
                             '</div>' +
-                            '<h2 style="font-size:22px;font-weight:700;margin:4px 0 0;color:#0f172a;line-height:1.3;">' + (n.judul || '(tanpa judul)') + '</h2>' +
+                            '<h2 style="font-size:20px;font-weight:700;margin:4px 0 0;color:#0f172a;line-height:1.3;">' + (n.judul || '(tanpa judul)') + '</h2>' +
                             '</div>' +
                             (n.undanganLink ?
-                            '<a href="' + n.undanganLink + '" target="_blank" class="btn-primary" style="text-decoration:none;font-size:13px;padding:8px 18px;white-space:nowrap;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;"><i class="fas fa-paperclip"></i> Lihat Undangan</a>' : '') +
+                            '<a href="' + n.undanganLink + '" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;color:#475569;font-size:13px;text-decoration:none;white-space:nowrap;"><i class="fas fa-paperclip"></i> Lihat Undangan</a>' : '') +
                             '</div>' +
 
-                            /* === INFO CARDS === */
-                            '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:20px;">' +
-                            '<div style="background:#f8fafc;border:1px solid #e9edf4;border-radius:12px;padding:14px 16px;">' +
-                            '<span style="font-size:12px;color:#94a3b8;font-weight:500;text-transform:uppercase;letter-spacing:0.3px;">Pimpinan</span>' +
-                            '<p style="margin:4px 0 0;font-size:14px;font-weight:600;color:#0f172a;"><i class="fas fa-gavel" style="color:#7c3aed;margin-right:6px;"></i> ' + (n.pimpinan || '-') + '</p>' +
+                            /* Info grid (pimpinan, notulis, pdf) */
+                            '<div class="detail-info-grid">' +
+                            '<div class="detail-info-item">' +
+                            '<span class="label">Pimpinan</span>' +
+                            '<p class="value"><i class="fas fa-gavel" style="color:#7c3aed;font-size:12px;"></i> ' + (n.pimpinan || '-') + '</p>' +
                             '</div>' +
-                            '<div style="background:#f8fafc;border:1px solid #e9edf4;border-radius:12px;padding:14px 16px;">' +
-                            '<span style="font-size:12px;color:#94a3b8;font-weight:500;text-transform:uppercase;letter-spacing:0.3px;">Notulis</span>' +
-                            '<p style="margin:4px 0 0;font-size:14px;font-weight:600;color:#0f172a;"><i class="fas fa-feather" style="color:#0891b2;margin-right:6px;"></i> ' + (n.notulisNama || getNamaFromEmail(n.notulis) || n.notulis || '-') + '</p>' +
+                            '<div class="detail-info-item">' +
+                            '<span class="label">Notulis</span>' +
+                            '<p class="value"><i class="fas fa-feather" style="color:#0891b2;font-size:12px;"></i> ' + (n.notulisNama || getNamaFromEmail(n.notulis) || n.notulis || '-') + '</p>' +
                             '</div>' +
                             (n.signedPdfUrl ?
-                            '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:10px;">' +
-                            '<i class="fas fa-file-pdf" style="color:#16a34a;font-size:20px;"></i>' +
-                            '<div><span style="font-size:12px;color:#94a3b8;font-weight:500;text-transform:uppercase;letter-spacing:0.3px;">Notulen TTD</span>' +
-                            '<p style="margin:2px 0 0;"><a href="' + n.signedPdfUrl + '" target="_blank" style="color:#16a34a;font-size:13px;font-weight:600;text-decoration:none;">Lihat PDF <i class="fas fa-external-link-alt" style="font-size:11px;"></i></a></p></div>' +
+                            '<div class="detail-info-item" style="background:#f0fdf4;border-color:#bbf7d0;">' +
+                            '<span class="label">Notulen TTD</span>' +
+                            '<p class="value" style="gap:8px;"><i class="fas fa-file-pdf" style="color:#16a34a;font-size:14px;"></i> <a href="' + n.signedPdfUrl + '" target="_blank" style="color:#16a34a;font-size:13px;font-weight:600;text-decoration:none;">Lihat PDF <i class="fas fa-external-link-alt" style="font-size:10px;"></i></a></p>' +
                             '</div>' : '') +
                             '</div>' +
 
-                            /* === PESERTA === */
+                            /* Peserta chips */
                             (n.pesertaList && n.pesertaList.length ?
-                            '<div style="margin-bottom:20px;">' +
-                            '<h4 style="font-size:13px;color:#64748b;font-weight:600;margin:0 0 10px;text-transform:uppercase;letter-spacing:0.5px;"><i class="fas fa-users"></i> Peserta (' + n.pesertaList.length + ')</h4>' +
+                            '<div style="margin-bottom:16px;">' +
+                            '<span style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.3px;display:block;margin-bottom:6px;"><i class="fas fa-users"></i> Peserta (' + n.pesertaList.length + ')</span>' +
                             '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
                             sortPesertaByJabatan(n.pesertaList).map(function(p) {
-                            return '<span style="display:inline-flex;align-items:center;gap:6px;background:#f8fafc;border:1px solid #e9edf4;border-radius:20px;padding:4px 14px 4px 12px;font-size:13px;"><span style="width:6px;height:6px;border-radius:50%;background:#6366f1;display:inline-block;"></span> ' + (p.nama || '') + ' <span style="color:#94a3b8;font-size:12px;">' + (p.jabatan || '') + '</span></span>';
+                            return '<span style="display:inline-flex;align-items:center;gap:6px;background:#f8fafc;border:1px solid #e9edf4;border-radius:20px;padding:3px 12px 3px 10px;font-size:12px;"><span style="width:6px;height:6px;border-radius:50%;background:#6366f1;display:inline-block;flex-shrink:0;"></span> ' + (p.nama || '') + ' <span style="color:#94a3b8;font-size:11px;">' + (p.jabatan || '') + '</span></span>';
                             }).join('') +
                             '</div></div>' : '') +
 
-                            /* === SEPARATOR === */
-                            '<hr style="border:none;border-top:2px solid #e9edf4;margin:20px 0;">' +
+                            /* Accordions */
+                            accordionHtml +
 
-                            /* === JALANNYA RAPAT === */
-                            '<div style="margin-bottom:20px;">' +
-                            '<h3 style="font-size:16px;font-weight:700;margin:0 0 14px;color:#0f172a;display:flex;align-items:center;gap:8px;"><span style="width:4px;height:18px;background:#3b82f6;border-radius:4px;display:inline-block;"></span> Jalannya Rapat</h3>' +
-                            (jalannyaHtml || '<div style="padding:20px;text-align:center;background:#fafafa;border:1px dashed #d1d5db;border-radius:10px;color:#94a3b8;font-size:14px;"><i class="fas fa-comment-slash"></i> Tidak ada catatan jalannya rapat.</div>') +
-                            '</div>' +
+                            /* Approval banners */
+                            approvalHtml +
 
-                            /* === POIN RAPAT === */
-                            '<div style="margin-bottom:20px;">' +
-                            '<h3 style="font-size:16px;font-weight:700;margin:0 0 14px;color:#0f172a;display:flex;align-items:center;gap:8px;"><span style="width:4px;height:18px;background:#ef4444;border-radius:4px;display:inline-block;"></span> Poin Rapat</h3>' +
-                            (poinHtml || '<div style="padding:20px;text-align:center;background:#fafafa;border:1px dashed #d1d5db;border-radius:10px;color:#94a3b8;font-size:14px;"><i class="fas fa-list"></i> Tidak ada poin rapat.</div>') +
-                            '</div>' +
-
-                            /* === APPROVAL INFO === */
-                            (n.rejectionNote ? '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:14px 16px;margin-bottom:16px;"><span style="font-weight:700;color:#dc2626;"><i class="fas fa-times-circle"></i> Alasan Ditolak:</span><p style="margin:6px 0 0;font-size:14px;color:#7f1d1d;">' + n.rejectionNote + '</p></div>' : '') +
-                            (n.approvedAt && n.status === 'DISETUJUI' ? '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px 16px;margin-bottom:16px;"><span style="font-weight:700;color:#16a34a;"><i class="fas fa-check-circle"></i> Disetujui</span><p style="margin:4px 0 0;font-size:13px;color:#166534;">' + (n.approvedAt ? n.approvedAt : '') + '</p></div>' : '') +
-
-                            /* === ACTION BUTTONS === */
-                            '<hr style="border:none;border-top:2px solid #e9edf4;margin:20px 0;">' +
-                            '<div style="display:flex;gap:10px;flex-wrap:wrap;">' +
-                            '<button class="btn-secondary" onclick="closeModalDetailNotulen()" style="padding:9px 20px;font-size:13px;"><i class="fas fa-times"></i> Tutup</button>' +
-                            (n.status === 'MENUNGGU_PERSETUJUAN' && n.approverEmail === currentEmail && canApprove() ?
-                            '<button class="btn-setujui" onclick="closeModalDetailNotulen();setujuiNotulen(\'' + n.id + '\')" style="padding:9px 20px;font-size:13px;"><i class="fas fa-check"></i> Setujui</button>' +
-                            '<button class="btn-danger" onclick="closeModalDetailNotulen();tolakNotulen(\'' + n.id + '\')" style="padding:9px 20px;font-size:13px;"><i class="fas fa-times"></i> Tolak</button>' : '') +
-                            ((n.status === 'DRAFT' || n.status === 'tersimpan') ? '<button class="btn-primary" style="background:#f59e0b;border-color:#f59e0b;padding:9px 20px;font-size:13px;" onclick="closeModalDetailNotulen();ajukanNotulen(\'' + n.id + '\')"><i class="fas fa-paper-plane"></i> Ajukan</button>' : '') +
-                            (n.status !== 'DISETUJUI' && n.status !== 'MENUNGGU_PERSETUJUAN' ? '<button class="btn-primary" onclick="closeModalDetailNotulen();editNotulen(\'' + n.id + '\')" style="padding:9px 20px;font-size:13px;"><i class="fas fa-edit"></i> Edit</button>' : '') +
-                            '<button class="btn-secondary" onclick="closeModalDetailNotulen();showUndanganUpload(\'' + n.id + '\')" style="padding:9px 20px;font-size:13px;"><i class="fas fa-paperclip"></i> Upload Undangan</button>' +
-                            '<button class="btn-primary" style="background:#7c3aed;border-color:#7c3aed;padding:9px 20px;font-size:13px;" onclick="generateNotula(\'' + n.id + '\')"><i class="fas fa-robot"></i> Generate By AI</button>' +
-                            '<button class="btn-primary" style="background:#0891b2;border-color:#0891b2;padding:9px 20px;font-size:13px;" onclick="generateNotulaApaAdanya(\'' + n.id + '\')"><i class="fas fa-file-lines"></i> Generate Tanpa AI</button>' +
-                            '</div>' +
+                            /* Actions */
+                            actionHtml +
                             '</div>';
                     } else {
                         body.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><h3>Gagal memuat detail</h3></div>';
@@ -2645,6 +2684,19 @@
                     body.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>Error koneksi</h3></div>';
                 })
                 .getDetailNotulen({ id: id });
+        }
+
+        function toggleAccordion(id) {
+            var body = document.getElementById(id + '-body');
+            var icon = document.getElementById(id + '-icon');
+            if (!body) return;
+            if (body.style.display === 'none') {
+                body.style.display = 'block';
+                if (icon) icon.className = 'fas fa-chevron-down accordion-icon';
+            } else {
+                body.style.display = 'none';
+                if (icon) icon.className = 'fas fa-chevron-right accordion-icon';
+            }
         }
 
         function closeModalDetailNotulen() {

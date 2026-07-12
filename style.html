@@ -548,6 +548,159 @@ tbody tr:hover {
 }
 
 /* ======================================================
+   MODAL DETAIL NOTULEN REDESIGN
+====================================================== */
+.modal-detail-content {
+  max-width: 960px !important;
+  width: 94% !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  border-radius: 16px !important;
+  padding: 0 !important;
+}
+
+.modal-detail-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #fff;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e9edf4;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-detail-body {
+  padding: 24px;
+}
+
+/* Info compact grid */
+.detail-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.detail-info-item {
+  background: #f8fafc;
+  border: 1px solid #e9edf4;
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+.detail-info-item .label {
+  font-size: 10px;
+  color: #94a3b8;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.detail-info-item .value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Accordion */
+.accordion-section {
+  border: 1px solid #e9edf4;
+  border-radius: 12px;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+
+.accordion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  cursor: pointer;
+  background: #fafbfc;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.accordion-header:hover { background: #f1f5f9; }
+
+.accordion-header .title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.accordion-header .count-badge {
+  font-size: 11px;
+  background: #e9edf4;
+  color: #475569;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.accordion-icon { color: #94a3b8; font-size: 13px; }
+
+.accordion-body {
+  border-top: 1px solid #e9edf4;
+  padding: 12px 16px;
+}
+
+.accordion-item {
+  padding: 8px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.accordion-item:last-child { border-bottom: none; padding-bottom: 0; }
+
+.accordion-item .item-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.accordion-item .item-body {
+  font-size: 13px;
+  color: #334155;
+  margin: 2px 0 0;
+  line-height: 1.5;
+}
+
+.accordion-item .item-meta {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.poin-item .item-title { color: #b30000; }
+
+.action-bar {
+  border-top: 2px solid #e9edf4;
+  padding-top: 16px;
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ======================================================
    EMPTY STATE
 ====================================================== */
 .empty-state {
