@@ -136,7 +136,8 @@ Urutan pembahasan HARUS sama dengan urutan rapat. Jangan memindahkan atau mengga
 
 --- pembukaan (string) ---
 
-Kalimat yang menjelaskan siapa membuka rapat, jam mulai, jumlah peserta, dan status kuorum.
+HANYA SATU kalimat: siapa membuka rapat, jam mulai, jumlah peserta, dan status kuorum.
+JANGAN sertakan daftar agenda di pembukaan. Daftar agenda akan diisi secara otomatis.
 
 --- agenda (array of strings) ---
 
@@ -1756,7 +1757,12 @@ function _fillNotulaContent(body, isiNotula) {
     idx++;
     content.agenda.forEach(function (a) {
       var li = body.insertListItem(idx, _cleanItem(a));
-      li.setGlyphType(DocumentApp.GlyphType.NUMBER);
+      // INDUK (diawali angka) = NUMBER, ANAK (diawali spasi) = BULLET
+      if (/^\d+\.\s/.test(a)) {
+        li.setGlyphType(DocumentApp.GlyphType.NUMBER);
+      } else {
+        li.setGlyphType(DocumentApp.GlyphType.BULLET);
+      }
       idx++;
     });
   }
