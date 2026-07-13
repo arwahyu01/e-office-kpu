@@ -24,7 +24,7 @@ const NOTULEN_HEADERS = [
   'NOTULIS', 'JALANNYA_COUNT', 'POIN_COUNT', 'CREATED_AT',
   'DRIVE_URL', 'UNDANGAN_LINK', 'STATUS', 'PESERTA_JSON',
   'SIGNED_PDF_URL', 'DRAFT_TOKEN', 'APPROVER_EMAIL', 'APPROVED_AT', 'REJECTION_NOTE', 'AGENDA_RAW',
-  'TL_EXECUTED'
+  'TL_EXECUTED', 'CREATED_BY', 'MENGETAHUI'
 ];
 const JALANNYA_HEADERS = [
   'ID', 'NOTULEN_ID', 'PEMBICARA', 'POKOK_BAHASAN', 'URUTAN'
@@ -360,7 +360,9 @@ function getListNotulen(params) {
         draftToken: row[14] || '',
         approverEmail: row[15] || '',
         approvedAt: row[16] ? _fmtDate(row[16]) : '',
-        rejectionNote: row[17] || ''
+        rejectionNote: row[17] || '',
+        createdBy: row[20] || '',
+        mengetahui: row[21] || ''
       });
     }
 
@@ -419,7 +421,9 @@ function getDetailNotulen(params) {
           approverEmail: rows[i][15] || '',
           approvedAt: rows[i][16] ? _fmtDate(rows[i][16]) : '',
           rejectionNote: rows[i][17] || '',
-          agendaRapat: rows[i][18] || ''
+          agendaRapat: rows[i][18] || '',
+          createdBy: rows[i][20] || '',
+          mengetahui: rows[i][21] || ''
         };
         break;
       }
@@ -526,7 +530,8 @@ function simpanNotulen(data) {
       jalannyaList.length, poinList.length, now,
       driveUrl, data.undangan || '', status,
       data.pesertaJson || '', '', draftToken, approverEmail, '', '',
-      data.agendaRapat || '', ''
+      data.agendaRapat || '', '', data.userEmail || '',
+      data.mengetahui || ''
     ]);
 
     if (jalannyaList.length) {
@@ -572,6 +577,13 @@ function _updateNotulenInternal(data, ss, notulenSheet) {
     if (rows[i][0] === id) { rowIndex = i + 1; break; }
   }
   if (rowIndex === -1) return { success: false, message: 'Notulen tidak ditemukan' };
+
+  var createdBy = rows[rowIndex - 1][20] || '';
+  var notulis = rows[rowIndex - 1][5] || '';
+  var creatorCheck = createdBy || notulis;
+  if (creatorCheck && data.userEmail && data.userEmail !== creatorCheck) {
+    return { success: false, message: 'Anda tidak memiliki izin untuk mengedit notulen ini' };
+  }
 
   var jalannyaList = data.jalannyaList || [];
   var poinList = data.poinList || [];
@@ -758,6 +770,14 @@ function ajukanNotulen(params) {
       return { success: false, message: 'Hanya notulen dengan status DRAFT yang bisa diajukan' };
     }
 
+    // Hanya pembuat yang bisa ajukan
+    var createdBy = rows[rowIndex - 1][20] || '';
+    var notulis = rows[rowIndex - 1][5] || '';
+    var creatorCheck = createdBy || notulis;
+    if (creatorCheck && params.userEmail && params.userEmail !== creatorCheck) {
+      return { success: false, message: 'Hanya pembuat notulen yang bisa mengajukan persetujuan' };
+    }
+
     // Cari atasan berdasarkan NOTULIS (col 5), bukan user yang login
     var notulisVal = String(rows[rowIndex - 1][5] || '').trim();
     var notulisEmail = notulisVal.indexOf('@') !== -1 ? notulisVal : '';
@@ -860,8 +880,22 @@ function setujuiNotulen(params) {
     if (rowIndex === -1) return { success: false, message: 'Notulen tidak ditemukan' };
     if (!notulenData) return { success: false, message: 'Data notulen tidak valid' };
 
-    var currentApprover = String(rows[rowIndex - 1][15] || '').trim();
-    if (currentApprover !== params.approverEmail) {
+    // Verifikasi bahwa approver adalah atasan langsung dari notulis
+    var notulisEmail = notulenData.notulis || '';
+    if (notulisEmail.indexOf('@') === -1) {
+      var allPeg = getAllPegawai();
+      for (var pe = 0; pe < allPeg.length; pe++) {
+        if (allPeg[pe].nama && allPeg[pe].nama.toLowerCase().trim() === notulisEmail.toLowerCase().trim()) {
+          notulisEmail = allPeg[pe].email || '';
+          break;
+        }
+      }
+    }
+    var expectedApprover = notulisEmail ? _getAtasanEmailByEmail(notulisEmail) : '';
+    if (!expectedApprover) {
+      return { success: false, message: 'Atasan langsung notulis tidak ditemukan di master pegawai' };
+    }
+    if (params.approverEmail !== expectedApprover) {
       return { success: false, message: 'Anda bukan atasan yang ditunjuk untuk notulen ini' };
     }
 
@@ -988,6 +1022,14 @@ function updateNotulen(data) {
     }
     if (rowIndex === -1) return { success: false, message: 'Notulen tidak ditemukan' };
 
+    // Hanya pembuat yang bisa edit
+    var createdBy = rows[rowIndex - 1][20] || '';
+    var notulis = rows[rowIndex - 1][5] || '';
+    var creatorCheck = createdBy || notulis;
+    if (creatorCheck && data.userEmail && data.userEmail !== creatorCheck) {
+      return { success: false, message: 'Anda tidak memiliki izin untuk mengedit notulen ini' };
+    }
+
     var jalannyaList = data.jalannyaList || [];
     var poinList = data.poinList || [];
     var now = new Date();
@@ -1004,6 +1046,11 @@ function updateNotulen(data) {
     if (data.undangan !== undefined) notulenSheet.getRange(rowIndex, 11).setValue(data.undangan || '');
     if (data.draftToken) notulenSheet.getRange(rowIndex, 15).setValue(data.draftToken);
     if (data.agendaRapat !== undefined) notulenSheet.getRange(rowIndex, 19).setValue(data.agendaRapat || '');
+    if (data.mengetahui !== undefined) notulenSheet.getRange(rowIndex, 22).setValue(data.mengetahui || '');
+    // Isi CREATED_BY jika masih kosong (migrasi data lama)
+    if (!createdBy && data.userEmail) {
+      notulenSheet.getRange(rowIndex, 21).setValue(data.userEmail);
+    }
 
     // Re-generate file notulen di Drive
     try {
@@ -1197,11 +1244,23 @@ function hapusNotulen(params) {
 
     var notulenSheet = sheetNotulen.getSheetByName(NOTULEN_SHEET_NAME);
     if (notulenSheet) {
-    var rows = _readSheet(notulenSheet, 1);
-    for (var i = 1; i < rows.length; i++) {
-      if (rows[i][0] === params.id) { notulenSheet.deleteRow(i + 1); break; }
+      var rows = _readSheet(notulenSheet, NOTULEN_HEADERS.length);
+      var rowIndex = -1;
+      for (var i = 1; i < rows.length; i++) {
+        if (rows[i][0] === params.id) { rowIndex = i; break; }
+      }
+      if (rowIndex === -1) return { success: false, message: 'Notulen tidak ditemukan' };
+
+      // Hanya pembuat yang bisa hapus
+      var createdBy = rows[rowIndex][20] || '';
+      var notulis = rows[rowIndex][5] || '';
+      var creatorCheck = createdBy || notulis;
+      if (creatorCheck && params.userEmail && params.userEmail !== creatorCheck) {
+        return { success: false, message: 'Hanya pembuat notulen yang bisa menghapus' };
+      }
+
+      notulenSheet.deleteRow(rowIndex + 1);
     }
-  }
 
     var jSh = sheetNotulen.getSheetByName(JALANNYA_SHEET_NAME);
     if (jSh) {
@@ -1403,7 +1462,7 @@ function getListAgendaForNotulen() {
 function getDataPegawai() {
   try {
     return getAllPegawai().map(function(p) {
-      return { nama: p.nama, jabatan: p.jabatan, email: p.email, subbag: p.subbag, hakAkses: p.hakAkses, no: p.no };
+      return { nama: p.nama, jabatan: p.jabatan, email: p.email, subbag: p.subbag, hakAkses: p.hakAkses, no: p.no, nip: p.nip, nip_atasan: p.nip_atasan };
     }).sort(function(a, b) { return (a.no || 999) - (b.no || 999); });
   } catch (err) {
     return [];
