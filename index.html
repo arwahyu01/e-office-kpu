@@ -345,15 +345,15 @@
                                     style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#94a3b8;"></i>
                                 <input type="text" id="notulenSearch" class="form-control"
                                     placeholder="Cari judul, jenis, pembicara..." style="padding-left:40px;"
-                                    oninput="loadNotulenList()">
+                                    oninput="notulenPage=1;loadNotulenList()">
                             </div>
-                            <select id="notulenFilterJenis" class="filter-select" onchange="loadNotulenList()">
+                            <select id="notulenFilterJenis" class="filter-select" onchange="notulenPage=1;loadNotulenList()">
                                 <option value="">Semua Jenis</option>
                                 <option value="RAPAT_PLENO">Rapat Pleno</option>
                                 <option value="RAPAT_INTERNAL_SEKRETARIAT">Rapat Internal Sekretariat</option>
                                 <option value="RAPAT_INTERNAL_SUBBAGIAN">Rapat Internal Subbagian</option>
                             </select>
-                            <select id="notulenFilterStatus" class="filter-select" onchange="loadNotulenList()">
+                            <select id="notulenFilterStatus" class="filter-select" onchange="notulenPage=1;loadNotulenList()">
                                 <option value="">Semua Status</option>
                                 <option value="DRAFT">Draft</option>
                                 <option value="MENUNGGU_PERSETUJUAN">Menunggu Persetujuan</option>
@@ -386,6 +386,13 @@
                     <div id="notulenListContainer">
                         <div class="empty-state"><i class="fas fa-inbox"></i>
                             <h3>Memuat data...</h3>
+                        </div>
+                    </div>
+                    <div id="notulenPagination" class="pagination-bar" style="display:none;margin-top:16px;justify-content:space-between;align-items:center;">
+                        <span id="notulenPaginationInfo" style="color:#64748b;font-size:13px;"></span>
+                        <div style="display:flex;gap:8px;">
+                            <button id="notulenPrevPage" class="btn-secondary" style="font-size:12px;padding:6px 14px;" onclick="notulenGoPage(-1)" disabled><i class="fas fa-chevron-left"></i> Sebelumnya</button>
+                            <button id="notulenNextPage" class="btn-secondary" style="font-size:12px;padding:6px 14px;" onclick="notulenGoPage(1)">Selanjutnya <i class="fas fa-chevron-right"></i></button>
                         </div>
                     </div>
                 </div>
@@ -2469,9 +2476,20 @@
             return level === 'KOMISIONER' || level === 'SEKRETARIS' || level === 'KASUBBAG';
         }
 
+        var notulenPage = 1;
+        var notulenPageSize = 20;
+        var notulenTotalPages = 1;
+
+        function notulenGoPage(dir) {
+            var next = notulenPage + dir;
+            if (next < 1 || next > notulenTotalPages) return;
+            notulenPage = next;
+            loadNotulenList();
+        }
+
         function loadNotulenList() {
             var container = document.getElementById('notulenListContainer');
-            var search = document.getElementById('notulenSearch').value.toLowerCase();
+            var search = document.getElementById('notulenSearch').value;
             var filterJenis = document.getElementById('notulenFilterJenis').value;
             var filterStatus = document.getElementById('notulenFilterStatus') ? document.getElementById('notulenFilterStatus').value : '';
             var draft = getDraft();
@@ -2489,19 +2507,18 @@
 
             google.script.run
                 .withSuccessHandler(function (res) {
-                    console.log("SUCCESS :", res);
                     if (!res) {
                         container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><h3>Gagal memuat data</h3><p>Respons server kosong. Silakan refresh halaman.</p></div>';
                         return;
                     }
                     if (res.success && res.data) {
                         var list = res.data;
-                        if (filterJenis) list = list.filter(function (n) { return n.jenis === filterJenis; });
-                        if (filterStatus) list = list.filter(function (n) { return _normStatus(n.status) === filterStatus; });
-                        if (search) list = list.filter(function (n) { return (n.judul || '').toLowerCase().includes(search) || (n.jenis || '').toLowerCase().includes(search) || (n.pimpinan || '').toLowerCase().includes(search) || (n.notulis || '').toLowerCase().includes(search) || (n.notulisNama || '').toLowerCase().includes(search); });
+                        notulenTotalPages = res.totalPages || 1;
+                        notulenPage = res.page || 1;
 
                         if (list.length === 0) {
                             container.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><h3>Tidak ada notulen</h3><p>Belum ada notulen yang tersimpan.</p></div>';
+                            document.getElementById('notulenPagination').style.display = 'none';
                             return;
                         }
 
@@ -2545,15 +2562,28 @@
                         });
                         html += '</div>';
                         container.innerHTML = html;
+
+                        // Pagination
+                        var pagEl = document.getElementById('notulenPagination');
+                        if (res.totalPages > 1) {
+                            pagEl.style.display = 'flex';
+                            document.getElementById('notulenPaginationInfo').textContent = 'Halaman ' + res.page + ' dari ' + res.totalPages + ' (' + res.total + ' notulen)';
+                            document.getElementById('notulenPrevPage').disabled = res.page <= 1;
+                            document.getElementById('notulenNextPage').disabled = res.page >= res.totalPages;
+                        } else {
+                            pagEl.style.display = 'none';
+                        }
                     } else {
                         container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><h3>Gagal memuat data</h3><p>' + (res.message || 'Terjadi kesalahan') + '</p></div>';
+                        document.getElementById('notulenPagination').style.display = 'none';
                     }
                 })
                 .withFailureHandler(function (err) {
                     console.error('getListNotulen error:', err);
                     container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><h3>Error koneksi</h3><p>' + (err && err.message ? err.message : 'Tidak dapat tersambung ke server') + '</p></div>';
+                    document.getElementById('notulenPagination').style.display = 'none';
                 })
-                .getListNotulen({});
+                .getListNotulen({ page: notulenPage, pageSize: notulenPageSize, search: search, filterJenis: filterJenis, filterStatus: filterStatus });
         }
 
         // ======================

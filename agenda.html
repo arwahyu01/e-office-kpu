@@ -779,6 +779,9 @@ function populateDropdowns() {
     const s=document.getElementById(id); if (!s) return;
     s.innerHTML='<option value="">'+(id==='fSubbag'?'-':'Semua Subbagian')+'</option>';
     subbagList.forEach(sb => s.innerHTML+=`<option value="${sb}">${sb}</option>`);
+    if (id==='filterSubbag' && currentUser && currentUser.subbag) {
+      s.value = currentUser.subbag;
+    }
   });
 }
 

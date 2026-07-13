@@ -591,15 +591,8 @@ function getListAgenda(filter) {
     }
 
     const userEmail = (filter?.userEmail || "").toLowerCase().trim();
-    const role = (filter?.role || "").toUpperCase().trim();
     const statusFilter = (filter?.status || "").trim();
     const subbagFilter = (filter?.subbag || "").trim();
-    const isPrivileged = ["ADMIN","SEKRETARIS","PIMPINAN","KOMISIONER"].includes(role);
-    let userSubbag = '';
-    if (!isPrivileged) {
-      const userPeg = pegawaiMap[userEmail];
-      userSubbag = userPeg ? userPeg.subbag : '';
-    }
 
     let total=0, rencana=0, berjalan=0, selesai=0, overdue=0;
     const result = [];
@@ -607,8 +600,6 @@ function getListAgenda(filter) {
     for (let i = 1; i < agendaRows.length; i++) {
       const a = formatAgendaRow(agendaRows[i], pegawaiMap);
       if (!a) continue;
-
-      if (!isPrivileged && a.subbagian !== userSubbag) continue;
 
       if (statusFilter && a.status !== statusFilter) continue;
       if (subbagFilter && a.subbagian !== subbagFilter) continue;

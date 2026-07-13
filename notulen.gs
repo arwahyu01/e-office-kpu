@@ -23,7 +23,8 @@ const NOTULEN_HEADERS = [
   'ID', 'TANGGAL', 'JENIS', 'JUDUL', 'PIMPINAN',
   'NOTULIS', 'JALANNYA_COUNT', 'POIN_COUNT', 'CREATED_AT',
   'DRIVE_URL', 'UNDANGAN_LINK', 'STATUS', 'PESERTA_JSON',
-  'SIGNED_PDF_URL', 'DRAFT_TOKEN', 'APPROVER_EMAIL', 'APPROVED_AT', 'REJECTION_NOTE', 'AGENDA_RAW'
+  'SIGNED_PDF_URL', 'DRAFT_TOKEN', 'APPROVER_EMAIL', 'APPROVED_AT', 'REJECTION_NOTE', 'AGENDA_RAW',
+  'TL_EXECUTED'
 ];
 const JALANNYA_HEADERS = [
   'ID', 'NOTULEN_ID', 'PEMBICARA', 'POKOK_BAHASAN', 'URUTAN'
@@ -327,13 +328,19 @@ function getListNotulen(params) {
     }
 
     var rows = _readSheet(notulenSheet, NOTULEN_HEADERS.length);
-    var result = [];
+    var page = parseInt(params.page, 10) || 1;
+    var pageSize = parseInt(params.pageSize, 10) || 20;
+    var search = (params.search || '').toLowerCase();
+    var filterJenis = params.filterJenis || '';
+    var filterStatus = params.filterStatus || '';
+
+    var all = [];
     for (var i = 1; i < rows.length; i++) {
       var row = rows[i];
       if (!row[0]) continue;
       var pesertaList = [];
       try { if (row[12]) pesertaList = JSON.parse(row[12]); } catch (e) {}
-      result.push({
+      all.push({
         id: row[0],
         tanggal: _fmtDate(row[1]),
         jenis: row[2],
@@ -356,8 +363,29 @@ function getListNotulen(params) {
         rejectionNote: row[17] || ''
       });
     }
-    result.reverse();
-    return { success: true, data: result };
+
+    // Filter
+    var filtered = all.filter(function (n) {
+      if (filterJenis && n.jenis !== filterJenis) return false;
+      if (filterStatus) {
+        var ns = n.status;
+        if (ns === 'tersimpan') ns = 'DRAFT';
+        if (ns !== filterStatus) return false;
+      }
+      if (search) {
+        var haystack = (n.judul + ' ' + n.jenis + ' ' + n.pimpinan + ' ' + n.notulis + ' ' + (n.notulisNama || '')).toLowerCase();
+        if (haystack.indexOf(search) === -1) return false;
+      }
+      return true;
+    });
+
+    filtered.reverse();
+    var total = filtered.length;
+    var totalPages = Math.ceil(total / pageSize) || 1;
+    var start = (page - 1) * pageSize;
+    var data = filtered.slice(start, start + pageSize);
+
+    return { success: true, data: data, total: total, page: page, pageSize: pageSize, totalPages: totalPages };
   } catch (err) {
     return { success: false, message: err.message };
   }
@@ -498,7 +526,7 @@ function simpanNotulen(data) {
       jalannyaList.length, poinList.length, now,
       driveUrl, data.undangan || '', status,
       data.pesertaJson || '', '', draftToken, approverEmail, '', '',
-      data.agendaRapat || ''
+      data.agendaRapat || '', ''
     ]);
 
     if (jalannyaList.length) {
@@ -520,6 +548,7 @@ function simpanNotulen(data) {
       var tlResult = _executeTindakLanjut(poinList, data, id);
       agendaCount = tlResult.agendaCount;
       updateCount = tlResult.updateCount;
+      notulenSheet.getRange(notulenSheet.getLastRow(), NOTULEN_HEADERS.length).setValue('TRUE');
     }
 
     var message = autoPublish ? 'Notulen diterbitkan' : 'Notulen tersimpan sebagai draft. Ajukan ke atasan untuk persetujuan.';
@@ -841,6 +870,11 @@ function setujuiNotulen(params) {
       return { success: false, message: 'Notulen tidak dalam status menunggu persetujuan' };
     }
 
+    var tlAlready = String(rows[rowIndex - 1][19] || '').trim();
+    if (tlAlready === 'TRUE') {
+      return { success: false, message: 'Tindak lanjut notulen ini sudah dieksekusi sebelumnya' };
+    }
+
     var now = new Date();
 
     // Ambil poinList dari sheet JALANNYA / POIN
@@ -865,6 +899,7 @@ function setujuiNotulen(params) {
 
     // Eksekusi TL
     var tlResult = _executeTindakLanjut(poinList, notulenData, params.id);
+    notulenSheet.getRange(rowIndex, NOTULEN_HEADERS.length).setValue('TRUE');
 
     var approverNama = _getNamaByEmail(params.approverEmail);
 
