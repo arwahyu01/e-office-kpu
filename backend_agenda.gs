@@ -594,7 +594,12 @@ function getListAgenda(filter) {
     const role = (filter?.role || "").toUpperCase().trim();
     const statusFilter = (filter?.status || "").trim();
     const subbagFilter = (filter?.subbag || "").trim();
-    const isAdmin = ["ADMIN","SEKRETARIS","PIMPINAN"].includes(role);
+    const isPrivileged = ["ADMIN","SEKRETARIS","PIMPINAN","KOMISIONER"].includes(role);
+    let userSubbag = '';
+    if (!isPrivileged) {
+      const userPeg = pegawaiMap[userEmail];
+      userSubbag = userPeg ? userPeg.subbag : '';
+    }
 
     let total=0, rencana=0, berjalan=0, selesai=0, overdue=0;
     const result = [];
@@ -603,11 +608,7 @@ function getListAgenda(filter) {
       const a = formatAgendaRow(agendaRows[i], pegawaiMap);
       if (!a) continue;
 
-      if (!isAdmin && a.createdByEmail !== userEmail) {
-        const agAssignments = assignmentsByAgenda[a.id] || [];
-        const assigned = agAssignments.some(as => String(as[2] || '').trim().toLowerCase() === userEmail);
-        if (!assigned) continue;
-      }
+      if (!isPrivileged && a.subbagian !== userSubbag) continue;
 
       if (statusFilter && a.status !== statusFilter) continue;
       if (subbagFilter && a.subbagian !== subbagFilter) continue;
@@ -1331,13 +1332,14 @@ function getActivityLog(referensi, limit) {
 // =============================================
 // KALENDER KEGIATAN
 // =============================================
-function getCalendarData(userEmail, bulan, tahun) {
+function getCalendarData(userEmail, bulan, tahun, userRole) {
   try {
     ensureAgendaSheets();
     var result = { success: true, agenda: [], manual: [] };
+    var role = (userRole || '').toUpperCase().trim() || 'USER';
 
-    // 1. Ambil agenda yg di-assign ke user
-    var list = getListAgenda({ userEmail: userEmail, role: 'USER', status: '', subbag: '' });
+    // 1. Ambil agenda sesuai hak akses user
+    var list = getListAgenda({ userEmail: userEmail, role: role, status: '', subbag: '' });
     if (list.success && list.data) {
       var filterBulan = parseInt(bulan);
       var filterTahun = parseInt(tahun);

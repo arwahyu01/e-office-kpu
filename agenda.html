@@ -76,9 +76,16 @@
                 <div class="stat-card"><div class="stat-icon" style="background:#d1fae5;color:#059669;"><i class="fas fa-check-circle"></i></div><div class="stat-info"><h3 id="statSelesai">0</h3><p>Selesai</p></div></div>
                 <div class="stat-card"><div class="stat-icon" style="background:#fee2e2;color:#dc2626;"><i class="fas fa-exclamation-triangle"></i></div><div class="stat-info"><h3 id="statOverdue">0</h3><p>Terlambat</p></div></div>
             </div>
-            <div class="filter-bar"><div class="filter-group" style="display:flex;gap:10px;flex-wrap:wrap;">
+            <div class="filter-bar"><div class="filter-group" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
                 <select id="filterStatus" class="filter-select" onchange="filterChange()"><option value="">Semua Status</option><option value="RENCANA">Belum Mulai</option><option value="BERJALAN">Sedang Dikerjakan</option><option value="SELESAI">Selesai</option></select>
                 <select id="filterSubbag" class="filter-select" onchange="filterChange()"><option value="">Semua Subbagian</option></select>
+                <input type="date" id="filterTglMulai" class="filter-select" onchange="filterChange()" style="max-width:150px;" title="Tanggal Mulai">
+                <input type="date" id="filterTglSelesai" class="filter-select" onchange="filterChange()" style="max-width:150px;" title="Tanggal Selesai">
+                <div class="tab-filter-group" id="tabJadwal">
+                    <button class="tab-filter tab-filter-active" data-tab="terjadwal" onclick="setTabJadwal('terjadwal',this)">Terjadwal</button>
+                    <button class="tab-filter" data-tab="belum" onclick="setTabJadwal('belum',this)">Belum Terjadwal</button>
+                    <button class="tab-filter" data-tab="semua" onclick="setTabJadwal('semua',this)">Semua</button>
+                </div>
                 <button class="btn-primary" onclick="openWizard()"><i class="fas fa-plus"></i> Agenda Baru</button>
             </div><div class="filter-info"><span id="countView">0</span> agenda</div></div>
             <div class="agenda-grid" id="agendaGrid"></div>
@@ -97,7 +104,6 @@
                         <i class="fas fa-search"></i>
                         <input type="text" id="kalSearch" class="kal-search-input" placeholder="Cari kegiatan..." oninput="kalFilterSearch()">
                     </div>
-                    <button class="btn-primary" onclick="openKalEventModal()"><i class="fas fa-plus"></i> Tambah</button>
                 </div>
             </div>
 
@@ -109,11 +115,6 @@
                 <select id="kalFilterSubbag" class="filter-select" onchange="kalFilterSubbagChange()" style="margin-left:8px;max-width:200px;">
                     <option value="">Semua Subbagian</option>
                 </select>
-                <div class="kal-filter-chips-right">
-                    <label class="kal-chip-toggle"><input type="checkbox" checked onchange="kalFilterType()"><span>☑ Kantor</span></label>
-                    <label class="kal-chip-toggle"><input type="checkbox" onchange="kalFilterType()"><span>☑ Pribadi</span></label>
-                    <label class="kal-chip-toggle"><input type="checkbox" onchange="kalFilterType()"><span>☑ Libur</span></label>
-                </div>
             </div>
 
             <div class="kal-main-layout">
@@ -206,14 +207,17 @@
 
         <!-- ============ DETAIL ============ -->
         <section id="section-detail" class="content-section" style="display:none;">
-            <div class="page-header">
-                <div>
-                    <button onclick="backToList()" style="background:none;border:none;color:#b30000;font-weight:600;cursor:pointer;margin-bottom:8px;"><i class="fas fa-arrow-left"></i> Kembali</button>
+            <div class="detail-hero">
+                <button onclick="backToList()" class="detail-back"><i class="fas fa-arrow-left"></i> Kembali</button>
+                <div class="detail-hero-title">
                     <h1 id="detailJudul">-</h1>
-                    <p id="detailNomor" style="color:#94a3b8;font-size:13px;">-</p>
+                    <div class="detail-hero-meta">
+                        <span id="detailNomor" class="detail-nomor">-</span>
+                        <span id="detailHeroStatus"></span>
+                    </div>
                 </div>
-                <div style="display:flex;gap:8px;">
-                    <button class="btn-secondary" onclick="openEditAgenda(currentDetailId)"><i class="fas fa-edit"></i> Edit</button>
+                <div class="detail-hero-actions">
+                    <button class="btn-secondary" onclick="openEditAgenda(currentDetailId)" title="Edit"><i class="fas fa-edit"></i> Edit</button>
                     <button class="btn-primary" onclick="openCreateWorkflow()"><i class="fas fa-plus"></i> Workflow</button>
                 </div>
             </div>
@@ -226,18 +230,27 @@
                 </div>
                 <div class="detail-card-body">
                     <div class="info-grid">
-                        <div class="info-item"><span class="label">Status</span><span id="detailStatus" class="value">-</span></div>
-                        <div class="info-item"><span class="label">Prioritas</span><span id="detailPrioritas" class="value">-</span></div>
-                        <div class="info-item"><span class="label">Pembuat</span><span id="detailPembuat" class="value">-</span></div>
-                        <div class="info-item"><span class="label">Subbagian</span><span id="detailSubbag" class="value">-</span></div>
-                        <div class="info-item"><span class="label">Sumber</span><span id="detailSumber" class="value">-</span></div>
-                        <div class="info-item"><span class="label">Kategori</span><span id="detailJenis" class="value">-</span></div>
-                        <div class="info-item"><span class="label">Tanggal Mulai</span><span id="detailTglMulai" class="value">-</span></div>
-                        <div class="info-item"><span class="label">Tenggat</span><span id="detailTenggat" class="value">-</span></div>
+                        <div class="info-item"><div class="info-icon"><i class="fas fa-circle"></i></div><div class="info-content"><span class="label">Status</span><span id="detailStatus" class="value">-</span></div></div>
+                        <div class="info-item"><div class="info-icon"><i class="fas fa-flag"></i></div><div class="info-content"><span class="label">Prioritas</span><span id="detailPrioritas" class="value">-</span></div></div>
+                        <div class="info-item"><div class="info-icon"><i class="fas fa-user"></i></div><div class="info-content"><span class="label">Pembuat</span><span id="detailPembuat" class="value">-</span></div></div>
+                        <div class="info-item"><div class="info-icon"><i class="fas fa-building"></i></div><div class="info-content"><span class="label">Subbagian</span><span id="detailSubbag" class="value">-</span></div></div>
+                        <div class="info-item"><div class="info-icon"><i class="fas fa-tag"></i></div><div class="info-content"><span class="label">Kategori</span><span id="detailJenis" class="value">-</span></div></div>
+                        <div class="info-item"><div class="info-icon"><i class="fas fa-calendar"></i></div><div class="info-content"><span class="label">Tanggal Mulai</span><span id="detailTglMulai" class="value">-</span></div></div>
+                        <div class="info-item"><div class="info-icon"><i class="fas fa-hourglass-end"></i></div><div class="info-content"><span class="label">Tenggat</span><span id="detailTenggat" class="value">-</span></div></div>
+                        <div class="info-item"><div class="info-icon"><i class="fas fa-code-branch"></i></div><div class="info-content"><span class="label">Sumber</span><span id="detailSumber" class="value">-</span></div></div>
                     </div>
-                    <div style="margin-top:16px;"><span class="label">Deskripsi</span><p id="detailDeskripsi" style="margin-top:4px;color:#475569;font-size:14px;line-height:1.6;">-</p></div>
-                    <div style="margin-top:16px;"><span class="label">Dasar Agenda</span><p id="detailDasar" style="margin-top:4px;color:#475569;font-size:14px;">-</p></div>
-                    <div style="margin-top:16px;"><span class="label">Output yang Diharapkan</span><p id="detailOutput" style="margin-top:4px;color:#475569;font-size:14px;">-</p></div>
+                    <div style="margin-top:18px;padding:14px 16px;background:#fafbfc;border-radius:10px;border:1px solid #f1f5f9;">
+                        <span class="label" style="font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.04em;">Deskripsi</span>
+                        <p id="detailDeskripsi" style="margin-top:6px;color:#475569;font-size:14px;line-height:1.7;">-</p>
+                    </div>
+                    <div style="margin-top:12px;padding:14px 16px;background:#fafbfc;border-radius:10px;border:1px solid #f1f5f9;">
+                        <span class="label" style="font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.04em;">Dasar Agenda</span>
+                        <p id="detailDasar" style="margin-top:6px;color:#475569;font-size:14px;">-</p>
+                    </div>
+                    <div style="margin-top:12px;padding:14px 16px;background:#fafbfc;border-radius:10px;border:1px solid #f1f5f9;">
+                        <span class="label" style="font-size:10px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.04em;">Output yang Diharapkan</span>
+                        <p id="detailOutput" style="margin-top:6px;color:#475569;font-size:14px;">-</p>
+                    </div>
                 </div>
             </div>
 
@@ -714,7 +727,7 @@ function logout() { localStorage.removeItem(SESSION_KEY); redirectToLogin(); }
 function showLoading(m) { const el=document.getElementById('loading'); el.querySelector('.loading-text').textContent=m||'Memuat...'; el.style.display='flex'; }
 function hideLoading() { document.getElementById('loading').style.display='none'; }
 
-function initApp() { hideLoading(); loadSystemVersion(); loadPegawai(); loadList(); loadDashboardStats(); }
+function initApp() { hideLoading(); loadSystemVersion(); loadPegawai(); setDefaultDateRange(); loadList(); loadDashboardStats(); }
 
 function loadSystemVersion() {
   google.script.run.withSuccessHandler(function(res) {
@@ -786,6 +799,8 @@ function loadDashboardStats() {
 // =============================================
 // LIST AGENDA
 // =============================================
+var _tabJadwal = 'terjadwal';
+
 function loadList() {
   const grid = document.getElementById('agendaGrid');
   if (grid) grid.innerHTML = getSkeletonCards(6);
@@ -795,8 +810,7 @@ function loadList() {
 
   google.script.run.withSuccessHandler(r => {
     currentAgendaList = (r.success && r.data) ? r.data : [];
-    renderAgendaGrid(currentAgendaList);
-    document.getElementById('countView').textContent = currentAgendaList.length;
+    applyFilters();
     if (r.stats) {
       document.getElementById('statTotal').textContent=r.stats.total||0;
       document.getElementById('statBerjalan').textContent=r.stats.berjalan||0;
@@ -807,14 +821,54 @@ function loadList() {
   .getListAgenda({ userEmail:currentUser.email, role:currentUser.level, status, subbag });
 }
 
+function applyFilters() {
+  var list = currentAgendaList;
+  var tglMulai = document.getElementById('filterTglMulai').value;
+  var tglSelesai = document.getElementById('filterTglSelesai').value;
+
+  if (_tabJadwal === 'terjadwal') {
+    list = list.filter(function(a) {
+      if (!a.tanggalMulai && !a.tanggalSelesai) return false;
+      if (tglMulai && a.tanggalSelesai && a.tanggalSelesai < tglMulai) return false;
+      if (tglSelesai && a.tanggalMulai && a.tanggalMulai > tglSelesai) return false;
+      return true;
+    });
+  } else if (_tabJadwal === 'belum') {
+    list = list.filter(function(a) { return !a.tanggalMulai && !a.tanggalSelesai; });
+  }
+
+  renderAgendaGrid(list);
+  document.getElementById('countView').textContent = list.length;
+}
+
+function setDefaultDateRange() {
+  var now = new Date();
+  var year = now.getFullYear();
+  document.getElementById('filterTglMulai').value = year + '-01-01';
+  document.getElementById('filterTglSelesai').value = year + '-12-31';
+}
+
+function setTabJadwal(tab, btn) {
+  _tabJadwal = tab;
+  document.querySelectorAll('#tabJadwal .tab-filter').forEach(function(b) { b.classList.remove('tab-filter-active'); });
+  if (btn) btn.classList.add('tab-filter-active');
+  var tanggalInputs = document.querySelectorAll('#filterTglMulai, #filterTglSelesai');
+  if (tab === 'terjadwal') {
+    tanggalInputs.forEach(function(el) { el.style.display = ''; });
+  } else {
+    tanggalInputs.forEach(function(el) { el.style.display = 'none'; });
+  }
+  applyFilters();
+}
+
 function getSkeletonCards(n) {
   var html = '';
   for (var i = 0; i < n; i++) {
     html += '<div class="agenda-skeleton">' +
-      '<div class="sk-row between"><div class="sk-block sk-h2"></div><div class="sk-block sk-badge"></div></div>' +
-      '<div class="sk-row"><div class="sk-block sk-line"></div><div class="sk-block sk-badge" style="width:70px;"></div></div>' +
+      '<div class="sk-row between"><div class="sk-block sk-h2"></div><div class="sk-block sk-badge" style="width:60px;"></div></div>' +
+      '<div class="sk-row"><div class="sk-block sk-line"></div><div class="sk-block sk-badge" style="width:90px;"></div></div>' +
       '<div class="sk-row"><div class="sk-block sk-bar"></div><div class="sk-block sk-pct"></div></div>' +
-      '<div class="sk-row between"><div class="sk-block sk-line" style="width:40%;"></div><div class="sk-row"><div class="sk-block sk-icon"></div><div class="sk-block sk-icon"></div><div class="sk-block sk-icon"></div></div></div>' +
+      '<div class="sk-row"><div class="sk-block sk-line" style="width:100%;height:30px;"></div></div>' +
       '</div>';
   }
   return html;
@@ -831,13 +885,11 @@ function renderAgendaGrid(list) {
     var sb = getStatusBadge(a);
     var pct = a.progressPersentase||0;
     var pcls = pct>=100?'selesai':pct>=50?'tinggi':pct>0?'sedang':'rendah';
-    var src = (a.sumber||'pegawai').toLowerCase();
-    var deadlineCls = a.isOverdue ? 'agenda-card-deadline overdue' : 'agenda-card-deadline';
-    var deadlineIcon = a.isOverdue ? '<i class="fas fa-exclamation-circle"></i>' : '<i class="fas fa-calendar-day"></i>';
+    var dlIcon = a.isOverdue ? '<i class="fas fa-exclamation-circle"></i>' : '<i class="fas fa-calendar-day"></i>';
     return '<div class="agenda-card">' +
       '<div class="agenda-card-top">' +
         '<div class="agenda-card-title">' + esc(a.judul) + '</div>' +
-        '<div class="agenda-card-badges"><span class="sumber-badge ' + src + '">' + esc(a.sumber||'PEGAWAI') + '</span><span class="badge ' + pc + '">' + esc(a.prioritas) + '</span></div>' +
+        '<span class="badge ' + pc + '">' + esc(a.prioritas) + '</span>' +
       '</div>' +
       '<div class="agenda-card-meta">' +
         '<span class="agenda-card-pic"><i class="fas fa-user"></i> ' + esc(a.picNama||a.createdByNama||'-') + '</span>' +
@@ -848,10 +900,9 @@ function renderAgendaGrid(list) {
         '<span class="agenda-card-pct">' + pct + '%</span>' +
       '</div>' +
       '<div class="agenda-card-footer">' +
-        '<div class="' + deadlineCls + '">' + deadlineIcon + ' ' + (a.tanggalSelesai||'-') + '</div>' +
+        '<span class="agenda-card-deadline' + (a.isOverdue?' overdue':'') + '">' + dlIcon + ' ' + (a.tanggalSelesai||'-') + '</span>' +
         '<div class="agenda-card-actions">' +
           '<button class="btn-agenda-view" onclick="viewDetail(\'' + a.id + '\')" title="Detail"><i class="fas fa-eye"></i></button>' +
-          '<button class="btn-agenda-edit" onclick="openEditAgenda(\'' + a.id + '\')" title="Edit"><i class="fas fa-edit"></i></button>' +
           '<button class="btn-agenda-delete" onclick="confirmDelete(\'' + a.id + '\')" title="Hapus"><i class="fas fa-trash"></i></button>' +
         '</div>' +
       '</div>' +
@@ -1342,9 +1393,6 @@ var kalBulan = 0, kalTahun = 0, kalData = { agenda: [], manual: [] };
 var kalSelectedDate = '';
 var kalViewMode = 'day';
 var kalWeekRange = null; // { start: '2026-07-06', end: '2026-07-12' }
-var kalFilterTypeAgenda = true;
-var kalFilterTypeManual = false;
-var kalFilterTypeLibur = false;
 var kalFilterSubbag = '';
 
 function loadKalender() {
@@ -1437,7 +1485,7 @@ function renderKalender() {
     document.getElementById('kalenderGrid').innerHTML = '<p style="text-align:center;color:#dc2626;padding:40px;">Gagal memuat kalender.</p>';
     document.getElementById('kalRightPanel').innerHTML = '';
   })
-  .getCalendarData(currentUser.email, kalBulan, kalTahun);
+  .getCalendarData(currentUser.email, kalBulan, kalTahun, currentUser.level);
 }
 
 function buildKalender() {
@@ -1503,6 +1551,7 @@ function buildKalender() {
     html += '</div>';
   }
   document.getElementById('kalenderGrid').innerHTML = html;
+  kalPilihTanggal(kalSelectedDate);
 }
 
 function getKalDotHtml(events) {
@@ -1529,11 +1578,7 @@ function getKalDotHtml(events) {
 
 function applyFilterType(events) {
   return events.filter(function(e) {
-    if (e.sumber === 'agenda') {
-      if (!kalFilterTypeAgenda) return false;
-      if (kalFilterSubbag && e.subbagian !== kalFilterSubbag) return false;
-    }
-    if (e.sumber === 'manual' && !kalFilterTypeManual) return false;
+    if (e.sumber === 'agenda' && kalFilterSubbag && e.subbagian !== kalFilterSubbag) return false;
     return true;
   });
 }
@@ -1552,7 +1597,7 @@ function buildKalRightPanel(selectedDateStr) {
   var html = '';
   html += '<div class="kal-right-header">';
   html += '<div class="kal-right-date"><h3>' + (isToday ? 'Hari Ini' : tanggalFormatted) + '</h3><span class="kal-right-count">' + sorted.length + ' kegiatan</span></div>';
-  html += '<button class="btn-icon" onclick="openKalEventModal(\'' + selectedDateStr + '\')" title="Tambah"><i class="fas fa-plus-circle"></i></button>';
+  //
   html += '</div>';
   if (!sorted.length) {
     html += '<div class="kal-right-empty"><i class="fas fa-calendar-check"></i><p>Tidak ada kegiatan</p></div>';
@@ -1591,7 +1636,7 @@ function buildKalRightPanelWeek(startStr, endStr) {
   html += '<div class="kal-right-date"><h3>Minggu Ini</h3><span class="kal-right-count">' + totalCount + ' kegiatan (' + startFormatted + ' — ' + endFormatted + ')</span></div>';
   html += '</div>';
   if (!totalCount) {
-    html += '<div class="kal-right-empty"><i class="fas fa-calendar-check"></i><p>Tidak ada kegiatan minggu ini</p><button class="btn-primary" onclick="openKalEventModal()"><i class="fas fa-plus"></i> Tambah Kegiatan</button></div>';
+    html += '<div class="kal-right-empty"><i class="fas fa-calendar-check"></i><p>Tidak ada kegiatan minggu ini</p></div>';
   } else {
     html += '<div class="kal-timeline">';
     dayKeys.forEach(function(d) {
@@ -1830,14 +1875,6 @@ function kalFilterSearch() {
   renderKalFilteredPanel(filtered);
 }
 
-function kalFilterType() {
-  kalFilterTypeAgenda = document.querySelectorAll('.kal-chip-toggle input')[0].checked;
-  kalFilterTypeManual = document.querySelectorAll('.kal-chip-toggle input')[1].checked;
-  kalFilterTypeLibur = document.querySelectorAll('.kal-chip-toggle input')[2].checked;
-  if (kalWeekRange) { buildKalRightPanelWeek(kalWeekRange.start, kalWeekRange.end); return; }
-  buildKalRightPanel(kalSelectedDate);
-}
-
 function renderKalFilteredPanel(events) {
   var sorted = events.sort(function(a, b) {
     var aD = a.tanggalMulai||''; var bD = b.tanggalMulai||'';
@@ -2019,8 +2056,9 @@ function renderDetail(r) {
   const a = r.agenda;
   document.getElementById('detailJudul').textContent = a.judul||'-';
   document.getElementById('detailNomor').textContent = a.nomorAgenda ? 'No. '+a.nomorAgenda : '';
+  document.getElementById('detailHeroStatus').innerHTML = getStatusBadge(a);
   document.getElementById('detailStatus').innerHTML = getStatusBadge(a);
-  document.getElementById('detailPrioritas').innerHTML = `<span class="badge ${getPrioritasClass(a.prioritas)}">${a.prioritas||'-'}</span>`;
+  document.getElementById('detailPrioritas').innerHTML = `<span class="badge ${getPrioritasClass(a.prioritas)}" style="font-size:12px;padding:3px 10px;">${a.prioritas||'-'}</span>`;
   document.getElementById('detailPembuat').textContent = a.createdByNama||'-';
   document.getElementById('detailSubbag').textContent = a.subbagian||'-';
   document.getElementById('detailSumber').textContent = a.sumber||'-';
@@ -2029,7 +2067,7 @@ function renderDetail(r) {
   document.getElementById('detailTenggat').textContent = a.tanggalSelesai||'-';
   document.getElementById('detailDeskripsi').textContent = a.deskripsi||'-';
   var dasarHtml = esc(a.dasarAgenda||'-');
-  if (a.dasarFileUrl) dasarHtml += ' <a href="' + esc(a.dasarFileUrl) + '" target="_blank" style="color:#3b82f6;font-size:12px;text-decoration:underline;"><i class="fas fa-external-link-alt"></i> Lampiran</a>';
+  if (a.dasarFileUrl) dasarHtml += ' <a href="' + esc(a.dasarFileUrl) + '" target="_blank" style="color:#3b82f6;font-size:12px;text-decoration:underline;margin-left:8px;"><i class="fas fa-external-link-alt"></i> Lampiran</a>';
   document.getElementById('detailDasar').innerHTML = dasarHtml;
   document.getElementById('detailOutput').textContent = a.targetOutput||'-';
   window._currentWorkflows = r.workflows || [];
@@ -2799,10 +2837,11 @@ function confirmDeleteEv(id) {
 function renderActivityLog(logs) {
   const c=document.getElementById('activityLogContainer');
   if (!logs||!logs.length) { c.innerHTML='<div class="empty-state"><i class="fas fa-clock"></i><h3>Belum Ada Aktivitas</h3></div>'; return; }
-  c.innerHTML = logs.map(l => `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:13px;">
-    <i class="fas fa-circle" style="font-size:6px;color:#b30000;"></i>
-    <strong>${esc(l.userNama)}</strong> <span style="color:#64748b;">${esc(l.aktivitas)}</span>
-    <span style="margin-left:auto;color:#94a3b8;font-size:11px;">${l.waktu}</span></div>`).join('');
+  c.innerHTML = '<div style="display:flex;flex-direction:column;gap:2px;">' + logs.map(l => `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;font-size:13px;transition:background 0.2s;" onmouseover="this.style.background='#fafbfc'" onmouseout="this.style.background=''">
+    <div style="width:6px;height:6px;border-radius:50%;background:#b30000;flex-shrink:0;"></div>
+    <strong style="color:#0f172a;white-space:nowrap;">${esc(l.userNama)}</strong>
+    <span style="color:#64748b;">${esc(l.aktivitas)}</span>
+    <span style="margin-left:auto;color:#94a3b8;font-size:11px;white-space:nowrap;">${l.waktu}</span></div>`).join('') + '</div>';
 }
 
 
