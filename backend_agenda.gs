@@ -496,7 +496,6 @@ function formatAgendaRow(row, pegawaiMap) {
   const creator = pegawaiMap[createdBy] || null;
   const now = new Date();
 
-  // Overdue check
   let isOverdue = false;
   const tglSelesai = row[12];
   if (tglSelesai && String(row[7]) !== "SELESAI") {
@@ -521,31 +520,92 @@ function formatAgendaRow(row, pegawaiMap) {
   };
 }
 
+function computeProgressSummary(agendaId, workflowsByAgenda, progressByWorkflow) {
+  const wfs = workflowsByAgenda[agendaId] || [];
+  let total = 0, done = 0;
+  for (let wi = 0; wi < wfs.length; wi++) {
+    const wf = wfs[wi];
+    const wfId = String(wf[0] || '').trim();
+    const list = progressByWorkflow[wfId] || [];
+    total += list.length;
+    for (let pi = 0; pi < list.length; pi++) {
+      if (String(list[pi][4] || '').trim() === "SELESAI") done++;
+    }
+  }
+  const persentase = total > 0 ? Math.round((done / total) * 100) : 0;
+  return { persentase, totalWorkflow: wfs.length, totalProgress: total };
+}
+
+function formatAssignments(assignRows, pegawaiMap) {
+  const result = [];
+  for (let i = 0; i < assignRows.length; i++) {
+    const row = assignRows[i];
+    const email = String(row[2] || "").trim().toLowerCase();
+    const peg = pegawaiMap[email] || null;
+    result.push({
+      id: row[0], agendaId: row[1], emailPegawai: email,
+      nama: peg ? peg.nama : email, jabatan: peg ? peg.jabatan : "",
+      subbag: peg ? peg.subbag : "", role: row[3],
+      status: row[4], readAt: row[5], startedAt: row[6], finishedAt: row[7]
+    });
+  }
+  return result;
+}
+
 function getListAgenda(filter) {
   try {
     ensureAgendaSheets();
-    const sh = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.MASTER_AGENDA);
+    const ss = getAgendaSpreadsheet();
+    const sh = ss.getSheetByName(AGENDA_SHEETS.MASTER_AGENDA);
     if (sh.getLastRow() < 2) return { success: true, data: [], stats: {} };
 
-    const rows = sh.getDataRange().getValues();
+    // Batch-read all sheets ONCE
+    const agendaRows = sh.getDataRange().getValues();
     const pegawaiMap = getPegawaiMapByEmail();
+
+    const wfSh = ss.getSheetByName(AGENDA_SHEETS.MASTER_WORKFLOW);
+    const wfRows = wfSh && wfSh.getLastRow() >= 2 ? wfSh.getDataRange().getValues() : [];
+    const workflowsByAgenda = {};
+    for (let i = 1; i < wfRows.length; i++) {
+      const agId = String(wfRows[i][1] || '').trim();
+      if (!workflowsByAgenda[agId]) workflowsByAgenda[agId] = [];
+      workflowsByAgenda[agId].push(wfRows[i]);
+    }
+
+    const progSh = ss.getSheetByName(AGENDA_SHEETS.MASTER_PROGRESS);
+    const progRows = progSh && progSh.getLastRow() >= 2 ? progSh.getDataRange().getValues() : [];
+    const progressByWorkflow = {};
+    for (let i = 1; i < progRows.length; i++) {
+      const wfId = String(progRows[i][1] || '').trim();
+      if (!progressByWorkflow[wfId]) progressByWorkflow[wfId] = [];
+      progressByWorkflow[wfId].push(progRows[i]);
+    }
+
+    const assignSh = ss.getSheetByName(AGENDA_SHEETS.MASTER_ASSIGNMENT);
+    const assignRows = assignSh && assignSh.getLastRow() >= 2 ? assignSh.getDataRange().getValues() : [];
+    const assignmentsByAgenda = {};
+    for (let i = 1; i < assignRows.length; i++) {
+      const agId = String(assignRows[i][1] || '').trim();
+      if (!assignmentsByAgenda[agId]) assignmentsByAgenda[agId] = [];
+      assignmentsByAgenda[agId].push(assignRows[i]);
+    }
+
     const userEmail = (filter?.userEmail || "").toLowerCase().trim();
     const role = (filter?.role || "").toUpperCase().trim();
     const statusFilter = (filter?.status || "").trim();
     const subbagFilter = (filter?.subbag || "").trim();
-    const result = [];
     const isAdmin = ["ADMIN","SEKRETARIS","PIMPINAN"].includes(role);
 
     let total=0, rencana=0, berjalan=0, selesai=0, overdue=0;
+    const result = [];
 
-    for (let i = 1; i < rows.length; i++) {
-      const a = formatAgendaRow(rows[i], pegawaiMap);
+    for (let i = 1; i < agendaRows.length; i++) {
+      const a = formatAgendaRow(agendaRows[i], pegawaiMap);
       if (!a) continue;
 
-      // Filter akses
       if (!isAdmin && a.createdByEmail !== userEmail) {
-        const assignments = getAssignmentsByAgendaId(a.id);
-        const assigned = assignments.some(as => as.emailPegawai === userEmail);
+        const agAssignments = assignmentsByAgenda[a.id] || [];
+        const assigned = agAssignments.some(as => String(as[2] || '').trim().toLowerCase() === userEmail);
         if (!assigned) continue;
       }
 
@@ -558,22 +618,21 @@ function getListAgenda(filter) {
       else if (a.status === "SELESAI") selesai++;
       if (a.isOverdue) overdue++;
 
-      // Hitung progress
-      const progressInfo = getProgressSummary(a.id);
-      const assignments = getAssignmentsByAgendaId(a.id);
+      const progressInfo = computeProgressSummary(a.id, workflowsByAgenda, progressByWorkflow);
+      const agAssignments = assignmentsByAgenda[a.id] || [];
+      const formattedAssignments = formatAssignments(agAssignments, pegawaiMap);
 
       result.push({
         ...a,
         progressPersentase: progressInfo.persentase,
         totalWorkflow: progressInfo.totalWorkflow,
         totalProgress: progressInfo.totalProgress,
-        assignments: assignments,
-        picNama: (assignments.find(as => as.role === "PIC") || {}).nama || a.createdByNama,
-        picEmail: (assignments.find(as => as.role === "PIC") || {}).emailPegawai || a.createdByEmail
+        assignments: formattedAssignments,
+        picNama: (formattedAssignments.find(as => as.role === "PIC") || {}).nama || a.createdByNama,
+        picEmail: (formattedAssignments.find(as => as.role === "PIC") || {}).emailPegawai || a.createdByEmail
       });
     }
 
-    // Sort: overdue first, then by tanggalSelesai
     result.sort((a, b) => {
       if (a.isOverdue && !b.isOverdue) return -1;
       if (!a.isOverdue && b.isOverdue) return 1;

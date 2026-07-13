@@ -746,7 +746,7 @@ function switchSection(id, btn) {
 function loadPegawai() {
   google.script.run.withSuccessHandler(list => {
     pegawaiList = list || [];
-    subbagList = [...new Set(list.map(p=>p.subbag).filter(Boolean))];
+    subbagList = [...new Set(list.map(p=>p.subbag).filter(Boolean))].filter(sb => !sb.startsWith('DIVISI'));
     populateDropdowns();
   }).withFailureHandler(() => {}).getPegawaiDropdown();
 }
