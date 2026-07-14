@@ -19,6 +19,10 @@ const NOTULEN_STATUS = {
 
 const AUTO_PUBLISH_ROLES = ['KOMISIONER', 'SEKRETARIS', 'KASUBBAG'];
 
+const NOTULEN_ROOT_PATH = 'E-OFFICE/NOTULEN';
+const TL_EXECUTED_FLAG = 'TRUE';
+const DEFAULT_JAM_MULAI = '10.30';
+
 const NOTULEN_HEADERS = [
   'ID', 'TANGGAL', 'JENIS', 'JUDUL', 'PIMPINAN',
   'NOTULIS', 'JALANNYA_COUNT', 'POIN_COUNT', 'CREATED_AT',
@@ -553,7 +557,7 @@ function simpanNotulen(data) {
       var tlResult = _executeTindakLanjut(poinList, data, id);
       agendaCount = tlResult.agendaCount;
       updateCount = tlResult.updateCount;
-      notulenSheet.getRange(notulenSheet.getLastRow(), NOTULEN_HEADERS.length).setValue('TRUE');
+      notulenSheet.getRange(notulenSheet.getLastRow(), NOTULEN_HEADERS.length).setValue(TL_EXECUTED_FLAG);
     }
 
     var message = autoPublish ? 'Notulen diterbitkan' : 'Notulen tersimpan sebagai draft. Ajukan ke atasan untuk persetujuan.';
@@ -603,7 +607,12 @@ function _updateNotulenInternal(data, ss, notulenSheet) {
   }
   notulenSheet.getRange(rowIndex, 13).setValue(data.pesertaJson || '');
   if (data.undangan !== undefined) notulenSheet.getRange(rowIndex, 11).setValue(data.undangan || '');
+  if (data.draftToken) notulenSheet.getRange(rowIndex, 15).setValue(data.draftToken);
   if (data.agendaRapat !== undefined) notulenSheet.getRange(rowIndex, 19).setValue(data.agendaRapat || '');
+  if (data.mengetahui !== undefined) notulenSheet.getRange(rowIndex, 22).setValue(data.mengetahui || '');
+  if (!createdBy && data.userEmail) {
+    notulenSheet.getRange(rowIndex, 21).setValue(data.userEmail);
+  }
 
   try {
     var driveUrl = simpanNotulenKeDrive(id, data);
@@ -745,6 +754,60 @@ function _executeTindakLanjut(poinList, data, id) {
   return { agendaCount: agendaCount, updateCount: updateCount };
 }
 
+function _resolveNotulisEmail(notulisVal) {
+  if (!notulisVal) return '';
+  if (notulisVal.indexOf('@') !== -1) return notulisVal;
+  try {
+    var list = getAllPegawai();
+    for (var j = 0; j < list.length; j++) {
+      if (list[j].nama && list[j].nama.toLowerCase().trim() === notulisVal.toLowerCase().trim()) {
+        return list[j].email || '';
+      }
+    }
+  } catch (e) {}
+  return '';
+}
+
+function _verifyApprovalAccess(params) {
+  if (!params.id || !params.approverEmail) {
+    return { success: false, message: 'Parameter tidak lengkap' };
+  }
+  var ss = getSS();
+  var notulenSheet = ss.getSheetByName(NOTULEN_SHEET_NAME);
+  if (!notulenSheet) return { success: false, message: 'Sheet notulen belum ada' };
+
+  var rows = _readSheet(notulenSheet, NOTULEN_HEADERS.length);
+  var rowIndex = -1;
+  var notulenData = null;
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] === params.id) {
+      rowIndex = i + 1;
+      var pesertaList = [];
+      try { if (rows[i][12]) pesertaList = JSON.parse(rows[i][12]); } catch (e) {}
+      notulenData = {
+        id: rows[i][0], tanggal: rows[i][1], jenis: rows[i][2],
+        judul: rows[i][3], pimpinan: rows[i][4], notulis: rows[i][5],
+        undangan: rows[i][10], userEmail: params.approverEmail,
+        pesertaJson: rows[i][12] || ''
+      };
+      break;
+    }
+  }
+  if (rowIndex === -1) return { success: false, message: 'Notulen tidak ditemukan' };
+
+  var currentStatus = rows[rowIndex - 1][11] || '';
+  if (currentStatus !== NOTULEN_STATUS.MENUNGGU) {
+    return { success: false, message: 'Notulen tidak dalam status menunggu persetujuan' };
+  }
+
+  var storedApprover = String(rows[rowIndex - 1][15] || '').trim();
+  if (storedApprover !== params.approverEmail) {
+    return { success: false, message: 'Anda bukan atasan yang ditunjuk untuk notulen ini' };
+  }
+
+  return { success: true, rowIndex: rowIndex, notulenData: notulenData, ss: ss, notulenSheet: notulenSheet, rows: rows };
+}
+
 // =============================================
 // AJUKAN NOTULEN KE ATASAN
 // =============================================
@@ -780,17 +843,7 @@ function ajukanNotulen(params) {
 
     // Cari atasan berdasarkan NOTULIS (col 5), bukan user yang login
     var notulisVal = String(rows[rowIndex - 1][5] || '').trim();
-    var notulisEmail = notulisVal.indexOf('@') !== -1 ? notulisVal : '';
-    if (!notulisEmail) {
-      // Fallback: cari email dari nama notulis
-      var list = getAllPegawai();
-      for (var j = 0; j < list.length; j++) {
-        if (list[j].nama && list[j].nama.toLowerCase().trim() === notulisVal.toLowerCase().trim()) {
-          notulisEmail = list[j].email || '';
-          break;
-        }
-      }
-    }
+    var notulisEmail = _resolveNotulisEmail(notulisVal);
     var approverEmail = notulisEmail ? _getAtasanEmailByEmail(notulisEmail) : '';
     if (!approverEmail) {
       return { success: false, message: 'Atasan langsung notulis tidak ditemukan di master pegawai' };
@@ -852,68 +905,19 @@ function getPengajuanNotulen(params) {
 // =============================================
 function setujuiNotulen(params) {
   try {
-    if (!params.id || !params.approverEmail) {
-      return { success: false, message: 'Parameter tidak lengkap' };
-    }
+    var v = _verifyApprovalAccess(params);
+    if (!v.success) return v;
 
-    var ss = getSS();
-    var notulenSheet = ss.getSheetByName(NOTULEN_SHEET_NAME);
-    if (!notulenSheet) return { success: false, message: 'Sheet notulen belum ada' };
-
-    var rows = _readSheet(notulenSheet, NOTULEN_HEADERS.length);
-    var rowIndex = -1;
-    var notulenData = null;
-    for (var i = 1; i < rows.length; i++) {
-      if (rows[i][0] === params.id) {
-        rowIndex = i + 1;
-        var pesertaList = [];
-        try { if (rows[i][12]) pesertaList = JSON.parse(rows[i][12]); } catch (e) {}
-        notulenData = {
-          id: rows[i][0], tanggal: rows[i][1], jenis: rows[i][2],
-          judul: rows[i][3], pimpinan: rows[i][4], notulis: rows[i][5],
-          undangan: rows[i][10], userEmail: params.approverEmail,
-          pesertaJson: rows[i][12] || ''
-        };
-        break;
-      }
-    }
-    if (rowIndex === -1) return { success: false, message: 'Notulen tidak ditemukan' };
-    if (!notulenData) return { success: false, message: 'Data notulen tidak valid' };
-
-    // Verifikasi bahwa approver adalah atasan langsung dari notulis
-    var notulisEmail = notulenData.notulis || '';
-    if (notulisEmail.indexOf('@') === -1) {
-      var allPeg = getAllPegawai();
-      for (var pe = 0; pe < allPeg.length; pe++) {
-        if (allPeg[pe].nama && allPeg[pe].nama.toLowerCase().trim() === notulisEmail.toLowerCase().trim()) {
-          notulisEmail = allPeg[pe].email || '';
-          break;
-        }
-      }
-    }
-    var expectedApprover = notulisEmail ? _getAtasanEmailByEmail(notulisEmail) : '';
-    if (!expectedApprover) {
-      return { success: false, message: 'Atasan langsung notulis tidak ditemukan di master pegawai' };
-    }
-    if (params.approverEmail !== expectedApprover) {
-      return { success: false, message: 'Anda bukan atasan yang ditunjuk untuk notulen ini' };
-    }
-
-    var currentStatus = rows[rowIndex - 1][11] || '';
-    if (currentStatus !== NOTULEN_STATUS.MENUNGGU) {
-      return { success: false, message: 'Notulen tidak dalam status menunggu persetujuan' };
-    }
-
-    var tlAlready = String(rows[rowIndex - 1][19] || '').trim();
-    if (tlAlready === 'TRUE') {
+    var tlAlready = String(v.rows[v.rowIndex - 1][19] || '').trim();
+    if (tlAlready === TL_EXECUTED_FLAG) {
       return { success: false, message: 'Tindak lanjut notulen ini sudah dieksekusi sebelumnya' };
     }
 
     var now = new Date();
 
-    // Ambil poinList dari sheet JALANNYA / POIN
+    // Ambil poinList dari sheet POIN_RAPAT
     var poinList = [];
-    var pSh = ss.getSheetByName(POIN_RAPAT_SHEET_NAME);
+    var pSh = v.ss.getSheetByName(POIN_RAPAT_SHEET_NAME);
     if (pSh) {
       var pRows = _readSheet(pSh, POIN_RAPAT_HEADERS.length);
       for (var p = 1; p < pRows.length; p++) {
@@ -927,13 +931,13 @@ function setujuiNotulen(params) {
     }
 
     // Update status
-    notulenSheet.getRange(rowIndex, 12).setValue(NOTULEN_STATUS.DISETUJUI);
-    notulenSheet.getRange(rowIndex, 16).setValue(params.approverEmail);
-    notulenSheet.getRange(rowIndex, 17).setValue(now);
+    v.notulenSheet.getRange(v.rowIndex, 12).setValue(NOTULEN_STATUS.DISETUJUI);
+    v.notulenSheet.getRange(v.rowIndex, 16).setValue(params.approverEmail);
+    v.notulenSheet.getRange(v.rowIndex, 17).setValue(now);
 
     // Eksekusi TL
-    var tlResult = _executeTindakLanjut(poinList, notulenData, params.id);
-    notulenSheet.getRange(rowIndex, NOTULEN_HEADERS.length).setValue('TRUE');
+    var tlResult = _executeTindakLanjut(poinList, v.notulenData, params.id);
+    v.notulenSheet.getRange(v.rowIndex, NOTULEN_HEADERS.length).setValue(TL_EXECUTED_FLAG);
 
     var approverNama = _getNamaByEmail(params.approverEmail);
 
@@ -952,34 +956,12 @@ function setujuiNotulen(params) {
 // =============================================
 function tolakNotulen(params) {
   try {
-    if (!params.id || !params.approverEmail) {
-      return { success: false, message: 'Parameter tidak lengkap' };
-    }
+    var v = _verifyApprovalAccess(params);
+    if (!v.success) return v;
 
-    var ss = getSS();
-    var notulenSheet = ss.getSheetByName(NOTULEN_SHEET_NAME);
-    if (!notulenSheet) return { success: false, message: 'Sheet notulen belum ada' };
-
-    var rows = _readSheet(notulenSheet, NOTULEN_HEADERS.length);
-    var rowIndex = -1;
-    for (var i = 1; i < rows.length; i++) {
-      if (rows[i][0] === params.id) { rowIndex = i + 1; break; }
-    }
-    if (rowIndex === -1) return { success: false, message: 'Notulen tidak ditemukan' };
-
-    var currentApprover = String(rows[rowIndex - 1][15] || '').trim();
-    if (currentApprover !== params.approverEmail) {
-      return { success: false, message: 'Anda bukan atasan yang ditunjuk untuk notulen ini' };
-    }
-
-    var currentStatus = rows[rowIndex - 1][11] || '';
-    if (currentStatus !== NOTULEN_STATUS.MENUNGGU) {
-      return { success: false, message: 'Notulen tidak dalam status menunggu persetujuan' };
-    }
-
-    notulenSheet.getRange(rowIndex, 12).setValue(NOTULEN_STATUS.DITOLAK);
-    notulenSheet.getRange(rowIndex, 16).setValue(params.approverEmail);
-    notulenSheet.getRange(rowIndex, 18).setValue(params.catatan || '');
+    v.notulenSheet.getRange(v.rowIndex, 12).setValue(NOTULEN_STATUS.DITOLAK);
+    v.notulenSheet.getRange(v.rowIndex, 16).setValue(params.approverEmail);
+    v.notulenSheet.getRange(v.rowIndex, 18).setValue(params.catatan || '');
 
     return { success: true, message: 'Notulen ditolak' };
   } catch (err) {
@@ -1011,92 +993,10 @@ function updateNotulen(data) {
     }
 
     var ss = getSS();
-    var sheetNotulen = ss;
     var notulenSheet = ss.getSheetByName(NOTULEN_SHEET_NAME);
     if (!notulenSheet) return { success: false, message: 'Sheet notulen belum ada' };
 
-    var rows = _readSheet(notulenSheet, NOTULEN_HEADERS.length);
-    var rowIndex = -1;
-    for (var i = 1; i < rows.length; i++) {
-      if (rows[i][0] === data.id) { rowIndex = i + 1; break; }
-    }
-    if (rowIndex === -1) return { success: false, message: 'Notulen tidak ditemukan' };
-
-    // Hanya pembuat yang bisa edit
-    var createdBy = rows[rowIndex - 1][20] || '';
-    var notulis = rows[rowIndex - 1][5] || '';
-    var creatorCheck = createdBy || notulis;
-    if (creatorCheck && data.userEmail && data.userEmail !== creatorCheck) {
-      return { success: false, message: 'Anda tidak memiliki izin untuk mengedit notulen ini' };
-    }
-
-    var jalannyaList = data.jalannyaList || [];
-    var poinList = data.poinList || [];
-    var now = new Date();
-
-    // Update row NOTULEN
-    notulenSheet.getRange(rowIndex, 2).setValue(data.tanggal);
-    notulenSheet.getRange(rowIndex, 3).setValue(data.jenis);
-    notulenSheet.getRange(rowIndex, 4).setValue(data.judul);
-    notulenSheet.getRange(rowIndex, 5).setValue(data.pimpinan || '');
-    notulenSheet.getRange(rowIndex, 6).setValue(data.notulis || '');
-    notulenSheet.getRange(rowIndex, 7).setValue(jalannyaList.length);
-    notulenSheet.getRange(rowIndex, 8).setValue(poinList.length);
-    notulenSheet.getRange(rowIndex, 13).setValue(data.pesertaJson || '');
-    if (data.undangan !== undefined) notulenSheet.getRange(rowIndex, 11).setValue(data.undangan || '');
-    if (data.draftToken) notulenSheet.getRange(rowIndex, 15).setValue(data.draftToken);
-    if (data.agendaRapat !== undefined) notulenSheet.getRange(rowIndex, 19).setValue(data.agendaRapat || '');
-    if (data.mengetahui !== undefined) notulenSheet.getRange(rowIndex, 22).setValue(data.mengetahui || '');
-    // Isi CREATED_BY jika masih kosong (migrasi data lama)
-    if (!createdBy && data.userEmail) {
-      notulenSheet.getRange(rowIndex, 21).setValue(data.userEmail);
-    }
-
-    // Re-generate file notulen di Drive
-    try {
-      var driveUrl = simpanNotulenKeDrive(data.id, data);
-      notulenSheet.getRange(rowIndex, 10).setValue(driveUrl);
-    } catch (e) {
-      console.warn('Gagal update file Drive:', e.message);
-    }
-
-    // Hapus jalannya & poin lama
-    var jSh = ss.getSheetByName(JALANNYA_SHEET_NAME);
-    if (jSh) {
-      var jRows = _readSheet(jSh, 2);
-      for (var j = jRows.length - 1; j >= 1; j--) {
-        if (jRows[j][1] === data.id) jSh.deleteRow(j + 1);
-      }
-    }
-
-    var pSh = ss.getSheetByName(POIN_RAPAT_SHEET_NAME);
-    if (pSh) {
-      var pRows = _readSheet(pSh, 2);
-      for (var p = pRows.length - 1; p >= 1; p--) {
-        if (pRows[p][1] === data.id) pSh.deleteRow(p + 1);
-      }
-    }
-
-    // Insert ulang jalannya
-    if (jalannyaList.length) {
-      var jSh2 = getOrInitSheet(ss, JALANNYA_SHEET_NAME, JALANNYA_HEADERS);
-      for (var j2 = 0; j2 < jalannyaList.length; j2++) {
-        jSh2.appendRow([Utilities.getUuid(), data.id, jalannyaList[j2].pembicara || '', jalannyaList[j2].pokokBahasan || '', j2 + 1]);
-      }
-    }
-
-    // Insert ulang poin
-    if (poinList.length) {
-      var pSh2 = getOrInitSheet(ss, POIN_RAPAT_SHEET_NAME, POIN_RAPAT_HEADERS);
-      for (var p2 = 0; p2 < poinList.length; p2++) {
-        pSh2.appendRow([Utilities.getUuid(), data.id, poinList[p2].isi, poinList[p2].tindakLanjut || 'TANPA_TL', poinList[p2].assignSubbag || '', poinList[p2].agendaId || '', p2 + 1]);
-      }
-    }
-
-    return {
-      success: true, message: 'Notulen diperbarui',
-      agendaCount: 0, updateCount: 0
-    };
+    return _updateNotulenInternal(data, ss, notulenSheet);
   } catch (err) {
     return { success: false, message: err.message };
   }
@@ -1380,17 +1280,19 @@ function _getNotulenFolderPath(tanggalStr) {
   var tahun = tanggalStr.substring(0, 4);
   var bulan = getBulanName(parseInt(tanggalStr.substring(5, 7), 10));
   var tgl = String(parseInt(tanggalStr.substring(8, 10), 10)).padStart(2, '0');
-  return 'E-OFFICE/NOTULEN/' + tahun + '/' + bulan + '/' + tgl;
+  return NOTULEN_ROOT_PATH + '/' + tahun + '/' + bulan + '/' + tgl;
 }
 
 function getOrCreateNotulenFolder(tanggalStr) {
-  var rootName = 'E-OFFICE';
   var tahun = tanggalStr.substring(0, 4);
   var bulan = getBulanName(parseInt(tanggalStr.substring(5, 7), 10));
   var tgl = String(parseInt(tanggalStr.substring(8, 10), 10)).padStart(2, '0');
-  var rootFolder = getOrCreateSubFolder(DriveApp.getRootFolder(), rootName);
-  var notulenRoot = getOrCreateSubFolder(rootFolder, 'NOTULEN');
-  var tahunFolder = getOrCreateSubFolder(notulenRoot, tahun);
+  var pathParts = NOTULEN_ROOT_PATH.split('/');
+  var currentFolder = DriveApp.getRootFolder();
+  for (var pi = 0; pi < pathParts.length; pi++) {
+    currentFolder = getOrCreateSubFolder(currentFolder, pathParts[pi]);
+  }
+  var tahunFolder = getOrCreateSubFolder(currentFolder, tahun);
   var bulanFolder = getOrCreateSubFolder(tahunFolder, bulan);
   return getOrCreateSubFolder(bulanFolder, tgl).getId();
 }
@@ -1433,7 +1335,7 @@ function generateNotulenText(id, data) {
   });
 
   text += '========================================\n';
-  text += '  Digenetasi E-OFFICE KPU Kabupaten Siak\n';
+  text += '  Dibuat oleh E-OFFICE KPU Kabupaten Siak\n';
   text += '  ' + new Date().toLocaleString('id-ID') + '\n';
   text += '========================================\n';
   return text;
@@ -1522,6 +1424,61 @@ function _findJabatanPegawai(nama) {
   }
 }
 
+function _buildNotulaAiResult(n) {
+  var pimpinanInfo = _parsePimpinan(n.pimpinan || '');
+  var agendaText = n.agendaRapat || '';
+  if (!agendaText && n.poinList && n.poinList.length) {
+    agendaText = _generateAgendaArray(n.poinList).join('\n');
+  }
+
+  var pesertaText = '';
+  if (n.pesertaList && n.pesertaList.length) {
+    var sortedPeserta = n.pesertaList.slice().sort(function(a, b) {
+      return (a.no || 999) - (b.no || 999);
+    });
+    sortedPeserta.forEach(function(p, i) {
+      pesertaText += (i + 1) + '. ' + p.nama + ' (' + (p.jabatan || '-') + ')\n';
+    });
+    pesertaText = pesertaText.trim();
+  }
+
+  var notulisNama = n.notulisNama || n.notulis || '';
+  var atasanLangsung = _findAtasanLangsung(notulisNama);
+
+  return {
+    judul: n.judul || '',
+    hari: _inferHari(n.tanggal) || '',
+    tanggal: n.tanggal || '',
+    tempat: 'Aula Rapat Lt.2 KPU Kabupaten Siak',
+    peserta: pesertaText,
+    atasan_langsung: atasanLangsung,
+    notulis: notulisNama,
+    jabatan_atasan: _findJabatanPegawai(atasanLangsung),
+    jabatan_notulis: _findJabatanPegawai(notulisNama),
+    agendaRapat: agendaText,
+    jabatanPimpinan: pimpinanInfo.jabatan,
+    namaPimpinan: pimpinanInfo.nama,
+    jamMulai: n.jamMulai || DEFAULT_JAM_MULAI,
+    jumlahPeserta: String(n.pesertaList ? n.pesertaList.length : 0)
+  };
+}
+
+function _createNotulaDocuments(aiResult, n, notulenId, suffix) {
+  suffix = suffix || '';
+  var folderId = getOrCreateNotulenFolder(n.tanggal);
+  var docId = _createNotulaDocument(aiResult, folderId, notulenId + suffix);
+  var docUrl = 'https://docs.google.com/document/d/' + docId + '/edit';
+  var pdfUrl = _exportNotulaPDF(docId, folderId, notulenId + suffix);
+  var wordUrl = _exportNotulaWord(docId, folderId, notulenId + suffix);
+  _saveNotulaLog(notulenId, aiResult, docUrl, pdfUrl, wordUrl);
+  return {
+    docUrl: docUrl,
+    pdfUrl: pdfUrl,
+    wordUrl: wordUrl,
+    folderPath: _getNotulenFolderPath(n.tanggal)
+  };
+}
+
 function generateNotulaAI(notulenId) {
   try {
     var detail = getDetailNotulen({ id: notulenId });
@@ -1529,73 +1486,69 @@ function generateNotulaAI(notulenId) {
     var n = detail.data;
 
     var messages = buildNotulaPrompt(n);
-    var raw = callOllama(messages);
-    var cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
+    var raw = null;
+    var lastError = '';
+    var retries = 2;
 
+    for (var attempt = 0; attempt < retries; attempt++) {
+      try {
+        raw = callOllama(messages);
+        if (raw) break;
+      } catch (e) {
+        lastError = e.message;
+        if (attempt < retries - 1) continue;
+      }
+    }
+
+    if (!raw) {
+      console.warn('Ollama gagal setelah ' + retries + ' percobaan: ' + lastError + '. Fallback ke generateNotulaApaAdanya.');
+      return generateNotulaApaAdanya(notulenId);
+    }
+
+    var cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
     var start = cleaned.indexOf('{');
     var end = cleaned.lastIndexOf('}');
     if (start === -1 || end === -1) {
-      return { success: false, message: 'AI tidak mengembalikan JSON', raw: cleaned.substring(0, 500) };
+      console.warn('AI tidak mengembalikan JSON. Fallback ke generateNotulaApaAdanya.');
+      return generateNotulaApaAdanya(notulenId);
     }
-    var aiResult = JSON.parse(cleaned.substring(start, end + 1));
 
-    // Sanitasi: bersihkan jika AI masih nekat menulis struktur template
+    var aiResult;
+    try {
+      aiResult = JSON.parse(cleaned.substring(start, end + 1));
+    } catch (e) {
+      console.warn('Gagal parse JSON AI: ' + e.message + '. Fallback ke generateNotulaApaAdanya.');
+      return generateNotulaApaAdanya(notulenId);
+    }
+
     aiResult = _sanitizeAIOutput(aiResult);
 
-    // Isi atasan_langsung dan notulis dari data pegawai (pakai nama, bukan email)
-    var notulisNama = n.notulisNama || n.notulis || '';
-    aiResult.atasan_langsung = _findAtasanLangsung(notulisNama);
-    aiResult.notulis = notulisNama;
-    aiResult.jabatan_atasan = _findJabatanPegawai(aiResult.atasan_langsung);
-    aiResult.jabatan_notulis = _findJabatanPegawai(notulisNama);
-
-    // Timpa peserta — urut sesuai nomor dari database (bukan jabatan)
-    if (n.pesertaList && n.pesertaList.length) {
-      var sortedPeserta = n.pesertaList.slice().sort(function(a, b) {
-        return (a.no || 999) - (b.no || 999);
-      });
-      var pesertaText = '';
-      sortedPeserta.forEach(function(p, i) {
-        pesertaText += (i + 1) + '. ' + p.nama + ' (' + (p.jabatan || '-') + ')\n';
-      });
-      aiResult.peserta = pesertaText.trim();
-    }
-
-    // Default tempat jika AI tidak menyimpulkan
     if (!aiResult.tempat) aiResult.tempat = "Aula Rapat Lt.2 KPU Kabupaten Siak";
 
-    // === ISI TEMPLATE PLACEHOLDER LAIN ===
-    var pimpinanInfo = _parsePimpinan(n.pimpinan || '');
-    var agendaText = n.agendaRapat || '';
-    if (!agendaText && n.poinList && n.poinList.length) {
-      agendaText = _generateAgendaArray(n.poinList).join('\n');
+    // Gabungkan dengan data notulen (timpa field dari AI dengan data pasti dari notulen)
+    var baseResult = _buildNotulaAiResult(n);
+    for (var key in baseResult) {
+      if (!aiResult[key] && baseResult[key]) aiResult[key] = baseResult[key];
     }
-    aiResult.agendaRapat = agendaText;
-    aiResult.jabatanPimpinan = pimpinanInfo.jabatan;
-    aiResult.namaPimpinan = pimpinanInfo.nama;
-    aiResult.jamMulai = '10.30';
-    aiResult.jumlahPeserta = String(n.pesertaList ? n.pesertaList.length : 0);
+    aiResult.jamMulai = n.jamMulai || baseResult.jamMulai;
+    aiResult.peserta = baseResult.peserta || aiResult.peserta;
 
-    var folderId = getOrCreateNotulenFolder(n.tanggal);
-
-    var docId = _createNotulaDocument(aiResult, folderId, notulenId);
-    var docUrl = 'https://docs.google.com/document/d/' + docId + '/edit';
-
-    var pdfUrl = _exportNotulaPDF(docId, folderId, notulenId);
-    var wordUrl = _exportNotulaWord(docId, folderId, notulenId);
-
-    _saveNotulaLog(notulenId, aiResult, docUrl, pdfUrl, wordUrl);
+    var docs = _createNotulaDocuments(aiResult, n, notulenId, '');
 
     return {
       success: true,
       message: 'Notula berhasil dibuat dan di-export ke PDF dan Word',
-      docUrl: docUrl,
-      pdfUrl: pdfUrl,
-      wordUrl: wordUrl,
-      folderPath: _getNotulenFolderPath(n.tanggal)
+      docUrl: docs.docUrl,
+      pdfUrl: docs.pdfUrl,
+      wordUrl: docs.wordUrl,
+      folderPath: docs.folderPath
     };
   } catch (err) {
-    return { success: false, message: err.message };
+    try {
+      return generateNotulaApaAdanya(notulenId);
+    } catch (fallbackErr) {
+      return { success: false, message: err.message };
+    }
   }
 }
 
@@ -2007,67 +1960,18 @@ function generateNotulaApaAdanya(notulenId) {
     if (!detail.success) return { success: false, message: 'Notulen tidak ditemukan' };
     var n = detail.data;
 
-    var isiNotula = buildIsiNotulaApaAdanya(n);
+    var aiResult = _buildNotulaAiResult(n);
+    aiResult.isi_notula = buildIsiNotulaApaAdanya(n);
 
-    var aiResult = {
-      judul: n.judul || '',
-      hari: _inferHari(n.tanggal) || '',
-      tanggal: n.tanggal || '',
-      tempat: 'Aula Rapat Lt.2 KPU Kabupaten Siak',
-      peserta: '',
-      isi_notula: isiNotula,
-      atasan_langsung: '',
-      notulis: '',
-      jabatan_atasan: '',
-      jabatan_notulis: ''
-    };
-    var notulisNama = n.notulisNama || n.notulis || '';
-    aiResult.atasan_langsung = _findAtasanLangsung(notulisNama);
-    aiResult.notulis = notulisNama;
-    aiResult.jabatan_atasan = _findJabatanPegawai(aiResult.atasan_langsung);
-    aiResult.jabatan_notulis = _findJabatanPegawai(notulisNama);
-
-    // Urut sesuai nomor dari database
-    if (n.pesertaList && n.pesertaList.length) {
-      var sortedPeserta = n.pesertaList.slice().sort(function(a, b) {
-        return (a.no || 999) - (b.no || 999);
-      });
-      var pesertaText = '';
-      sortedPeserta.forEach(function(p, i) {
-        pesertaText += (i + 1) + '. ' + p.nama + ' (' + (p.jabatan || '-') + ')\n';
-      });
-      aiResult.peserta = pesertaText.trim();
-    }
-
-    // === ISI TEMPLATE PLACEHOLDER LAIN ===
-    var pimpinanInfo = _parsePimpinan(n.pimpinan || '');
-    var agendaText = n.agendaRapat || '';
-    if (!agendaText && n.poinList && n.poinList.length) {
-      agendaText = _generateAgendaArray(n.poinList).join('\n');
-    }
-    aiResult.agendaRapat = agendaText;
-    aiResult.jabatanPimpinan = pimpinanInfo.jabatan;
-    aiResult.namaPimpinan = pimpinanInfo.nama;
-    aiResult.jamMulai = '10.30';
-    aiResult.jumlahPeserta = String(n.pesertaList ? n.pesertaList.length : 0);
-
-    if (!aiResult.tempat) aiResult.tempat = 'Aula Rapat Lt.2 KPU Kabupaten Siak';
-
-    var folderId = getOrCreateNotulenFolder(n.tanggal);
-    var docId = _createNotulaDocument(aiResult, folderId, notulenId + '_apaadanya');
-    var docUrl = 'https://docs.google.com/document/d/' + docId + '/edit';
-    var pdfUrl = _exportNotulaPDF(docId, folderId, notulenId + '_apaadanya');
-    var wordUrl = _exportNotulaWord(docId, folderId, notulenId + '_apaadanya');
-
-    _saveNotulaLog(notulenId, aiResult, docUrl, pdfUrl, wordUrl);
+    var docs = _createNotulaDocuments(aiResult, n, notulenId, '_apaadanya');
 
     return {
       success: true,
       message: 'Notula apa adanya berhasil dibuat',
-      docUrl: docUrl,
-      pdfUrl: pdfUrl,
-      wordUrl: wordUrl,
-      folderPath: _getNotulenFolderPath(n.tanggal)
+      docUrl: docs.docUrl,
+      pdfUrl: docs.pdfUrl,
+      wordUrl: docs.wordUrl,
+      folderPath: docs.folderPath
     };
   } catch (err) {
     return { success: false, message: err.message };

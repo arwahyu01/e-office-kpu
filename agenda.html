@@ -77,7 +77,7 @@
                 <div class="stat-card"><div class="stat-icon" style="background:#fee2e2;color:#dc2626;"><i class="fas fa-exclamation-triangle"></i></div><div class="stat-info"><h3 id="statOverdue">0</h3><p>Terlambat</p></div></div>
             </div>
             <div class="filter-bar"><div class="filter-group" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-                <select id="filterStatus" class="filter-select" onchange="filterChange()"><option value="">Semua Status</option><option value="RENCANA">Belum Mulai</option><option value="BERJALAN">Sedang Dikerjakan</option><option value="SELESAI">Selesai</option></select>
+                <select id="filterStatus" class="filter-select" onchange="filterChange()"><option value="">Semua Status</option><option value="RENCANA">Belum Mulai</option><option value="BERJALAN" selected>Sedang Dikerjakan</option><option value="SELESAI">Selesai</option></select>
                 <select id="filterSubbag" class="filter-select" onchange="filterChange()"><option value="">Semua Subbagian</option></select>
                 <input type="date" id="filterTglMulai" class="filter-select" onchange="filterChange()" style="max-width:150px;" title="Tanggal Mulai">
                 <input type="date" id="filterTglSelesai" class="filter-select" onchange="filterChange()" style="max-width:150px;" title="Tanggal Selesai">
@@ -727,7 +727,7 @@ function logout() { localStorage.removeItem(SESSION_KEY); redirectToLogin(); }
 function showLoading(m) { const el=document.getElementById('loading'); el.querySelector('.loading-text').textContent=m||'Memuat...'; el.style.display='flex'; }
 function hideLoading() { document.getElementById('loading').style.display='none'; }
 
-function initApp() { hideLoading(); loadSystemVersion(); loadPegawai(); setDefaultDateRange(); loadList(); loadDashboardStats(); }
+function initApp() { hideLoading(); loadSystemVersion(); setDefaultDateRange(); loadPegawai(); }
 
 function loadSystemVersion() {
   google.script.run.withSuccessHandler(function(res) {
@@ -748,7 +748,7 @@ function switchSection(id, btn) {
   if (btn) btn.classList.add('active');
   const t=document.getElementById('section-'+id);
   if (t) t.style.display='block';
-  if (id==='dashboard') { loadDashboardStats(); loadList(); }
+  if (id==='dashboard') { loadList(); }
   if (id==='history') loadHistory();
   if (id==='kalender') loadKalender();
 }
@@ -761,7 +761,8 @@ function loadPegawai() {
     pegawaiList = list || [];
     subbagList = [...new Set(list.map(p=>p.subbag).filter(Boolean))].filter(sb => !sb.startsWith('DIVISI'));
     populateDropdowns();
-  }).withFailureHandler(() => {}).getPegawaiDropdown();
+    loadList();
+  }).withFailureHandler(function() { loadList(); }).getPegawaiDropdown();
 }
 
 function populateDropdowns() {
@@ -786,20 +787,6 @@ function populateDropdowns() {
 }
 
 // =============================================
-// DASHBOARD
-// =============================================
-function loadDashboardStats() {
-  google.script.run.withSuccessHandler(r => {
-    if (r.success&&r.stats) {
-      document.getElementById('statTotal').textContent=r.stats.total||0;
-      document.getElementById('statBerjalan').textContent=r.stats.berjalan||0;
-      document.getElementById('statSelesai').textContent=r.stats.selesai||0;
-      document.getElementById('statOverdue').textContent=r.stats.overdue||0;
-    }
-  }).withFailureHandler(() => {}).getAgendaDashboardStats(currentUser.email, currentUser.level);
-}
-
-// =============================================
 // LIST AGENDA
 // =============================================
 var _tabJadwal = 'terjadwal';
@@ -808,7 +795,6 @@ function loadList() {
   const grid = document.getElementById('agendaGrid');
   if (grid) grid.innerHTML = getSkeletonCards(6);
 
-  const status = document.getElementById('filterStatus').value;
   const subbag = document.getElementById('filterSubbag').value;
 
   google.script.run.withSuccessHandler(r => {
@@ -821,13 +807,18 @@ function loadList() {
       document.getElementById('statOverdue').textContent=r.stats.overdue||0;
     }
   }).withFailureHandler(() => { renderAgendaGrid([]); })
-  .getListAgenda({ userEmail:currentUser.email, role:currentUser.level, status, subbag });
+  .getListAgenda({ userEmail:currentUser.email, role:currentUser.level, subbag });
 }
 
 function applyFilters() {
   var list = currentAgendaList;
   var tglMulai = document.getElementById('filterTglMulai').value;
   var tglSelesai = document.getElementById('filterTglSelesai').value;
+  var statusFilter = document.getElementById('filterStatus').value;
+
+  if (statusFilter) {
+    list = list.filter(function(a) { return a.status === statusFilter; });
+  }
 
   if (_tabJadwal === 'terjadwal') {
     list = list.filter(function(a) {
@@ -1161,7 +1152,7 @@ function confirmDelete(id) {
 }
 
 function filterChange() { loadList(); }
-function refreshAll() { loadDashboardStats(); loadList(); }
+function refreshAll() { loadList(); }
 
 
 // =============================================
