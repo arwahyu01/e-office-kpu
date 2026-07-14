@@ -1,5 +1,5 @@
 /* =========================================================
-   NOTULEN RAPAT — E-OFFICE KPU SIAK (STANDALONE DB)
+   NOTULEN RAPAT — E-LKH KPU SIAK (STANDALONE DB)
    ========================================================= */
 
 const NOTULEN_SPREADSHEET_ID = "1hC8lzsHoukbQIfv-JNmZzx3u5pBoU7uY7bmktgU2_uA";
@@ -19,7 +19,7 @@ const NOTULEN_STATUS = {
 
 const AUTO_PUBLISH_ROLES = ['KOMISIONER', 'SEKRETARIS', 'KASUBBAG'];
 
-const NOTULEN_ROOT_PATH = 'E-OFFICE/NOTULEN';
+const NOTULEN_ROOT_PATH = 'E-LKH/NOTULEN';
 const TL_EXECUTED_FLAG = 'TRUE';
 const DEFAULT_JAM_MULAI = '10.30';
 
@@ -1310,7 +1310,7 @@ function getOrCreateSubFolder(parent, name) {
 
 function generateNotulenText(id, data) {
   var text = '========================================\n';
-  text += '  NOTULEN RAPAT\n  E-OFFICE KPU KABUPATEN SIAK\n';
+  text += '  NOTULEN RAPAT\n  E-LKH KPU KABUPATEN SIAK\n';
   text += '========================================\n\n';
   text += 'ID\t\t: ' + id + '\nTanggal\t\t: ' + data.tanggal + '\n';
   text += 'Jenis\t\t: ' + data.jenis + '\nJudul\t\t: ' + data.judul + '\n';
@@ -1335,7 +1335,7 @@ function generateNotulenText(id, data) {
   });
 
   text += '========================================\n';
-  text += '  Dibuat oleh E-OFFICE KPU Kabupaten Siak\n';
+  text += '  Dibuat oleh E-LKH KPU Kabupaten Siak\n';
   text += '  ' + new Date().toLocaleString('id-ID') + '\n';
   text += '========================================\n';
   return text;

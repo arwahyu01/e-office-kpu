@@ -72,7 +72,7 @@ function doGet(e) {
     const routes = {
       'agenda-tindak-lanjut': {
         file: 'agenda',
-        title: 'E-OFFICE | AGENDA',
+        title: 'E-LKH | AGENDA',
         initPage: 'dashboard',
         allowFrame: false
       },
@@ -338,7 +338,7 @@ function prosesLogin(data) {
             email: userEmail,
             level: row[12]?.toString() || '',
             nip_atasan: row[7]?.toString() || '',
-            nama_atasan: row[7]?.toString() || '',
+            nama_atasan: row[6]?.toString() || '',
             level_presensi: row[13]?.toString() || ''
           };
 
@@ -522,7 +522,7 @@ function getMasterPegawai() {
         subbag: row[4]?.toString().trim() || '',
         email: row[7]?.toString().trim() || '',
         nip_atasan: row[6] || '',
-        nama_atasan: data[5] || '',
+        nama_atasan: row[5] || '',
         nip_sekretaris: '198010102009021004',
         nama_sekretaris: 'OKTAVIYANUS',
       }))
@@ -598,7 +598,7 @@ function getProfilByEmail(identifier) {
           email: email,
           status: data[i][10] || '',
           nip_atasan: data[i][7] || '',
-          nama_atasan: data[i][6] == 'OKTAVIYANUS' ? '' : data[i][6],
+          nama_atasan: data[i][6],
           nip_sekretaris: '198010102009021004',
           nama_sekretaris: 'OKTAVIYANUS',
           created_at: data[i][11] || '',

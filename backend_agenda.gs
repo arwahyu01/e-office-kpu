@@ -1,5 +1,5 @@
 /* =========================================================
-   BACKEND AGENDA & TINDAK LANJUT — E-OFFICE KPU SIAK
+   BACKEND AGENDA & TINDAK LANJUT — E-LKH KPU SIAK
    Versi 2.0
    - MASTER_ASSIGNMENT (relasi pegawai)
    - Wizard 3 langkah

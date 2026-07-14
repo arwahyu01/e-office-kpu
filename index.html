@@ -5,7 +5,7 @@
     <base target="_top">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>E-OFFICE | KPU SIAK</title>
+    <title>E-LKH | KPU SIAK</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -50,7 +50,7 @@
                     </div>
                     <h2
                         style="font-size: clamp(1.5rem, 6vw, 1.75rem); font-weight: 800; color: #1e293b; margin-bottom: 8px;">
-                        E-OFFICE <span style="color: #b30000;">KPU</span></h2>
+                        E-LKH <span style="color: #b30000;">KPU</span></h2>
                     <p style="color: #64748b; font-size: clamp(13px, 3vw, 14px);">Rencanakan. Kerjakan. Selesaikan.</p>
                     <p style="color: #64748b; font-size: clamp(13px, 3vw, 14px);">Komisi Pemilihan Umum Kabupaten Siak
                     </p>
@@ -202,7 +202,7 @@
                         <div class="logo-icon">
                             <i class="fas fa-building"></i>
                         </div>
-                        <div class="logo-text">E-OFFICE <span>KPU SIAK</span></div>
+                        <div class="logo-text">E-LKH <span>KPU SIAK</span></div>
                     </div>
                 </div>
 
@@ -212,20 +212,15 @@
                         <i class="fas fa-home"></i> <span>Beranda</span>
                     </button>
 
-                    <!-- Notulen -->
-                    <button class="nav-item" onclick="switchMenu('notulen',this)" data-tooltip="Notulen">
-                        <i class="fas fa-pen-to-square"></i> <span>Notulen</span>
-                    </button>
-
                     <div class="nav-divider"></div>
 
-                    <!-- e-LKH Group -->
+                    <!-- LKH Group -->
                     <button class="nav-group" onclick="toggleGroup('group-elkh')">
                         <i class="fas fa-file-alt"></i>
-                        <span>e-LKH</span>
+                        <span>LKH</span>
                         <i class="fas fa-chevron-down nav-group-arrow"></i>
                     </button>
-                    <div id="group-elkh" class="nav-group-items">
+                    <div id="group-elkh" class="nav-group-items collapsed">
                         <button class="nav-item nav-sub" onclick="switchMenu('dashboard',this)"
                             data-tooltip="Dashboard">
                             <i class="fas fa-chart-line"></i> <span>Dashboard</span>
@@ -247,13 +242,26 @@
 
                     <div class="nav-divider"></div>
 
+                    <!-- Notulen -->
+                    <button class="nav-item" onclick="switchMenu('notulen',this)" data-tooltip="Notulen">
+                        <i class="fas fa-pen-to-square"></i> <span>Notulen</span>
+                    </button>
+
+                    <!-- Agenda -->
+                    <a href="https://script.google.com/macros/s/AKfycbxejATwEFa6KmgBqjxFGiA2L_mEJGG0-CaHGsaIyxedRz5_vGA-QiAIhSE-mYwXFY_E/exec?page=agenda-tindak-lanjut"
+                        target="_top" class="nav-item">
+                        <i class="fas fa-diagram-project"></i><span>Agenda</span>
+                    </a>
+
+                    <div class="nav-divider"></div>
+
                     <!-- Absensi Group -->
                     <button class="nav-group" onclick="toggleGroup('group-absensi')">
                         <i class="fas fa-fingerprint"></i>
                         <span>Absensi</span>
                         <i class="fas fa-chevron-down nav-group-arrow"></i>
                     </button>
-                    <div id="group-absensi" class="nav-group-items">
+                    <div id="group-absensi" class="nav-group-items collapsed">
                         <a href="https://script.google.com/macros/s/AKfycbxejATwEFa6KmgBqjxFGiA2L_mEJGG0-CaHGsaIyxedRz5_vGA-QiAIhSE-mYwXFY_E/exec?page=absensi"
                             target="_top" class="nav-item nav-sub">
                             <i class="fas fa-fingerprint"></i><span>Absensi WFA</span>
@@ -270,12 +278,6 @@
                     <button class="nav-item" onclick="switchMenu('profil',this)" data-tooltip="Profil">
                         <i class="fas fa-id-card"></i> <span>Profil</span>
                     </button>
-
-                    <!-- Agenda -->
-                    <a href="https://script.google.com/macros/s/AKfycbxejATwEFa6KmgBqjxFGiA2L_mEJGG0-CaHGsaIyxedRz5_vGA-QiAIhSE-mYwXFY_E/exec?page=agenda-tindak-lanjut"
-                        target="_top" class="nav-item">
-                        <i class="fas fa-diagram-project"></i><span>Agenda</span>
-                    </a>
 
                     <div class="nav-divider"></div>
 
@@ -489,7 +491,7 @@
                                     <button type="button" class="btn-sm-outline" onclick="pilihSubbag('Keuangan, Umum dan Logistik')" style="font-size:12px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:20px;background:#f8fafc;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#f8fafc'">📂 Keuangan, Umum & Logistik</button>
                                     <button type="button" class="btn-sm-outline" onclick="pilihSubbag('Teknis Penyelenggara Pemilu dan Hukum')" style="font-size:12px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:20px;background:#f8fafc;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#f8fafc'">📂 Teknis Penyelenggara Pemilu & Hukum</button>
                                     <button type="button" class="btn-sm-outline" onclick="pilihSubbag('Perencanaan Data dan Informasi')" style="font-size:12px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:20px;background:#f8fafc;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#f8fafc'">📂 Perencanaan Data & Informasi</button>
-                                    <button type="button" class="btn-sm-outline" onclick="pilihSubbag('Partisipasi Hubungan Masyarakat dan Sumber Daya Manusia')" style="font-size:12px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:20px;background:#f8fafc;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#f8fafc'">📂 Partisipasi, Humas & SDM</button>
+                                    <button type="button" class="btn-sm-outline" onclick="pilihSubbag('Partisipasi Hubungan Masyarakat dan Sumber Daya Manusia')" style="font-size:12px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:20px;background:#f8fafc;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#f8fafc'">📂 Parhubmas & SDM</button>
                                 </div>
                                 <div id="pesertaChipContainer" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;min-height:32px;"></div>
                                 <div style="display:flex;gap:8px;">
@@ -671,7 +673,7 @@
                 <div class="beranda-welcome">
                     <div class="beranda-greeting">
                         <h1>Selamat Datang, <span id="berandaNama">Pegawai</span></h1>
-                        <p id="berandaJabatan">E-OFFICE KPU Kabupaten Siak</p>
+                        <p id="berandaJabatan">E-LKH KPU Kabupaten Siak</p>
                     </div>
                     <div class="beranda-quote-card">
                         <i class="fas fa-quote-left beranda-quote-icon"></i>
@@ -1637,7 +1639,7 @@
             const namaEl = document.getElementById('berandaNama');
             const jabatanEl = document.getElementById('berandaJabatan');
             if (namaEl) namaEl.textContent = profile.nama || 'Pegawai';
-            if (jabatanEl) jabatanEl.textContent = profile.jabatan || 'E-OFFICE KPU Kabupaten Siak';
+            if (jabatanEl) jabatanEl.textContent = profile.jabatan || 'E-LKH KPU Kabupaten Siak';
         }
 
         // =============================================
@@ -2837,7 +2839,7 @@
                             html: '<div style="text-align:left;">' +
                                 '<p><i class="fas fa-check-circle" style="color:#22c55e;"></i> ' + res.message + '</p>' +
                                 '<p style="margin-top:12px;padding:12px;background:#f0f9ff;border-radius:8px;font-size:13px;color:#0369a1;">' +
-                                '<i class="fas fa-folder-open"></i> Hasil disimpan di folder:<br><strong>' + (res.folderPath || 'E-OFFICE/NOTULEN') + '</strong>' +
+                                '<i class="fas fa-folder-open"></i> Hasil disimpan di folder:<br><strong>' + (res.folderPath || 'E-LKH/NOTULEN') + '</strong>' +
                                 '<br><br>File tersedia dalam format: Google Docs, PDF, dan Word (.docx).' +
                                 '<br>Anda dapat membukanya melalui menu Notulen > dokumen.' +
                                 '</p>' +
@@ -2869,7 +2871,7 @@
                             html: '<div style="text-align:left;">' +
                                 '<p><i class="fas fa-check-circle" style="color:#22c55e;"></i> ' + res.message + '</p>' +
                                 '<p style="margin-top:12px;padding:12px;background:#f0f9ff;border-radius:8px;font-size:13px;color:#0369a1;">' +
-                                '<i class="fas fa-folder-open"></i> Hasil disimpan di folder:<br><strong>' + (res.folderPath || 'E-OFFICE/NOTULEN') + '</strong>' +
+                                '<i class="fas fa-folder-open"></i> Hasil disimpan di folder:<br><strong>' + (res.folderPath || 'E-LKH/NOTULEN') + '</strong>' +
                                 '<br><br>File tersedia dalam format: Google Docs, PDF, dan Word (.docx).' +
                                 '<br>Anda dapat membukanya melalui menu Notulen > Detail.' +
                                 '</p>' +
