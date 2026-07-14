@@ -886,3 +886,40 @@ Notulen yang dibuat oleh USER/ADMIN/JAGAT_SAKSANA langsung terbit & eksekusi TL 
 ### Files Changed
 - `notulen.gs` — AGENDA_RAW col 19 + migrasi, _updateNotulenInternal/updateNotulen write col 19, semua get mapping +agendaRapat, _parsePimpinan baru, _createNotulaDocument +5 replacements, kedua generate fungsi populate placeholders, _fillNotulaContent hapus agenda+pembukaan+bold, prompt AI hapus agenda/pembukaan schema + mapping speaker konkrit + rule ketat, buildIsiNotulaApaAdanya hapus agenda+pembukaan, generateNotulaAI hapus agenda override
 - `index.html` — Step 2 Agenda Rapat (5-step wizard), #notulenAgenda textarea, simpanDraft/resumeDraft/generateReview/simpanNotulen/editNotulen/initFreshForm +agendaRapat, draft banner /5, detail modal agenda accordion
+
+---
+
+## v2.28.0 — 15 Jul 2026 (Rebrand E-LKH + Fix Atasan Kasubbag + Sidebar Restruktur)
+
+### Perubahan
+
+#### 1. Fix Atasan Langsung Kasubbag Tidak Tampil
+- **[Fix] `Code.gs:341`** — `nama_atasan` di `prosesLogin()` salah ambil kolom (`row[7]` = nip_atasan), harusnya `row[6]` = nama_atasan
+- **[Fix] `Code.gs:525`** — `nama_atasan` di `getMasterPegawai()` salah pakai variabel `data[5]` (indeks array luar), harusnya `row[5]`
+- **[Fix] `Code.gs:601`** — `nama_atasan` di `getProfilByEmail()` sengaja dikosongkan jika bernilai `'OKTAVIYANUS'`. Karena atasan langsung Kasubbag adalah Sekretaris (OKTAVIYANUS), kondisi ini dihapus
+
+#### 2. Rebrand E-OFFICE → E-LKH
+- **[Ubah] Nama aplikasi**: `E-OFFICE` → `E-LKH` di semua file (index.html, absensi.html, presensi.html, agenda.html, verify.html, style_agenda.html)
+- **[Ubah] Backend**: `Code.gs` title, `notulen.gs` folder path & doc text, `backend_agenda.gs` header
+- **[Ubah] Folder Drive notulen**: `E-OFFICE/NOTULEN` → `E-LKH/NOTULEN`
+
+#### 3. Sidebar Restruktur
+- **[Ubah] Menu e-LKH → LKH**: Nama group collapsible diubah
+- **[Ubah] Urutan sidebar**: Beranda → LKH (group) → Notulen → Agenda → Absensi (group) → Profil → Logout
+  - LKH sebagai fitur inti setelah Beranda
+  - Notulen & Agenda sebagai fitur pelengkap
+  - Absensi modul terpisah
+  - Profil & Logout di bagian bawah
+- **[Fix] Warna `.nav-group`**: Diselaraskan dengan `.nav-item` — pakai `var(--text-muted)`, hover `var(--primary-soft)` + `var(--primary)`
+
+#### 4. Collapsible Default Closed
+- **[Fix] Menu collapsible**: `nav-group-items` ditambah class `collapsed` agar tertutup secara default
+
+### Files Changed
+- `Code.gs` — fix nama_atasan (3 bugs: wrong column, wrong variable, OKTAVIYANUS condition)
+- `index.html` — sidebar restruktur, menu LKH, collapsed default, E-OFFICE → E-LKH
+- `style.html` — nav-group warna konsisten dengan nav-item
+- `absensi.html`, `presensi.html`, `agenda.html`, `verify.html` — title & logo E-OFFICE → E-LKH
+- `style_agenda.html` — header E-OFFICE → E-LKH
+- `notulen.gs` — NOTULEN_ROOT_PATH, doc headers E-OFFICE → E-LKH
+- `backend_agenda.gs` — header E-OFFICE → E-LKH
