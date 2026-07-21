@@ -620,15 +620,18 @@ function getListAgenda(filter) {
         totalWorkflow: progressInfo.totalWorkflow,
         totalProgress: progressInfo.totalProgress,
         assignments: formattedAssignments,
-        picNama: (formattedAssignments.find(as => as.role === "PIC") || {}).nama || a.createdByNama,
-        picEmail: (formattedAssignments.find(as => as.role === "PIC") || {}).emailPegawai || a.createdByEmail
+        picNama: (formattedAssignments.find(as => as.role === "PIC") || formattedAssignments[0] || {}).nama || a.createdByNama,
+        picEmail: (formattedAssignments.find(as => as.role === "PIC") || formattedAssignments[0] || {}).emailPegawai || a.createdByEmail
       });
     }
 
     result.sort((a, b) => {
-      if (a.isOverdue && !b.isOverdue) return -1;
-      if (!a.isOverdue && b.isOverdue) return 1;
-      return (b.tanggalSelesai || "").localeCompare(a.tanggalSelesai || "");
+      const tA = a.tanggalMulai || a.tanggalSelesai || "";
+      const tB = b.tanggalMulai || b.tanggalSelesai || "";
+      if (!tA && !tB) return 0;
+      if (!tA) return 1;
+      if (!tB) return -1;
+      return tB.localeCompare(tA);
     });
 
     return {
