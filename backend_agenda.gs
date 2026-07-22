@@ -28,7 +28,7 @@ const AGENDA_HEADERS = {
     "ID","NOMOR_AGENDA","JUDUL","SUMBER","JENIS","SUBBAGIAN",
     "PRIORITAS","STATUS","TARGET_OUTPUT","DESKRIPSI","DASAR_AGENDA",
     "TANGGAL_MULAI","TANGGAL_SELESAI","CREATED_BY_EMAIL","CREATED_AT","UPDATED_AT",
-    "DASAR_FILE_URL"
+    "DASAR_FILE_URL","ASSIGNMENT_TYPE"
   ],
   MASTER_WORKFLOW: [
     "ID","AGENDA_ID","URUTAN","NAMA_WORKFLOW","STATUS",
@@ -289,7 +289,8 @@ function createAgenda(data) {
       data.deskripsi || "", data.dasarAgenda || "",
       data.tanggalMulai || "", data.tanggalSelesai || "",
       data.createdByEmail || "", now, now,
-      data.dasarFileUrl || ""
+      data.dasarFileUrl || "",
+      data.assignmentType || "SELF"
     ]);
 
     // Buat assignment
@@ -315,19 +316,20 @@ function agendaUpdateAgenda(data) {
     for (let i = 1; i < rows.length; i++) {
       if (rows[i][0] === data.id) {
         const r = i + 1;
-        if (data.judul) sh.getRange(r, 3).setValue(data.judul);
+        if (data.judul !== undefined) sh.getRange(r, 3).setValue(data.judul);
         if (data.sumber !== undefined) sh.getRange(r, 4).setValue(data.sumber);
-        else if (data.dasarAgenda) sh.getRange(r, 4).setValue(deriveSumberFromDasar(data.dasarAgenda));
-        if (data.jenis) sh.getRange(r, 5).setValue(data.jenis);
+        else if (data.dasarAgenda !== undefined) sh.getRange(r, 4).setValue(deriveSumberFromDasar(data.dasarAgenda));
+        if (data.jenis !== undefined) sh.getRange(r, 5).setValue(data.jenis);
         if (data.subbagian !== undefined) sh.getRange(r, 6).setValue(data.subbagian);
-        if (data.prioritas) sh.getRange(r, 7).setValue(data.prioritas);
-        if (data.status) sh.getRange(r, 8).setValue(data.status);
+        if (data.prioritas !== undefined) sh.getRange(r, 7).setValue(data.prioritas);
+        if (data.status !== undefined) sh.getRange(r, 8).setValue(data.status);
         if (data.targetOutput !== undefined) sh.getRange(r, 9).setValue(data.targetOutput);
         if (data.deskripsi !== undefined) sh.getRange(r, 10).setValue(data.deskripsi);
         if (data.dasarAgenda !== undefined) sh.getRange(r, 11).setValue(data.dasarAgenda);
-        if (data.tanggalMulai) sh.getRange(r, 12).setValue(data.tanggalMulai);
-        if (data.tanggalSelesai) sh.getRange(r, 13).setValue(data.tanggalSelesai);
+        if (data.tanggalMulai !== undefined) sh.getRange(r, 12).setValue(data.tanggalMulai);
+        if (data.tanggalSelesai !== undefined) sh.getRange(r, 13).setValue(data.tanggalSelesai);
         if (data.dasarFileUrl !== undefined) sh.getRange(r, 17).setValue(data.dasarFileUrl);
+        if (data.assignmentType !== undefined) sh.getRange(r, 18).setValue(data.assignmentType);
         sh.getRange(r, 16).setValue(new Date());
         SpreadsheetApp.flush();
 
@@ -510,6 +512,7 @@ function formatAgendaRow(row, pegawaiMap) {
     targetOutput: row[8], deskripsi: row[9],
     dasarAgenda: row[10],
     dasarFileUrl: row[16] || '',
+    assignmentType: row[17] || 'SELF',
     tanggalMulai: row[11] instanceof Date ? Utilities.formatDate(row[11], AGENDA_TIMEZONE, "yyyy-MM-dd") : String(row[11] || ""),
     tanggalSelesai: row[12] instanceof Date ? Utilities.formatDate(row[12], AGENDA_TIMEZONE, "yyyy-MM-dd") : String(row[12] || ""),
     createdByEmail: createdBy,

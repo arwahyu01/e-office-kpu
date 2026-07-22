@@ -86,6 +86,10 @@
                     <button class="tab-filter" data-tab="belum" onclick="setTabJadwal('belum',this)">Belum Terjadwal</button>
                     <button class="tab-filter" data-tab="semua" onclick="setTabJadwal('semua',this)">Semua</button>
                 </div>
+                <div class="view-toggle">
+                    <button class="toggle-btn active" data-view="table" onclick="setViewMode('table',this)" title="Tampilan Tabel"><i class="fas fa-list"></i></button>
+                    <button class="toggle-btn" data-view="grid" onclick="setViewMode('grid',this)" title="Tampilan Grid"><i class="fas fa-th"></i></button>
+                </div>
                 <button class="btn-primary" onclick="openWizard()"><i class="fas fa-plus"></i> Agenda Baru</button>
             </div><div class="filter-info"><span id="countView">0</span> agenda</div></div>
             <div class="agenda-grid" id="agendaGrid"></div>
@@ -804,10 +808,16 @@ function populateDropdowns() {
 // LIST AGENDA
 // =============================================
 var _tabJadwal = 'terjadwal';
+var _viewMode = 'table';
+var _sortKey = 'deadline';
+var _sortDir = 'asc';
 
 function loadList() {
   const grid = document.getElementById('agendaGrid');
-  if (grid) grid.innerHTML = getSkeletonCards(6);
+  if (grid) {
+    grid.classList.toggle('table-mode', _viewMode === 'table');
+    grid.innerHTML = _viewMode === 'table' ? getSkeletonTable(6) : getSkeletonCards(6);
+  }
 
   const subbag = document.getElementById('filterSubbag').value;
 
@@ -885,9 +895,20 @@ function getSkeletonCards(n) {
 function renderAgendaGrid(list) {
   const grid = document.getElementById('agendaGrid'); if (!grid) return;
   if (!list.length) {
-    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;margin-top:40px;"><i class="fas fa-inbox"></i><h3>Belum Ada Agenda</h3><p>Silakan buat agenda baru</p></div>';
+    grid.classList.remove('table-mode');
+    grid.innerHTML = '<div class="empty-state" style="margin-top:40px;"><i class="fas fa-inbox"></i><h3>Belum Ada Agenda</h3><p>Silakan buat agenda baru</p></div>';
     return;
   }
+  if (_viewMode === 'table') {
+    renderAgendaTable(list);
+  } else {
+    renderAgendaCards(list);
+  }
+}
+
+function renderAgendaCards(list) {
+  const grid = document.getElementById('agendaGrid');
+  grid.classList.remove('table-mode');
   grid.innerHTML = list.map(function(a) {
     var pc = getPrioritasClass(a.prioritas);
     var sb = getStatusBadge(a);
@@ -915,6 +936,120 @@ function renderAgendaGrid(list) {
       '</div>' +
     '</div>';
   }).join('');
+}
+
+function getSkeletonTable(n) {
+  var html = '<div class="agenda-table-wrapper"><table class="agenda-table"><thead><tr>' +
+    '<th>Judul</th><th>Status</th><th>Prioritas</th><th>Subbagian</th><th>PIC</th><th>Deadline</th><th>Progress</th><th>Aksi</th>' +
+    '</tr></thead><tbody>';
+  for (var i = 0; i < n; i++) {
+    html += '<tr class="skel-row">' +
+      '<td><div class="sk-block" style="height:16px;width:80%;"></div></td>' +
+      '<td><div class="sk-block" style="height:22px;width:70px;border-radius:999px;"></div></td>' +
+      '<td><div class="sk-block" style="height:22px;width:60px;border-radius:999px;"></div></td>' +
+      '<td><div class="sk-block" style="height:14px;width:80px;"></div></td>' +
+      '<td><div class="sk-block" style="height:14px;width:100px;"></div></td>' +
+      '<td><div class="sk-block" style="height:14px;width:80px;"></div></td>' +
+      '<td><div class="sk-block" style="height:16px;width:60px;border-radius:999px;"></div></td>' +
+      '<td><div class="sk-block" style="height:28px;width:50px;border-radius:6px;"></div></td>' +
+      '</tr>';
+  }
+  html += '</tbody></table></div>';
+  return html;
+}
+
+function renderAgendaTable(list) {
+  const grid = document.getElementById('agendaGrid');
+  grid.classList.add('table-mode');
+
+  var sortIcon = function(key) {
+    if (_sortKey !== key) return '';
+    return _sortDir === 'asc' ? ' <i class="fas fa-sort-up"></i>' : ' <i class="fas fa-sort-down"></i>';
+  };
+
+  var sortFn = function(key) {
+    return 'onclick="sortTable(\'' + key + '\')"';
+  };
+
+  var sorted = sortList(list);
+
+  var rows = sorted.map(function(a) {
+    var pc = getPrioritasClass(a.prioritas);
+    var sb = getStatusBadge(a);
+    var pct = a.progressPersentase||0;
+    var pcls = pct>=100?'selesai':pct>=50?'tinggi':pct>0?'sedang':'rendah';
+    var dlIcon = a.isOverdue ? '<i class="fas fa-exclamation-circle"></i>' : '<i class="fas fa-calendar-day"></i>';
+
+    return '<tr class="agenda-table-row" onclick="viewDetail(\'' + a.id + '\')">' +
+      '<td class="td-title"><div class="title-wrapper"><span class="title-text">' + esc(a.judul) + '</span><span class="title-meta">' + esc(a.subbagian) + ' &middot; ' + esc(a.picNama||a.createdByNama||'-') + '</span></div></td>' +
+      '<td class="td-status">' + sb + '</td>' +
+      '<td class="td-prioritas"><span class="badge ' + pc + '">' + esc(a.prioritas) + '</span></td>' +
+      '<td class="td-subbag">' + esc(a.subbagian) + '</td>' +
+      '<td class="td-pic">' + esc(a.picNama||a.createdByNama||'-') + '</td>' +
+      '<td class="td-deadline"><span class="dl-text' + (a.isOverdue?' overdue':'') + '">' + dlIcon + ' ' + (a.tanggalSelesai||'-') + '</span></td>' +
+      '<td class="td-progress"><div class="tbl-progress"><div class="progress-bar-container"><div class="progress-bar-fill ' + pcls + '" style="width:' + pct + '%"></div></div><span class="tbl-pct">' + pct + '%</span></div></td>' +
+      '<td class="td-actions" onclick="event.stopPropagation();">' +
+        '<button class="btn-tbl-view" onclick="viewDetail(\'' + a.id + '\')" title="Detail"><i class="fas fa-eye"></i></button>' +
+        '<button class="btn-tbl-delete" onclick="confirmDelete(\'' + a.id + '\')" title="Hapus"><i class="fas fa-trash"></i></button>' +
+      '</td>' +
+      '</tr>';
+  }).join('');
+
+  grid.innerHTML = '<div class="agenda-table-wrapper"><table class="agenda-table">' +
+    '<thead><tr>' +
+      '<th ' + sortFn('judul') + '>Judul' + sortIcon('judul') + '</th>' +
+      '<th ' + sortFn('status') + '>Status' + sortIcon('status') + '</th>' +
+      '<th ' + sortFn('prioritas') + '>Prioritas' + sortIcon('prioritas') + '</th>' +
+      '<th ' + sortFn('subbagian') + '>Subbagian' + sortIcon('subbagian') + '</th>' +
+      '<th ' + sortFn('pic') + '>PIC' + sortIcon('pic') + '</th>' +
+      '<th ' + sortFn('deadline') + '>Deadline' + sortIcon('deadline') + '</th>' +
+      '<th ' + sortFn('progress') + '>Progress' + sortIcon('progress') + '</th>' +
+      '<th>Aksi</th>' +
+    '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+}
+
+function sortTable(key) {
+  if (_sortKey === key) {
+    _sortDir = _sortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    _sortKey = key;
+    _sortDir = 'asc';
+  }
+  applyFilters();
+}
+
+function sortList(list) {
+  if (!_sortKey) return list.slice();
+  var sorted = list.slice();
+  sorted.sort(function(a, b) {
+    var va, vb;
+    switch (_sortKey) {
+      case 'judul': va = (a.judul||'').toLowerCase(); vb = (b.judul||'').toLowerCase(); break;
+      case 'status': va = a.status||''; vb = b.status||''; break;
+      case 'prioritas': va = prioritasWeight(a.prioritas); vb = prioritasWeight(b.prioritas); break;
+      case 'subbagian': va = (a.subbagian||'').toLowerCase(); vb = (b.subbagian||'').toLowerCase(); break;
+      case 'pic': va = (a.picNama||a.createdByNama||'').toLowerCase(); vb = (b.picNama||b.createdByNama||'').toLowerCase(); break;
+      case 'deadline': va = a.tanggalSelesai||a.tanggalMulai||''; vb = b.tanggalSelesai||b.tanggalMulai||''; break;
+      case 'progress': va = a.progressPersentase||0; vb = b.progressPersentase||0; break;
+      default: return 0;
+    }
+    if (va < vb) return _sortDir === 'asc' ? -1 : 1;
+    if (va > vb) return _sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+  return sorted;
+}
+
+function prioritasWeight(p) {
+  var w = { 'MENDESAK': 4, 'TINGGI': 3, 'SEDANG': 2, 'RENDAH': 1 };
+  return w[p] || 0;
+}
+
+function setViewMode(mode, btn) {
+  _viewMode = mode;
+  document.querySelectorAll('.view-toggle .toggle-btn').forEach(function(b) { b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  applyFilters();
 }
 
 function esc(t) { if (!t) return ''; const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
@@ -1135,23 +1270,43 @@ function saveAgendaWizard() {
   }
 }
 
-function openEditAgenda(id) { const a = currentAgendaList.find(x=>x.id===id); if (!a) return;
+function openEditAgenda(id) {
+  const a = currentAgendaList.find(x => x.id === id);
+  if (!a) return;
   document.getElementById('wizardEditId').value = id;
   document.getElementById('wizardTitle').textContent = 'Edit Agenda';
-  document.getElementById('fJudul').value = a.judul||'';
-  document.getElementById('fJenis').value = a.jenis||'';
-  document.getElementById('fPrioritas').value = a.prioritas||'SEDANG';
-  document.getElementById('fSubbag').value = a.subbagian||'';
-  document.getElementById('fDeskripsi').value = a.deskripsi||'';
-  document.getElementById('fTargetOutput').value = a.targetOutput||'';
-  document.getElementById('fTglMulai').value = a.tanggalMulai||'';
-  document.getElementById('fTglSelesai').value = a.tanggalSelesai||'';
-  document.getElementById('fPIC').value = a.picEmail||'';
-  document.getElementById('fDasarAgenda').value = a.dasarAgenda||'';
-  document.getElementById('fDasarNotulenLink').value = a.dasarFileUrl||'';
-  document.getElementById('fDasarDokumenLink').value = a.dasarFileUrl||'';
+  document.getElementById('fJudul').value = a.judul || '';
+  document.getElementById('fJenis').value = a.jenis || '';
+  document.getElementById('fPrioritas').value = a.prioritas || 'SEDANG';
+  document.getElementById('fSubbag').value = a.subbagian || '';
+  document.getElementById('fDeskripsi').value = a.deskripsi || '';
+  document.getElementById('fTargetOutput').value = a.targetOutput || '';
+  document.getElementById('fTglMulai').value = a.tanggalMulai || '';
+  document.getElementById('fTglSelesai').value = a.tanggalSelesai || '';
+  document.getElementById('fPIC').value = a.picEmail || '';
+  document.getElementById('fDasarAgenda').value = a.dasarAgenda || '';
+  document.getElementById('fDasarNotulenLink').value = a.dasarFileUrl || '';
+  document.getElementById('fDasarDokumenLink').value = a.dasarFileUrl || '';
   onDasarAgendaChange();
-  selectAssignment('SELF');
+
+  // Restore assignment type
+  var asgType = a.assignmentType || 'SELF';
+  // Validate: jika assignments kosong atau tidak cocok, fallback ke SELF
+  var asg = a.assignments || [];
+  if (asg.length === 0) asgType = 'SELF';
+  selectAssignment(asgType);
+
+  // Pre-fill specific anggota
+  if (asgType === 'SPECIFIC' && asg.length > 0) {
+    var anggotaSel = document.getElementById('fAnggota');
+    if (anggotaSel) {
+      var anggotaEmails = asg.filter(function(x) { return x.role === 'ANGGOTA'; }).map(function(x) { return x.emailPegawai; });
+      for (var i = 0; i < anggotaSel.options.length; i++) {
+        anggotaSel.options[i].selected = anggotaEmails.indexOf(anggotaSel.options[i].value) !== -1;
+      }
+    }
+  }
+
   showStep(1);
   document.getElementById('modalWizard').style.display='flex';
 }
