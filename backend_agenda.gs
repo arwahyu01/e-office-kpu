@@ -32,7 +32,7 @@ const AGENDA_HEADERS = {
   ],
   MASTER_WORKFLOW: [
     "ID","AGENDA_ID","URUTAN","NAMA_WORKFLOW","STATUS",
-    "TARGET","PIC_EMAIL","KETERANGAN","CREATED_AT","UPDATED_AT"
+    "TARGET","PIC_EMAIL","KETERANGAN","TANGGAL_MULAI","TANGGAL_SELESAI","CREATED_AT","UPDATED_AT"
   ],
   MASTER_PROGRESS: [
     "ID","WORKFLOW_ID","URUTAN","NAMA_PROGRESS","STATUS",
@@ -692,6 +692,7 @@ function createWorkflow(data) {
     const urutan = data.urutan || (sh.getLastRow());
     sh.appendRow([id, data.agendaId, urutan, data.namaWorkflow, "RENCANA",
       data.target || "", data.picEmail || "", data.keterangan || "",
+      data.tanggalMulai || "", data.tanggalSelesai || "",
       new Date(), new Date()]);
     logAgendaActivity(data.userEmail || "", "BUAT_WORKFLOW", data.agendaId);
     updateAgendaStatusFromWorkflow(data.agendaId);
@@ -712,8 +713,10 @@ function updateWorkflow(data) {
         if (data.target) sh.getRange(r, 6).setValue(data.target);
         if (data.picEmail) sh.getRange(r, 7).setValue(data.picEmail);
         if (data.keterangan !== undefined) sh.getRange(r, 8).setValue(data.keterangan);
+        if (data.tanggalMulai !== undefined) sh.getRange(r, 9).setValue(data.tanggalMulai);
+        if (data.tanggalSelesai !== undefined) sh.getRange(r, 10).setValue(data.tanggalSelesai);
         if (data.urutan !== undefined) sh.getRange(r, 3).setValue(data.urutan);
-        sh.getRange(r, 10).setValue(new Date());
+        sh.getRange(r, 12).setValue(new Date());
         logAgendaActivity(data.userEmail || "", "UPDATE_WORKFLOW", agendaId);
         updateAgendaStatusFromWorkflow(agendaId);
         return { success: true, message: "Workflow diperbarui" };
@@ -783,8 +786,10 @@ function getWorkflowByAgendaId(agendaId) {
         namaWorkflow: rows[i][3], status: rows[i][4],
         target: rows[i][5], picEmail, picNama: pic ? pic.nama : picEmail,
         keterangan: rows[i][7],
-        createdAt: rows[i][8] instanceof Date ? Utilities.formatDate(rows[i][8], AGENDA_TIMEZONE, "dd MMM yyyy") : String(rows[i][8] || ""),
-        updatedAt: rows[i][9] instanceof Date ? Utilities.formatDate(rows[i][9], AGENDA_TIMEZONE, "dd MMM yyyy") : String(rows[i][9] || "")
+        tanggalMulai: rows[i][8] instanceof Date ? Utilities.formatDate(rows[i][8], AGENDA_TIMEZONE, "yyyy-MM-dd") : String(rows[i][8] || ""),
+        tanggalSelesai: rows[i][9] instanceof Date ? Utilities.formatDate(rows[i][9], AGENDA_TIMEZONE, "yyyy-MM-dd") : String(rows[i][9] || ""),
+        createdAt: rows[i][10] instanceof Date ? Utilities.formatDate(rows[i][10], AGENDA_TIMEZONE, "dd MMM yyyy") : String(rows[i][10] || ""),
+        updatedAt: rows[i][11] instanceof Date ? Utilities.formatDate(rows[i][11], AGENDA_TIMEZONE, "dd MMM yyyy") : String(rows[i][11] || "")
       });
     }
     return result.sort((a, b) => a.urutan - b.urutan);
@@ -1329,7 +1334,7 @@ function getActivityLog(referensi, limit) {
 function getCalendarData(userEmail, bulan, tahun, userRole) {
   try {
     ensureAgendaSheets();
-    var result = { success: true, agenda: [], manual: [] };
+    var result = { success: true, agenda: [], manual: [], workflow: [] };
     var role = (userRole || '').toUpperCase().trim() || 'USER';
 
     // 1. Ambil agenda sesuai hak akses user
@@ -1364,7 +1369,52 @@ function getCalendarData(userEmail, bulan, tahun, userRole) {
       });
     }
 
-    // 2. Ambil manual events dari KALENDER_EVENT
+    // 2. Ambil workflow dengan tanggal
+    var wfSh = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.MASTER_WORKFLOW);
+    if (wfSh && wfSh.getLastRow() >= 2) {
+      var wfData = wfSh.getDataRange().getValues();
+      var agSh = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.MASTER_AGENDA);
+      var agRows = agSh ? agSh.getDataRange().getValues() : [];
+      for (var wi = 1; wi < wfData.length; wi++) {
+        var wfTglMulai = wfData[wi][8] instanceof Date ? Utilities.formatDate(wfData[wi][8], AGENDA_TIMEZONE, "yyyy-MM-dd") : String(wfData[wi][8] || "");
+        var wfTglSelesai = wfData[wi][9] instanceof Date ? Utilities.formatDate(wfData[wi][9], AGENDA_TIMEZONE, "yyyy-MM-dd") : String(wfData[wi][9] || "");
+        var wfMatch = false;
+        if (wfTglMulai) {
+          var wp = wfTglMulai.split('-');
+          if (wp.length === 3 && parseInt(wp[0]) === parseInt(tahun) && parseInt(wp[1]) === parseInt(bulan)) wfMatch = true;
+        }
+        if (!wfMatch && wfTglSelesai) {
+          var wp2 = wfTglSelesai.split('-');
+          if (wp2.length === 3 && parseInt(wp2[0]) === parseInt(tahun) && parseInt(wp2[1]) === parseInt(bulan)) wfMatch = true;
+        }
+        if (wfMatch) {
+          var wfAgendaId = String(wfData[wi][1] || "");
+          var agendaJudul = "", agendaSubbag = "", agendaPrioritas = "";
+          for (var ai = 1; ai < agRows.length; ai++) {
+            if (String(agRows[ai][0]) === wfAgendaId) {
+              agendaJudul = agRows[ai][2] || "";
+              agendaSubbag = agRows[ai][5] || "";
+              agendaPrioritas = agRows[ai][6] || "";
+              break;
+            }
+          }
+          var wfPicEmail = String(wfData[wi][6] || "").trim();
+          var wfPicNama = wfPicEmail;
+          var pegMap = getPegawaiMapByEmail();
+          if (pegMap[wfPicEmail]) wfPicNama = pegMap[wfPicEmail].nama;
+          result.workflow.push({
+            id: wfData[wi][0], judul: wfData[wi][3] || "",
+            tanggalMulai: wfTglMulai, tanggalSelesai: wfTglSelesai,
+            status: wfData[wi][4] || "", sumber: 'workflow',
+            picNama: wfPicNama, subbagian: agendaSubbag,
+            prioritas: agendaPrioritas, agendaJudul: agendaJudul,
+            agendaId: wfAgendaId
+          });
+        }
+      }
+    }
+
+    // 3. Ambil manual events dari KALENDER_EVENT
     var sh = getAgendaSpreadsheet().getSheetByName(AGENDA_SHEETS.KALENDER_EVENT);
     if (sh && sh.getLastRow() >= 2) {
       var data = sh.getDataRange().getValues();
