@@ -1364,6 +1364,7 @@ function getCalendarData(userEmail, bulan, tahun, userRole) {
             tanggalSelesai: tglSelesai, status: a.status,
             prioritas: a.prioritas, sumber: 'agenda',
             picNama: a.picNama || a.createdByNama || '',
+            picEmail: a.picEmail || a.createdByEmail || '',
             subbagian: a.subbagian || '',
             progressPersentase: a.progressPersentase || 0,
             isOverdue: a.isOverdue || false
@@ -1409,7 +1410,8 @@ function getCalendarData(userEmail, bulan, tahun, userRole) {
             id: wfData[wi][0], judul: wfData[wi][3] || "",
             tanggalMulai: wfTglMulai, tanggalSelesai: wfTglSelesai,
             status: wfData[wi][4] || "", sumber: 'workflow',
-            picNama: wfPicNama, subbagian: agendaSubbag,
+            picNama: wfPicNama, picEmail: wfPicEmail,
+            subbagian: agendaSubbag,
             prioritas: agendaPrioritas, agendaJudul: agendaJudul,
             agendaId: wfAgendaId
           });

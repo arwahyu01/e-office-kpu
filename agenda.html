@@ -119,6 +119,10 @@
                 <select id="kalFilterSubbag" class="filter-select" onchange="kalFilterSubbagChange()" style="margin-left:8px;max-width:200px;">
                     <option value="">Semua Subbagian</option>
                 </select>
+                <div class="kal-filter-pribadi">
+                    <button class="kal-pribadi-btn active" data-mode="all" onclick="kalFilterPribadiToggle('all',this)">Semua</button>
+                    <button class="kal-pribadi-btn" data-mode="mine" onclick="kalFilterPribadiToggle('mine',this)">Pribadi</button>
+                </div>
             </div>
 
             <div class="kal-main-layout">
@@ -1556,6 +1560,7 @@ var kalSelectedDate = '';
 var kalViewMode = 'day';
 var kalWeekRange = null; // { start: '2026-07-06', end: '2026-07-12' }
 var kalFilterSubbag = '';
+var kalFilterPribadi = false; // true = hanya agenda yg PIC/anggota saya
 
 function loadKalender() {
   var now = new Date();
@@ -1582,17 +1587,33 @@ function kalFilterSubbagChange() {
   rebuildGridForFilter();
 }
 
+function kalFilterPribadiToggle(mode, btn) {
+  kalFilterPribadi = mode === 'mine';
+  document.querySelectorAll('.kal-pribadi-btn').forEach(function(b) { b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  if (kalWeekRange) { buildKalRightPanelWeek(kalWeekRange.start, kalWeekRange.end); }
+  else { buildKalRightPanel(kalSelectedDate); }
+  rebuildGridForFilter();
+}
+
+function isEventMilikSaya(e) {
+  if (!kalFilterPribadi) return true;
+  if (e.sumber === 'manual') return true;
+  return e.picEmail && e.picEmail.toLowerCase() === currentUser.email.toLowerCase();
+}
+
 function rebuildGridForFilter() {
   var today = new Date();
   var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
   var eventsMap = {};
   var filteredAgenda = (kalData.agenda||[]).filter(function(e) {
     if (kalFilterSubbag && e.subbagian !== kalFilterSubbag) return false;
+    if (!isEventMilikSaya(e)) return false;
     return true;
   });
   filteredAgenda.forEach(function(e) { if (e.tanggalMulai) { if (!eventsMap[e.tanggalMulai]) eventsMap[e.tanggalMulai] = []; eventsMap[e.tanggalMulai].push(e); } });
-  (kalData.workflow||[]).forEach(function(e) { if (e.tanggalMulai) { if (!eventsMap[e.tanggalMulai]) eventsMap[e.tanggalMulai] = []; eventsMap[e.tanggalMulai].push(e); } });
-  (kalData.manual||[]).forEach(function(e) { if (e.tanggalMulai) { if (!eventsMap[e.tanggalMulai]) eventsMap[e.tanggalMulai] = []; eventsMap[e.tanggalMulai].push(e); } });
+  (kalData.workflow||[]).filter(isEventMilikSaya).forEach(function(e) { if (e.tanggalMulai) { if (!eventsMap[e.tanggalMulai]) eventsMap[e.tanggalMulai] = []; eventsMap[e.tanggalMulai].push(e); } });
+  (kalData.manual||[]).filter(isEventMilikSaya).forEach(function(e) { if (e.tanggalMulai) { if (!eventsMap[e.tanggalMulai]) eventsMap[e.tanggalMulai] = []; eventsMap[e.tanggalMulai].push(e); } });
   var hari = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
   var firstDay = new Date(kalTahun, kalBulan - 1, 1).getDay();
   var daysInMonth = new Date(kalTahun, kalBulan, 0).getDate();
@@ -1660,11 +1681,12 @@ function buildKalender() {
   var eventsMap = {};
   var filteredAgenda = (kalData.agenda||[]).filter(function(e) {
     if (kalFilterSubbag && e.subbagian !== kalFilterSubbag) return false;
+    if (!isEventMilikSaya(e)) return false;
     return true;
   });
   filteredAgenda.forEach(function(e) { if (e.tanggalMulai) { if (!eventsMap[e.tanggalMulai]) eventsMap[e.tanggalMulai] = []; eventsMap[e.tanggalMulai].push(e); } });
-  (kalData.workflow||[]).forEach(function(e) { if (e.tanggalMulai) { if (!eventsMap[e.tanggalMulai]) eventsMap[e.tanggalMulai] = []; eventsMap[e.tanggalMulai].push(e); } });
-  (kalData.manual||[]).forEach(function(e) { if (e.tanggalMulai) { if (!eventsMap[e.tanggalMulai]) eventsMap[e.tanggalMulai] = []; eventsMap[e.tanggalMulai].push(e); } });
+  (kalData.workflow||[]).filter(isEventMilikSaya).forEach(function(e) { if (e.tanggalMulai) { if (!eventsMap[e.tanggalMulai]) eventsMap[e.tanggalMulai] = []; eventsMap[e.tanggalMulai].push(e); } });
+  (kalData.manual||[]).filter(isEventMilikSaya).forEach(function(e) { if (e.tanggalMulai) { if (!eventsMap[e.tanggalMulai]) eventsMap[e.tanggalMulai] = []; eventsMap[e.tanggalMulai].push(e); } });
   if (!kalSelectedDate) kalSelectedDate = todayStr;
 
   var firstDay = new Date(kalTahun, kalBulan - 1, 1).getDay();
@@ -1748,6 +1770,7 @@ function getKalDotHtml(events) {
 function applyFilterType(events) {
   return events.filter(function(e) {
     if ((e.sumber === 'agenda' || e.sumber === 'workflow') && kalFilterSubbag && e.subbagian !== kalFilterSubbag) return false;
+    if (!isEventMilikSaya(e)) return false;
     return true;
   });
 }
@@ -1969,11 +1992,12 @@ function rebuildGridAndPanel(dateStr) {
   var eventsMap = {};
   var filteredAgenda = (kalData.agenda||[]).filter(function(e) {
     if (kalFilterSubbag && e.subbagian !== kalFilterSubbag) return false;
+    if (!isEventMilikSaya(e)) return false;
     return true;
   });
   filteredAgenda.forEach(function(e) { if (e.tanggalMulai) { if (!eventsMap[e.tanggalMulai]) eventsMap[e.tanggalMulai] = []; eventsMap[e.tanggalMulai].push(e); } });
-  (kalData.workflow||[]).forEach(function(e) { if (e.tanggalMulai) { if (!eventsMap[e.tanggalMulai]) eventsMap[e.tanggalMulai] = []; eventsMap[e.tanggalMulai].push(e); } });
-  (kalData.manual||[]).forEach(function(e) { if (e.tanggalMulai) { if (!eventsMap[e.tanggalMulai]) eventsMap[e.tanggalMulai] = []; eventsMap[e.tanggalMulai].push(e); } });
+  (kalData.workflow||[]).filter(isEventMilikSaya).forEach(function(e) { if (e.tanggalMulai) { if (!eventsMap[e.tanggalMulai]) eventsMap[e.tanggalMulai] = []; eventsMap[e.tanggalMulai].push(e); } });
+  (kalData.manual||[]).filter(isEventMilikSaya).forEach(function(e) { if (e.tanggalMulai) { if (!eventsMap[e.tanggalMulai]) eventsMap[e.tanggalMulai] = []; eventsMap[e.tanggalMulai].push(e); } });
   var hari = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
   var html = '<div class="kal-header-row">';
   hari.forEach(function(h) { html += '<div class="kal-header-cell">' + h + '</div>'; });

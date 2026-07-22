@@ -893,6 +893,20 @@
 .kal-filter-chip:hover { border-color:#cbd5e1; background:#f8fafc; }
 .kal-filter-chip-active { background:#dc2626; color:#fff; border-color:#dc2626; }
 .kal-filter-chip-active:hover { background:#b91c1c; border-color:#b91c1c; }
+.kal-filter-pribadi {
+  display:flex; gap:2px;
+  background:#f1f5f9; border-radius:8px; padding:2px; margin-left:4px;
+}
+.kal-pribadi-btn {
+  padding:6px 14px; border:none; border-radius:6px;
+  background:transparent; color:#64748b; cursor:pointer;
+  font-size:12px; font-weight:600; font-family:inherit;
+  transition:all 0.2s;
+}
+.kal-pribadi-btn.active {
+  background:#fff; color:#0f172a; box-shadow:0 1px 3px rgba(0,0,0,0.1);
+}
+.kal-pribadi-btn:hover:not(.active) { color:#334155; }
 .kal-main-layout {
   display:grid; grid-template-columns:2.2fr 1.3fr; gap:20px; align-items:start;
 }
