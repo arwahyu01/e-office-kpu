@@ -149,24 +149,38 @@
 
         <!-- ============ TIMELINE / GANTT ============ -->
         <section id="section-timeline" class="content-section" style="display:none;">
-            <div class="hero-section" style="margin-bottom:16px;">
-                <h1>Timeline Agenda</h1>
-                <p>Visualisasi jadwal seluruh agenda dalam bentuk Gantt chart</p>
-            </div>
             <div class="tl-controls">
-                <button class="btn-secondary" onclick="tlZoomOut()"><i class="fas fa-minus"></i></button>
-                <span id="tlRangeLabel" style="font-weight:600;color:#0f172a;font-size:14px;">Minggu Ini</span>
-                <button class="btn-secondary" onclick="tlZoomIn()"><i class="fas fa-plus"></i></button>
-                <button class="btn-primary" onclick="tlToday()" style="padding:6px 14px;font-size:12px;">Hari Ini</button>
-                <select id="tlFilterStatus" class="filter-select" onchange="renderTimeline()" style="max-width:140px;">
-                    <option value="">Semua Status</option>
-                    <option value="RENCANA">Belum Mulai</option>
-                    <option value="BERJALAN">Sedang Dikerjakan</option>
-                    <option value="SELESAI">Selesai</option>
-                </select>
+                <div class="tl-controls-left">
+                    <h1><i class="fas fa-chart-gantt"></i> Timeline Perencanaan</h1>
+                    <span class="tl-subtitle">Eksekusi kegiatan seluruh unit</span>
+                </div>
+                <div class="tl-controls-right">
+                    <button class="tl-btn-icon" onclick="tlZoomOut()" title="Perkecil"><i class="fas fa-minus"></i></button>
+                    <span id="tlDayWidthLabel" class="tl-zoom-label">28px</span>
+                    <button class="tl-btn-icon" onclick="tlZoomIn()" title="Perbesar"><i class="fas fa-plus"></i></button>
+                    <div class="tl-sep"></div>
+                    <button class="tl-btn" onclick="tlToday()"><i class="fas fa-calendar-day"></i> Hari Ini</button>
+                    <button class="tl-btn" onclick="tlResetView()"><i class="fas fa-expand"></i> Tampilkan Semua</button>
+                    <div class="tl-sep"></div>
+                    <select id="tlFilterStatus" onchange="loadTimeline()" class="tl-select">
+                        <option value="">Semua Status</option>
+                        <option value="RENCANA">Belum Mulai</option>
+                        <option value="BERJALAN">Berjalan</option>
+                        <option value="SELESAI">Selesai</option>
+                    </select>
+                    <select id="tlFilterSubbag" onchange="loadTimeline()" class="tl-select" style="max-width:160px;">
+                        <option value="">Semua Unit</option>
+                    </select>
+                </div>
             </div>
-            <div class="tl-scroll" id="tlScroll">
-                <div class="tl-container" id="tlContainer"></div>
+            <div class="tl-summary-bar" id="tlSummaryBar">
+                <div class="tl-summary-item"><span class="tl-summary-num" id="tlStatTotal">0</span><span class="tl-summary-label">Total</span></div>
+                <div class="tl-summary-item"><span class="tl-summary-num" id="tlStatBerjalan" style="color:#2563eb;">0</span><span class="tl-summary-label">Berjalan</span></div>
+                <div class="tl-summary-item"><span class="tl-summary-num" id="tlStatSelesai" style="color:#059669;">0</span><span class="tl-summary-label">Selesai</span></div>
+                <div class="tl-summary-item"><span class="tl-summary-num" id="tlStatOverdue" style="color:#dc2626;">0</span><span class="tl-summary-label">Terlambat</span></div>
+            </div>
+            <div class="tl-layout" id="tlLayout">
+                <div class="tl-gantt-scroll" id="tlGanttScroll"></div>
             </div>
         </section>
 
@@ -753,6 +767,46 @@
                 <button class="btn-secondary" onclick="closeKalEventModal()">Batal</button>
                 <button class="btn-primary" onclick="simpanKalEvent()"><i class="fas fa-save"></i> Simpan</button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Preview Timeline -->
+<div id="modalTimelinePreview" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:480px;">
+        <div class="modal-header">
+            <h2 style="font-size:15px;display:flex;align-items:center;gap:8px;"><i class="fas fa-file-alt" style="color:#dc2626;"></i><b id="tlPrevJudul">-</b></h2>
+            <button class="close-btn" onclick="closeTimelinePreview()"><i class="fas fa-times"></i></button>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+            <span id="tlPrevStatus"></span>
+            <span id="tlPrevPrioritas"></span>
+        </div>
+        <div style="margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;margin-bottom:4px;">
+                <span>Progress</span>
+                <span id="tlPrevPct">0%</span>
+            </div>
+            <div style="height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden;">
+                <div id="tlPrevProgressFill" style="height:100%;width:0%;background:#22c55e;border-radius:3px;transition:width .3s;"></div>
+            </div>
+            <div style="font-size:10px;color:#94a3b8;margin-top:3px;">
+                <span id="tlPrevWfCount"></span>
+            </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;font-size:12px;color:#475569;margin-bottom:16px;">
+            <div><span style="color:#94a3b8;">Agenda</span><br><span id="tlPrevNomor" style="font-weight:600;color:#1e293b;">-</span></div>
+            <div><span style="color:#94a3b8;">Subbagian</span><br><span id="tlPrevSubbag" style="font-weight:600;color:#1e293b;">-</span></div>
+            <div><span style="color:#94a3b8;">Tanggal Mulai</span><br><span id="tlPrevTglMulai" style="font-weight:600;color:#1e293b;">-</span></div>
+            <div><span style="color:#94a3b8;">Tanggal Selesai</span><br><span id="tlPrevTglSelesai" style="font-weight:600;color:#1e293b;">-</span></div>
+        </div>
+        <div id="tlPrevOutput" style="display:none;font-size:12px;color:#475569;margin-bottom:16px;padding:10px 12px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;">
+            <div style="color:#94a3b8;margin-bottom:2px;">Target Output</div>
+            <div id="tlPrevOutputText" style="font-weight:600;color:#1e293b;"></div>
+        </div>
+        <div style="display:flex;gap:8px;padding-top:16px;border-top:1px solid #f1f5f9;">
+            <button class="btn-secondary" onclick="closeTimelinePreview()">Tutup</button>
+            <button class="btn-primary" id="tlPrevDetailBtn" style="margin-left:auto;"><i class="fas fa-external-link-alt"></i> Lihat Detail Lengkap</button>
         </div>
     </div>
 </div>
@@ -2178,133 +2232,466 @@ function kalNextMonth() { kalBulan++; if (kalBulan > 12) { kalBulan = 1; kalTahu
 function kalToday() { var now = new Date(); kalBulan = now.getMonth() + 1; kalTahun = now.getFullYear(); kalSelectedDate = ''; kalWeekRange = null; renderKalender(); }
 
 // =============================================
-// TIMELINE / GANTT CHART
+// TIMELINE / GANTT CHART — REDESIGN
 // =============================================
-var tlViewStart = null, tlViewEnd = null;
 var tlDayWidth = 28;
+var tlData = null;
+var tlExpanded = {};
+
+function dateFromStr(s) {
+  if (!s) return null;
+  var p = s.split('-');
+  return new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2]));
+}
+function daysBetween(a, b) {
+  return Math.round((b - a) / (1000*60*60*24));
+}
 
 function loadTimeline() {
+  document.getElementById('tlGanttScroll').innerHTML = '';
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (!res.success) { console.error('Gagal memuat timeline'); return; }
+      tlData = res;
+      document.getElementById('tlStatTotal').textContent = res.stats.total || 0;
+      document.getElementById('tlStatBerjalan').textContent = res.stats.berjalan || 0;
+      document.getElementById('tlStatSelesai').textContent = res.stats.selesai || 0;
+      document.getElementById('tlStatOverdue').textContent = res.stats.overdue || 0;
+      populateSubbagFilter(res.groups);
+      renderTimeline();
+    })
+    .withFailureHandler(function() { console.error('Gagal memuat timeline'); })
+    .getTimelineData(currentUser.email, currentUser.level);
+}
+
+function populateSubbagFilter(groups) {
+  var sel = document.getElementById('tlFilterSubbag');
+  var current = sel.value;
+  sel.innerHTML = '<option value="">Semua Unit</option>';
+  (groups||[]).forEach(function(g) {
+    sel.innerHTML += '<option value="' + esc(g.subbagian) + '">' + esc(g.subbagian) + '</option>';
+  });
+  sel.value = current;
+}
+
+function getFilteredGroups() {
+  if (!tlData || !tlData.groups) return [];
+  var statusF = document.getElementById('tlFilterStatus').value;
+  var subbagF = document.getElementById('tlFilterSubbag').value;
+  return tlData.groups.filter(function(g) {
+    if (subbagF && g.subbagian !== subbagF) return false;
+    if (statusF) {
+      g.items = (g.items||[]).filter(function(a) { return a.status === statusF; });
+    }
+    return g.items && g.items.length > 0;
+  }).map(function(g) {
+    if (!statusF) return g;
+    return { subbagian: g.subbagian, items: (g.items||[]).filter(function(a) { return a.status === statusF; }) };
+  });
+}
+
+function renderTimeline() {
+  var groups = getFilteredGroups();
+  var scrollEl = document.getElementById('tlGanttScroll');
+  var container = document.createElement('div');
+  container.style.cssText = 'display:inline-block;min-width:100%;position:relative;';
+
   var now = new Date();
-  var start = new Date(now); start.setDate(now.getDate() - 7);
-  var end = new Date(now); end.setDate(now.getDate() + 28);
-  tlViewStart = start;
-  tlViewEnd = end;
+  var todayStr = fmtDate(now);
+  var dw = tlDayWidth;
+
+  // ── Calculate view range ──
+  var startDate = new Date(now); startDate.setDate(now.getDate() - 7);
+  var endDate = new Date(now); endDate.setDate(now.getDate() + 30);
+  groups.forEach(function(g) {
+    (g.items||[]).forEach(function(a) {
+      if (a.tanggalMulai) { var d = dateFromStr(a.tanggalMulai); if (d && d < startDate) startDate = new Date(d); }
+      if (a.tanggalSelesai) { var d = dateFromStr(a.tanggalSelesai); if (d && d > endDate) endDate = new Date(d); }
+      (a.workflows||[]).forEach(function(w) {
+        if (w.tanggalMulai) { var d = dateFromStr(w.tanggalMulai); if (d && d < startDate) startDate = new Date(d); }
+        if (w.tanggalSelesai) { var d = dateFromStr(w.tanggalSelesai); if (d && d > endDate) endDate = new Date(d); }
+      });
+    });
+  });
+  startDate.setDate(startDate.getDate() - 3);
+  endDate.setDate(endDate.getDate() + 3);
+
+  // ── Build days array ──
+  var days = [];
+  var d = new Date(startDate);
+  while (d <= endDate) {
+    days.push({ date: new Date(d), str: fmtDate(d) });
+    d.setDate(d.getDate() + 1);
+  }
+  var totalWidth = days.length * dw;
+  var todayX = -1;
+  days.forEach(function(day, idx) { if (day.str === todayStr) todayX = idx * dw; });
+  document.getElementById('tlDayWidthLabel').textContent = dw + 'px';
+
+  function isMon(d2) { return d2.getDay() === 1; }
+  function isWeekend(d2) { var w = d2.getDay(); return w === 0 || w === 6; }
+  var dayNames = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+  function getISOWeek(d2) {
+    var t = new Date(Date.UTC(d2.getFullYear(), d2.getMonth(), d2.getDate()));
+    t.setUTCDate(t.getUTCDate() + 4 - (t.getUTCDay()||7));
+    var y = t.getUTCFullYear();
+    var ys = new Date(Date.UTC(y,0,1));
+    return Math.ceil((((t - ys) / 86400000) + 1)/7);
+  }
+
+  // ────────────────────────────────────
+  // STICKY HEADER ROW (CSS Grid: label | gantt)
+  // ────────────────────────────────────
+  var headerRow = document.createElement('div');
+  headerRow.className = 'tl-header-row';
+
+  var hLabel = document.createElement('div');
+  hLabel.className = 'tl-header-label';
+  hLabel.innerHTML = '<i class="fas fa-diagram-project"></i><span>Daftar Kegiatan</span>';
+  var hActions = document.createElement('div');
+  hActions.className = 'tl-header-actions';
+  hActions.innerHTML = '<button class="tl-header-btn" onclick="tlExpandAll()" title="Buka Semua"><i class="fas fa-plus-square"></i></button><button class="tl-header-btn" onclick="tlCollapseAll()" title="Tutup Semua"><i class="fas fa-minus-square"></i></button>';
+  hLabel.appendChild(hActions);
+  headerRow.appendChild(hLabel);
+
+  var hGantt = document.createElement('div');
+  hGantt.className = 'tl-header-gantt';
+  hGantt.style.width = totalWidth + 'px';
+
+  var rowMonth = document.createElement('div');
+  rowMonth.className = 'tl-gh-row tl-gh-row-month';
+  var lastMonth = -1, monthStartIdx = 0, lastYear = -1;
+  days.forEach(function(day, idx) {
+    var m = day.date.getMonth();
+    var y = day.date.getFullYear();
+    if (m !== lastMonth && lastMonth >= 0) {
+      var mw = (idx - monthStartIdx) * dw;
+      var cell = document.createElement('div');
+      cell.className = 'tl-gh-cell tl-gh-cell-month';
+      cell.style.width = mw + 'px';
+      cell.textContent = namaBulan(lastMonth+1).toUpperCase() + ' ' + lastYear;
+      rowMonth.appendChild(cell);
+      monthStartIdx = idx;
+    }
+    lastMonth = m;
+    lastYear = y;
+  });
+  if (lastMonth >= 0) {
+    var mw = (days.length - monthStartIdx) * dw;
+    var cell = document.createElement('div');
+    cell.className = 'tl-gh-cell tl-gh-cell-month';
+    cell.style.width = mw + 'px';
+    cell.textContent = namaBulan(lastMonth+1).toUpperCase() + ' ' + lastYear;
+    rowMonth.appendChild(cell);
+  }
+  hGantt.appendChild(rowMonth);
+
+  var rowWeek = document.createElement('div');
+  rowWeek.className = 'tl-gh-row tl-gh-row-week';
+  var weekStartIdx = 0;
+  days.forEach(function(day, idx) {
+    if (idx > 0 && isMon(day.date)) {
+      var ww = (idx - weekStartIdx) * dw;
+      var wcell = document.createElement('div');
+      wcell.className = 'tl-gh-cell tl-gh-cell-week';
+      wcell.style.width = ww + 'px';
+      wcell.textContent = 'Minggu ' + getISOWeek(days[weekStartIdx].date);
+      rowWeek.appendChild(wcell);
+      weekStartIdx = idx;
+    }
+  });
+  if (weekStartIdx < days.length) {
+    var ww = (days.length - weekStartIdx) * dw;
+    var wcell = document.createElement('div');
+    wcell.className = 'tl-gh-cell tl-gh-cell-week';
+    wcell.style.width = ww + 'px';
+    wcell.textContent = 'Minggu ' + getISOWeek(days[weekStartIdx].date);
+    rowWeek.appendChild(wcell);
+  }
+  hGantt.appendChild(rowWeek);
+
+  var rowDay = document.createElement('div');
+  rowDay.className = 'tl-gh-row tl-gh-row-day';
+  var rowDate = document.createElement('div');
+  rowDate.className = 'tl-gh-row tl-gh-row-date';
+
+  days.forEach(function(day, idx) {
+    var dn = dayNames[day.date.getDay()];
+    var isT = day.str === todayStr;
+    var isW = isWeekend(day.date);
+    var isFirstOfWeek = isMon(day.date);
+    var isFirstOfMonth = day.date.getDate() === 1;
+    var divCls = isFirstOfMonth ? ' tl-gh-month-start' : isFirstOfWeek ? ' tl-gh-week-start' : '';
+
+    var dc = document.createElement('div');
+    dc.className = 'tl-gh-cell tl-gh-cell-dayname' + (isT ? ' tl-gh-cell-today' : '') + (isW && !isT ? ' tl-gh-cell-weekend' : '') + divCls;
+    dc.style.width = dw + 'px';
+    dc.textContent = dn;
+    rowDay.appendChild(dc);
+
+    var ndc = document.createElement('div');
+    ndc.className = 'tl-gh-cell tl-gh-cell-date' + (isT ? ' tl-gh-cell-today' : '') + (isW && !isT ? ' tl-gh-cell-weekend' : '') + divCls;
+    ndc.style.width = dw + 'px';
+    ndc.textContent = day.date.getDate();
+    rowDate.appendChild(ndc);
+  });
+
+  hGantt.appendChild(rowDay);
+  hGantt.appendChild(rowDate);
+  headerRow.appendChild(hGantt);
+  container.appendChild(headerRow);
+
+  // ────────────────────────────────────
+  // DATA ROWS (unified: label + bar in one grid row)
+  // ────────────────────────────────────
+  if (!groups.length) {
+    var emptyRow = document.createElement('div');
+    emptyRow.className = 'tl-empty';
+    emptyRow.innerHTML = '<i class="fas fa-inbox"></i><p>Tidak ada kegiatan</p><span class="tl-empty-sub">Belum ada agenda yang direncanakan</span>';
+    container.appendChild(emptyRow);
+  } else {
+    groups.forEach(function(g) {
+      var color = getSubbagColor(g.subbagian);
+      var isOpen = tlExpanded[g.subbagian] !== false;
+
+      // ── Group row ──
+      var groupRow = document.createElement('div');
+      groupRow.className = 'tl-grid-row tl-group-row';
+      groupRow.onclick = function() { tlToggleGroup(g.subbagian); };
+
+      var grLabel = document.createElement('div');
+      grLabel.className = 'tl-label-cell';
+      grLabel.innerHTML = '<span class="tl-chevron ' + (isOpen ? 'open' : '') + '"><i class="fas fa-chevron-right"></i></span><span class="tl-color-dot" style="background:' + color.bg + ';border:1px solid ' + color.text + ';"></span>' + esc(g.subbagian) + '<span class="tl-group-count">' + g.items.length + '</span>';
+      groupRow.appendChild(grLabel);
+
+      var grBar = document.createElement('div');
+      grBar.className = 'tl-bar-cell';
+      groupRow.appendChild(grBar);
+
+      container.appendChild(groupRow);
+
+      if (isOpen) {
+        g.items.forEach(function(a) {
+          var hasWf = a.workflows && a.workflows.length && tlExpanded[a.id];
+          var active = (window._selectedAgendaId === a.id);
+          var aStart = a.tanggalMulai || a.tanggalSelesai || '';
+          var aEnd = a.tanggalSelesai || a.tanggalMulai || '';
+
+          // ── Item row ──
+          var itemRow = document.createElement('div');
+          itemRow.className = 'tl-grid-row tl-item-row';
+
+          var itemLabel = document.createElement('div');
+          itemLabel.className = 'tl-label-cell' + (active ? ' active' : '');
+          itemLabel.onclick = function() { viewDetail(a.id); tlHighlightItem(a.id); };
+          var hasChildren = a.workflows && a.workflows.length;
+          itemLabel.innerHTML = '<span class="tl-chevron ' + (hasChildren ? '' : 'leaf') + '" onclick="event.stopPropagation();tlToggleItem(\'' + esc(a.id) + '\')"><i class="fas ' + (tlExpanded[a.id] ? 'fa-chevron-down' : 'fa-chevron-right') + '"></i></span><span class="tl-color-dot" style="width:6px;height:6px;border-radius:50%;background:' + color.bg + ';border:1px solid ' + color.text + ';flex-shrink:0;"></span><span class="tl-item-title">' + esc(a.judul) + '</span><span class="tl-item-meta">' + (a.progressPersentase||0) + '%</span>';
+          itemRow.appendChild(itemLabel);
+
+          var itemBarCell = document.createElement('div');
+          itemBarCell.className = 'tl-bar-cell';
+          itemBarCell.style.backgroundImage = 'linear-gradient(to right, transparent ' + (dw - 1) + 'px, #f1f5f9 ' + (dw - 1) + 'px, #f1f5f9 ' + dw + 'px)';
+          itemBarCell.style.backgroundSize = dw + 'px 100%';
+
+          var sIdx = -1, eIdx = -1;
+          days.forEach(function(day, idx) {
+            if (day.str === aStart) sIdx = idx;
+            if (day.str === aEnd) eIdx = idx;
+          });
+          if (sIdx < 0 && aStart < days[0].str) sIdx = 0;
+          if (eIdx < 0 && aEnd > days[days.length-1].str) eIdx = days.length - 1;
+
+          if (sIdx >= 0 && eIdx >= 0) {
+            if (eIdx < sIdx) eIdx = sIdx;
+            if (sIdx === eIdx) {
+              var dia = document.createElement('div');
+              dia.className = 'tl-milestone';
+              dia.style.left = (sIdx * dw + dw/2) + 'px';
+              dia.style.background = color.text;
+              dia.style.border = '2px solid ' + color.text;
+              dia.title = a.judul + '\n' + aStart;
+              dia.onclick = function() { viewDetail(a.id); };
+              itemBarCell.appendChild(dia);
+            } else {
+              var bar = document.createElement('div');
+              bar.className = 'tl-bar';
+              bar.style.left = (sIdx * dw) + 'px';
+              bar.style.width = ((eIdx - sIdx + 1) * dw) + 'px';
+              bar.style.background = color.text;
+              bar.style.border = '1px solid ' + color.text;
+              bar.onclick = function() { viewDetail(a.id); };
+              bar.title = a.judul + '\n' + aStart + ' — ' + aEnd + '\n' + (a.progressPersentase||0) + '%';
+
+              var fill = document.createElement('div');
+              fill.className = 'tl-bar-fill';
+              fill.style.width = (a.progressPersentase||0) + '%';
+              bar.appendChild(fill);
+
+              if ((eIdx - sIdx + 1) * dw > 24) {
+                var label = document.createElement('span');
+                label.className = 'tl-bar-label';
+                label.textContent = a.judul;
+                bar.appendChild(label);
+              }
+
+              if (a.isOverdue && a.status !== 'SELESAI') {
+                var odDays = daysBetween(dateFromStr(aEnd), now);
+                if (odDays > 0) {
+                  var odEl = document.createElement('div');
+                  odEl.className = 'tl-bar tl-bar-stripe';
+                  odEl.style.left = (eIdx * dw) + 'px';
+                  odEl.style.width = Math.min(odDays * dw, (eIdx - sIdx + 1) * dw) + 'px';
+                  odEl.style.background = color.text;
+                  odEl.style.border = '1px solid ' + color.text;
+                  odEl.style.opacity = '0.7';
+                  odEl.style.height = '22px';
+                  odEl.style.borderRadius = '0 4px 4px 0';
+                  itemBarCell.appendChild(odEl);
+                }
+              }
+
+              itemBarCell.appendChild(bar);
+            }
+          }
+
+          itemRow.appendChild(itemBarCell);
+          container.appendChild(itemRow);
+
+          // ── Workflow sub-rows ──
+          if (hasWf) {
+            a.workflows.forEach(function(wf) {
+              var subRow = document.createElement('div');
+              subRow.className = 'tl-grid-row tl-sub-row';
+
+              var subLabel = document.createElement('div');
+              subLabel.className = 'tl-label-cell';
+              subLabel.style.paddingLeft = '44px';
+              subLabel.onclick = function() { viewDetail(a.id); };
+              var wfDotColor = wf.status === 'SELESAI' ? '#059669' : wf.status === 'BERJALAN' ? '#2563eb' : '#94a3b8';
+              subLabel.innerHTML = '<span class="tl-chevron leaf"><i class="fas fa-circle" style="font-size:5px;color:' + wfDotColor + ';"></i></span><span class="tl-item-title">' + esc(wf.namaWorkflow) + '</span><span class="tl-item-meta">' + wf.progress + '%</span>';
+              subRow.appendChild(subLabel);
+
+              var subBarCell = document.createElement('div');
+              subBarCell.className = 'tl-bar-cell';
+
+              var wfStart = wf.tanggalMulai || wf.tanggalSelesai || '';
+              var wfEnd = wf.tanggalSelesai || wf.tanggalMulai || '';
+              var wsIdx = -1, weIdx = -1;
+              days.forEach(function(day, idx) {
+                if (day.str === wfStart) wsIdx = idx;
+                if (day.str === wfEnd) weIdx = idx;
+              });
+              if (wsIdx < 0 && wfStart < days[0].str) wsIdx = 0;
+              if (weIdx < 0 && wfEnd > days[days.length-1].str) weIdx = days.length - 1;
+
+              if (wsIdx >= 0 && weIdx >= 0) {
+                if (weIdx < wsIdx) weIdx = wsIdx;
+                var wfColor = wf.status === 'SELESAI' ? '#10b981' : wf.status === 'BERJALAN' ? '#3b82f6' : '#cbd5e1';
+                if (wsIdx === weIdx) {
+                  var wfDia = document.createElement('div');
+                  wfDia.className = 'tl-milestone tl-milestone-sub';
+                  wfDia.style.left = (wsIdx * dw + dw/2) + 'px';
+                  wfDia.style.background = wfColor;
+                  wfDia.style.border = '2px solid ' + wfColor;
+                  wfDia.title = wf.namaWorkflow + '\n' + wfStart;
+                  wfDia.onclick = function() { viewDetail(a.id); };
+                  subBarCell.appendChild(wfDia);
+                } else {
+                  var wfBar = document.createElement('div');
+                  wfBar.className = 'tl-bar';
+                  wfBar.style.left = (wsIdx * dw) + 'px';
+                  wfBar.style.width = ((weIdx - wsIdx + 1) * dw) + 'px';
+                  wfBar.style.background = wfColor;
+                  wfBar.style.border = '1px solid ' + wfColor;
+                  wfBar.style.height = '18px';
+                  wfBar.onclick = function() { viewDetail(a.id); };
+                  wfBar.title = wf.namaWorkflow + '\n' + wfStart + ' — ' + wfEnd;
+                  subBarCell.appendChild(wfBar);
+                }
+              }
+
+              subRow.appendChild(subBarCell);
+              container.appendChild(subRow);
+            });
+          }
+        });
+      }
+    });
+  }
+
+  // ── Today line ──
+  if (todayX >= 0) {
+    var tl = document.createElement('div');
+    tl.className = 'tl-today-line';
+    tl.style.left = (340 + todayX) + 'px';
+    tl.style.height = (container.offsetHeight || 400) + 'px';
+    var tLab = document.createElement('span');
+    tLab.className = 'tl-today-label';
+    tLab.textContent = 'HARI INI';
+    tl.appendChild(tLab);
+    container.appendChild(tl);
+  }
+
+  scrollEl.innerHTML = '';
+  scrollEl.appendChild(container);
+
+  // Scroll to today
+  if (todayX >= 0) {
+    var scrollTo = Math.max(0, todayX - scrollEl.offsetWidth / 3);
+    scrollEl.scrollLeft = scrollTo;
+  }
+}
+
+function tlToggleGroup(key) {
+  tlExpanded[key] = tlExpanded[key] === false ? true : false;
   renderTimeline();
 }
 
+function tlToggleItem(id) {
+  tlExpanded[id] = tlExpanded[id] ? false : true;
+  renderTimeline();
+}
+
+function tlHighlightItem(id) {
+  window._selectedAgendaId = id;
+  renderTimeline();
+}
+
+// ── Controls ──
 function tlZoomIn() {
-  tlDayWidth = Math.min(tlDayWidth + 8, 80);
+  tlDayWidth = Math.min(tlDayWidth + 10, 80);
   renderTimeline();
 }
 
 function tlZoomOut() {
-  tlDayWidth = Math.max(tlDayWidth - 8, 16);
+  tlDayWidth = Math.max(tlDayWidth - 10, 18);
   renderTimeline();
 }
 
 function tlToday() {
-  var now = new Date();
-  var range = (tlViewEnd - tlViewStart) / (1000 * 60 * 60 * 24);
-  var offset = Math.round(range * 0.3);
-  tlViewStart = new Date(now); tlViewStart.setDate(now.getDate() - offset);
-  tlViewEnd = new Date(now); tlViewEnd.setDate(now.getDate() + range - offset);
   renderTimeline();
 }
 
-function fmtDate(d) {
-  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+function tlResetView() {
+  document.getElementById('tlFilterStatus').value = '';
+  document.getElementById('tlFilterSubbag').value = '';
+  loadTimeline();
 }
 
-function renderTimeline() {
-  var c = document.getElementById('tlContainer');
-  if (!c) return;
-  var statusF = document.getElementById('tlFilterStatus').value;
-
-  var list = (currentAgendaList || []).filter(function(a) {
-    if (statusF && a.status !== statusF) return false;
-    return a.tanggalMulai || a.tanggalSelesai;
+function tlExpandAll() {
+  if (!tlData) return;
+  tlData.groups.forEach(function(g) {
+    tlExpanded[g.subbagian] = true;
+    (g.items||[]).forEach(function(a) { tlExpanded[a.id] = true; });
   });
+  renderTimeline();
+}
 
-  list.sort(function(a, b) {
-    var tA = a.tanggalMulai || a.tanggalSelesai || '';
-    var tB = b.tanggalMulai || b.tanggalSelesai || '';
-    return tA < tB ? -1 : tA > tB ? 1 : 0;
-  });
-
-  var today = new Date();
-  var todayStr = fmtDate(today);
-
-  // Generate day headers
-  var days = [];
-  var d = new Date(tlViewStart);
-  while (d <= tlViewEnd) {
-    days.push(fmtDate(d));
-    d.setDate(d.getDate() + 1);
-  }
-
-  var totalWidth = days.length * tlDayWidth;
-  var todayX = -1;
-  days.forEach(function(ds, idx) {
-    if (ds === todayStr) todayX = idx * tlDayWidth;
-  });
-
-  var rangeLabel = days[0] + ' — ' + days[days.length-1];
-  document.getElementById('tlRangeLabel').textContent = rangeLabel;
-
-  var html = '<div class="tl-header" style="width:' + totalWidth + 'px;">';
-  html += '<div class="tl-header-row">';
-  days.forEach(function(ds) {
-    var parts = ds.split('-');
-    var dayNum = parseInt(parts[2]);
-    var dayName = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'][new Date(parseInt(parts[0]), parseInt(parts[1])-1, dayNum).getDay()];
-    var isToday = ds === todayStr;
-    html += '<div class="tl-day-header' + (isToday ? ' tl-today' : (dayName === 'Min' || dayName === 'Sab' ? ' tl-weekend' : '')) + '" style="width:' + tlDayWidth + 'px;">';
-    html += '<span class="tl-day-name">' + dayName + '</span>';
-    html += '<span class="tl-day-num">' + dayNum + '</span>';
-    html += '</div>';
-  });
-  html += '</div>';
-  if (todayX >= 0) html += '<div class="tl-today-line" style="left:' + todayX + 'px;height:' + (list.length * 44 + 4) + 'px;"></div>';
-  html += '</div>';
-
-  // Body rows
-  html += '<div class="tl-body" style="width:' + totalWidth + 'px;">';
-  list.forEach(function(a) {
-    var aStart = a.tanggalMulai || a.tanggalSelesai || '';
-    var aEnd = a.tanggalSelesai || a.tanggalMulai || '';
-    var startIdx = -1, endIdx = -1;
-    days.forEach(function(ds, idx) {
-      if (ds === aStart) startIdx = idx;
-      if (ds === aEnd) endIdx = idx;
-    });
-    if (startIdx < 0 && aStart < days[0]) startIdx = 0;
-    if (endIdx < 0 && aEnd > days[days.length-1]) endIdx = days.length - 1;
-    if (startIdx < 0 || endIdx < 0) return;
-    if (endIdx < startIdx) endIdx = startIdx;
-
-    var barLeft = startIdx * tlDayWidth;
-    var barWidth = (endIdx - startIdx + 1) * tlDayWidth;
-    if (barWidth < 4) barWidth = 4;
-
-    var pct = a.progressPersentase || 0;
-    var barCls = a.status === 'SELESAI' ? 'tl-bar-selesai' : a.status === 'BERJALAN' ? 'tl-bar-berjalan' : a.isOverdue ? 'tl-bar-overdue' : 'tl-bar-rencana';
-    var pc = a.prioritas === 'MENDESAK' ? 'tl-pc-mendesak' : a.prioritas === 'TINGGI' ? 'tl-pc-tinggi' : '';
-
-    html += '<div class="tl-row">';
-    html += '<div class="tl-row-label" onclick="viewDetail(\'' + a.id + '\')" title="' + esc(a.judul) + '"><span class="tl-row-title">' + esc(a.judul) + '</span><span class="tl-row-meta">' + esc(a.picNama||a.createdByNama||'-') + ' • ' + esc(a.subbagian||'-') + '</span></div>';
-    html += '<div class="tl-row-bars">';
-    html += '<div class="tl-bar ' + barCls + ' ' + pc + '" style="left:' + barLeft + 'px;width:' + barWidth + 'px;" onclick="viewDetail(\'' + a.id + '\')" title="' + esc(a.judul) + '\n' + aStart + ' — ' + aEnd + '\n' + pct + '% selesai"></div>';
-    html += '</div>';
-    html += '</div>';
-  });
-  html += '</div>';
-
-  c.innerHTML = html;
-  var scroll = document.getElementById('tlScroll');
-  if (scroll && todayX >= 0) {
-    var scrollTo = Math.max(0, todayX - scroll.offsetWidth / 3);
-    scroll.scrollLeft = scrollTo;
-  }
+function tlCollapseAll() {
+  if (!tlData) return;
+  Object.keys(tlExpanded).forEach(function(k) { tlExpanded[k] = false; });
+  renderTimeline();
 }
 function namaBulan(b) { return ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'][b-1]||''; }
 var hariIndo = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];

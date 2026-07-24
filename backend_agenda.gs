@@ -1931,3 +1931,115 @@ function getMyAssignments(userEmail) {
     return { success: false, message: err.message, data: [] };
   }
 }
+
+function getTimelineData(userEmail, role) {
+  try {
+    ensureAgendaSheets();
+    const ss = getAgendaSpreadsheet();
+    const sh = ss.getSheetByName(AGENDA_SHEETS.MASTER_AGENDA);
+    if (sh.getLastRow() < 2) return { success: true, groups: [] };
+
+    const agendaRows = sh.getDataRange().getValues();
+    const pegawaiMap = getPegawaiMapByEmail();
+
+    const wfSh = ss.getSheetByName(AGENDA_SHEETS.MASTER_WORKFLOW);
+    const wfRows = wfSh && wfSh.getLastRow() >= 2 ? wfSh.getDataRange().getValues() : [];
+    const workflowsByAgenda = {};
+    for (let i = 1; i < wfRows.length; i++) {
+      const agId = String(wfRows[i][1] || '').trim();
+      if (!workflowsByAgenda[agId]) workflowsByAgenda[agId] = [];
+      workflowsByAgenda[agId].push(wfRows[i]);
+    }
+
+    const progSh = ss.getSheetByName(AGENDA_SHEETS.MASTER_PROGRESS);
+    const progRows = progSh && progSh.getLastRow() >= 2 ? progSh.getDataRange().getValues() : [];
+    const progressByWorkflow = {};
+    for (let i = 1; i < progRows.length; i++) {
+      const wfId = String(progRows[i][1] || '').trim();
+      if (!progressByWorkflow[wfId]) progressByWorkflow[wfId] = [];
+      progressByWorkflow[wfId].push(progRows[i]);
+    }
+
+    const assignSh = ss.getSheetByName(AGENDA_SHEETS.MASTER_ASSIGNMENT);
+    const assignRows = assignSh && assignSh.getLastRow() >= 2 ? assignSh.getDataRange().getValues() : [];
+    const assignmentsByAgenda = {};
+    for (let i = 1; i < assignRows.length; i++) {
+      const agId = String(assignRows[i][1] || '').trim();
+      if (!assignmentsByAgenda[agId]) assignmentsByAgenda[agId] = [];
+      assignmentsByAgenda[agId].push(assignRows[i]);
+    }
+
+    const groups = {};
+    let total = 0, berjalan = 0, selesai = 0, overdue = 0;
+
+    for (let i = 1; i < agendaRows.length; i++) {
+      const a = formatAgendaRow(agendaRows[i], pegawaiMap);
+      if (!a) continue;
+      total++;
+
+      const progressInfo = computeProgressSummary(a.id, workflowsByAgenda, progressByWorkflow);
+      const agAssignments = assignmentsByAgenda[a.id] || [];
+      const formattedAssignments = [];
+      for (let ai = 0; ai < agAssignments.length; ai++) {
+        const r = agAssignments[ai];
+        const email = String(r[2] || '').trim().toLowerCase();
+        const peg = pegawaiMap[email] || null;
+        formattedAssignments.push({
+          emailPegawai: email, nama: peg ? peg.nama : email,
+          jabatan: peg ? peg.jabatan : '', role: r[3]
+        });
+      }
+
+      const pic = formattedAssignments.find(as => as.role === 'PIC') || formattedAssignments[0] || {};
+      const picNama = pic.nama || a.createdByNama;
+      const picEmail = pic.emailPegawai || a.createdByEmail;
+
+      if (a.isOverdue) overdue++;
+      if (a.status === 'BERJALAN') berjalan++;
+      if (a.status === 'SELESAI') selesai++;
+
+      const wfs = (workflowsByAgenda[a.id] || []).map(function(wr) {
+        const wfPicEmail = String(wr[6] || '').trim();
+        const wfPic = pegawaiMap[wfPicEmail] || null;
+        const wfId = String(wr[0] || '');
+        const wfProgressList = progressByWorkflow[wfId] || [];
+        const wfDone = wfProgressList.filter(p => String(p[4] || '').trim() === 'SELESAI').length;
+        const wfTotal = wfProgressList.length;
+        return {
+          id: wfId, agendaId: a.id, urutan: wr[2],
+          namaWorkflow: wr[3] || '', status: wr[4] || '',
+          picNama: wfPic ? wfPic.nama : wfPicEmail,
+          tanggalMulai: wr[8] instanceof Date ? Utilities.formatDate(wr[8], AGENDA_TIMEZONE, 'yyyy-MM-dd') : String(wr[8] || ''),
+          tanggalSelesai: wr[9] instanceof Date ? Utilities.formatDate(wr[9], AGENDA_TIMEZONE, 'yyyy-MM-dd') : String(wr[9] || ''),
+          progress: wfTotal > 0 ? Math.round(wfDone / wfTotal * 100) : 0
+        };
+      });
+      wfs.sort((x, y) => (x.urutan || 0) - (y.urutan || 0));
+
+      const groupKey = a.subbagian || 'Tanpa Subbag';
+      if (!groups[groupKey]) groups[groupKey] = [];
+      groups[groupKey].push({
+        id: a.id, judul: a.judul, nomorAgenda: a.nomorAgenda,
+        subbagian: a.subbagian, prioritas: a.prioritas,
+        status: a.status, sumber: a.sumber, jenis: a.jenis,
+        tanggalMulai: a.tanggalMulai, tanggalSelesai: a.tanggalSelesai,
+        picNama: picNama, picEmail: picEmail,
+        progressPersentase: progressInfo.persentase,
+        isOverdue: a.isOverdue,
+        workflows: wfs
+      });
+    }
+
+    const groupList = Object.keys(groups).sort().map(k => ({
+      subbagian: k, items: groups[k]
+    }));
+
+    return {
+      success: true,
+      groups: groupList,
+      stats: { total, berjalan, selesai, overdue }
+    };
+  } catch (err) {
+    return { success: false, message: err.message, groups: [], stats: {} };
+  }
+}
