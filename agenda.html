@@ -31,10 +31,6 @@
                 <button class="nav-item" onclick="switchSection('history',this)"><i class="fas fa-clock-rotate-left"></i><span>Kegiatan Saya</span></button>
                 <div class="nav-divider"></div>
                 <a href="https://script.google.com/macros/s/AKfycbxejATwEFa6KmgBqjxFGiA2L_mEJGG0-CaHGsaIyxedRz5_vGA-QiAIhSE-mYwXFY_E/exec" target="_top" class="nav-item"><i class="fas fa-th"></i><span>E-LKH</span></a>
-                <button class="nav-item" onclick="showNotifications()" style="position:relative;">
-                    <i class="fas fa-bell"></i><span>Notifikasi</span>
-                    <span id="notifBadge" class="notif-badge" style="display:none;">0</span>
-                </button>
                 <a href="#" class="nav-item" onclick="logout();return false;"><i class="fas fa-arrow-right-from-bracket"></i><span>Logout</span></a>
             </nav>
         </div>
@@ -126,9 +122,6 @@
 
             <div class="kal-filter-bar">
                 <button class="kal-filter-chip kal-filter-chip-active" data-view="day" onclick="kalSetView('day',this)"><i class="fas fa-calendar-day"></i> Hari Ini</button>
-                <button class="kal-filter-chip" data-view="week" onclick="kalSetView('week',this)"><i class="fas fa-calendar-week"></i> Minggu Ini</button>
-                <button class="kal-filter-chip" data-view="deadline" onclick="kalSetView('deadline',this)"><i class="fas fa-hourglass-end"></i> Deadline</button>
-                <button class="kal-filter-chip" data-view="overdue" onclick="kalSetView('overdue',this)"><i class="fas fa-exclamation-circle"></i> Terlambat</button>
                 <select id="kalFilterSubbag" class="filter-select" onchange="kalFilterSubbagChange()" style="margin-left:8px;max-width:200px;">
                     <option value="">Semua Subbagian</option>
                 </select>
@@ -860,8 +853,6 @@ function loadList() {
     grid.innerHTML = _viewMode === 'table' ? getSkeletonTable(6) : getSkeletonCards(6);
   }
 
-  const subbag = document.getElementById('filterSubbag').value;
-
   google.script.run.withSuccessHandler(r => {
     currentAgendaList = (r.success && r.data) ? r.data : [];
     applyFilters();
@@ -871,39 +862,22 @@ function loadList() {
       document.getElementById('statSelesai').textContent=r.stats.selesai||0;
       document.getElementById('statOverdue').textContent=r.stats.overdue||0;
     }
-    checkNotifications();
   }).withFailureHandler(() => { renderAgendaGrid([]); })
-  .getListAgenda({ userEmail:currentUser.email, role:currentUser.level, subbag });
+  .getListAgenda({
+    userEmail: currentUser.email,
+    role: currentUser.level,
+    subbag: document.getElementById('filterSubbag').value,
+    status: document.getElementById('filterStatus').value,
+    searchQuery: document.getElementById('filterSearch').value,
+    tglMulai: document.getElementById('filterTglMulai').value,
+    tglSelesai: document.getElementById('filterTglSelesai').value,
+    tabJadwal: _tabJadwal
+  });
 }
 
 function applyFilters() {
   var list = currentAgendaList;
-  var tglMulai = document.getElementById('filterTglMulai').value;
-  var tglSelesai = document.getElementById('filterTglSelesai').value;
-  var statusFilter = document.getElementById('filterStatus').value;
-  var searchQ = document.getElementById('filterSearch').value.toLowerCase().trim();
-
-  if (searchQ) {
-    list = list.filter(function(a) {
-      return (a.judul||'').toLowerCase().includes(searchQ) || (a.deskripsi||'').toLowerCase().includes(searchQ) || (a.nomorAgenda||'').toLowerCase().includes(searchQ);
-    });
-  }
-
-  if (statusFilter) {
-    list = list.filter(function(a) { return a.status === statusFilter; });
-  }
-
-  if (_tabJadwal === 'terjadwal') {
-    list = list.filter(function(a) {
-      if (!a.tanggalMulai && !a.tanggalSelesai) return false;
-      if (tglMulai && a.tanggalSelesai && a.tanggalSelesai < tglMulai) return false;
-      if (tglSelesai && a.tanggalMulai && a.tanggalMulai > tglSelesai) return false;
-      return true;
-    });
-  } else if (_tabJadwal === 'belum') {
-    list = list.filter(function(a) { return !a.tanggalMulai && !a.tanggalSelesai; });
-  }
-
+  list = sortList(list);
   renderAgendaGrid(list);
   document.getElementById('countView').textContent = list.length;
 }
@@ -925,7 +899,7 @@ function setTabJadwal(tab, btn) {
   } else {
     tanggalInputs.forEach(function(el) { el.style.display = 'none'; });
   }
-  applyFilters();
+  loadList();
 }
 
 function getSkeletonCards(n) {
@@ -1106,6 +1080,7 @@ function esc(t) { if (!t) return ''; const d=document.createElement('div'); d.te
 function getPrioritasClass(p) { return {RENDAH:'badge-prioritas-rendah',SEDANG:'badge-prioritas-sedang',TINGGI:'badge-prioritas-tinggi',MENDESAK:'badge-prioritas-mendesak'}[p]||'badge-prioritas-sedang'; }
 
 function getStatusBadge(a) {
+  if (a.status === 'SELESAI') return '<span class="badge badge-status-selesai">Selesai</span>';
   if (a.isOverdue) return '<span class="badge badge-status-terlambat">Terlambat</span>';
   const m={RENCANA:'badge-status-rencana',BERJALAN:'badge-status-berjalan',SELESAI:'badge-status-selesai'};
   const labelMap={RENCANA:'Belum Mulai',BERJALAN:'Sedang Dikerjakan',SELESAI:'Selesai'};
@@ -1361,39 +1336,6 @@ function openEditAgenda(id) {
 }
 
 // =============================================
-// NOTIFIKASI
-// =============================================
-function checkNotifications() {
-  google.script.run.withSuccessHandler(function(r) {
-    _notifications = (r.success && r.data) ? r.data : [];
-    _notifCount = _notifications.length;
-    var badge = document.getElementById('notifBadge');
-    if (badge) {
-      badge.textContent = _notifCount;
-      badge.style.display = _notifCount > 0 ? 'flex' : 'none';
-    }
-  }).withFailureHandler(function() {}).getMyAssignments(currentUser.email);
-}
-
-function showNotifications() {
-  if (!_notifications.length) {
-    Swal.fire('Notifikasi','Tidak ada notifikasi baru.','info');
-    return;
-  }
-  var html = '<div style="max-height:400px;overflow-y:auto;">';
-  _notifications.forEach(function(n) {
-    var st = n.status === 'SELESAI' ? 'Selesai' : n.status === 'BERJALAN' ? 'Berjalan' : 'Belum Mulai';
-    var stCls = n.status === 'SELESAI' ? 'badge-status-selesai' : n.status === 'BERJALAN' ? 'badge-status-berjalan' : 'badge-status-rencana';
-    html += '<div class="notif-item" onclick="swal.close();viewDetail(\'' + n.id + '\')">';
-    html += '<div class="notif-item-title">' + esc(n.judul) + '</div>';
-    html += '<div class="notif-item-meta"><span class="badge ' + stCls + '" style="font-size:10px;padding:1px 6px;">' + st + '</span>';
-    if (n.subbagian) html += ' <span style="font-size:11px;color:#94a3b8;">' + esc(n.subbagian) + '</span>';
-    html += '</div></div>';
-  });
-  html += '</div>';
-  Swal.fire({ title:'Notifikasi (' + _notifCount + ')', html:html, confirmButtonText:'Tutup', width:480 });
-}
-
 function confirmDelete(id) {
   Swal.fire({ title:'Hapus Agenda?', text:'Data tidak dapat dikembalikan', icon:'warning', showCancelButton:true, confirmButtonColor:'#dc2626', confirmButtonText:'Ya, Hapus', cancelButtonText:'Batal' })
   .then(r => { if (r.isConfirmed) { showLoading('Menghapus...');
@@ -1687,8 +1629,6 @@ var kalViewMode = 'day';
 var kalWeekRange = null; // { start: '2026-07-06', end: '2026-07-12' }
 var kalFilterSubbag = '';
 var kalFilterPribadi = false; // true = hanya agenda yg PIC/anggota saya
-var _notifications = [];
-var _notifCount = 0;
 
 function loadKalender() {
   var now = new Date();
@@ -1727,7 +1667,9 @@ function kalFilterPribadiToggle(mode, btn) {
 function isEventMilikSaya(e) {
   if (!kalFilterPribadi) return true;
   if (e.sumber === 'manual') return true;
-  return e.picEmail && e.picEmail.toLowerCase() === currentUser.email.toLowerCase();
+  if (e.picEmail && e.picEmail.toLowerCase() === currentUser.email.toLowerCase()) return true;
+  if (e.anggotaEmails && e.anggotaEmails.indexOf(currentUser.email.toLowerCase()) !== -1) return true;
+  return false;
 }
 
 function rebuildGridForFilter() {
@@ -1917,10 +1859,9 @@ function buildKalRightPanel(selectedDateStr) {
   var html = '';
   html += '<div class="kal-right-header">';
   html += '<div class="kal-right-date"><h3>' + (isToday ? 'Hari Ini' : tanggalFormatted) + '</h3><span class="kal-right-count">' + sorted.length + ' kegiatan</span></div>';
-  html += '<button class="btn-today" onclick="openKalEventModal({tanggal:\'' + selectedDateStr + '\'})" title="Tambah Kegiatan" style="font-size:11px;padding:4px 10px;"><i class="fas fa-plus"></i> Tambah</button>';
   html += '</div>';
   if (!sorted.length) {
-    html += '<div class="kal-right-empty"><i class="fas fa-calendar-check"></i><p>Tidak ada kegiatan</p><button class="btn-primary" onclick="openKalEventModal({tanggal:\'' + selectedDateStr + '\'})" style="font-size:12px;padding:8px 16px;"><i class="fas fa-plus"></i> Tambah Kegiatan</button></div>';
+    html += '<div class="kal-right-empty"><i class="fas fa-calendar-check"></i><p>Tidak ada kegiatan</p></div>';
   } else {
     html += '<div class="kal-timeline">';
     sorted.forEach(function(e) { html += kalTimelineItemHtml(e); });
@@ -2181,32 +2122,8 @@ function kalSetView(mode, btn) {
   if (btn) btn.classList.add('kal-filter-chip-active');
   var now = new Date();
   var todayStr2 = dateStrParse();
-  if (mode === 'day') {
-    kalWeekRange = null;
-    kalPilihTanggal(todayStr2);
-  } else if (mode === 'week') {
-    var dayOfWeek = now.getDay();
-    var diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    var monday = new Date(now);
-    monday.setDate(now.getDate() + diff);
-    var sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    var startStr = fmtDate(monday);
-    var endStr = fmtDate(sunday);
-    kalWeekRange = { start: startStr, end: endStr };
-    kalSelectedDate = startStr;
-    kalBulan = monday.getMonth() + 1;
-    kalTahun = monday.getFullYear();
-    renderKalender();
-  } else if (mode === 'deadline') {
-    kalWeekRange = null;
-    kalPilihTanggal(todayStr2);
-    Swal.fire('Mode Deadline','Menampilkan kegiatan dengan tenggat waktu terdekat.','info');
-  } else if (mode === 'overdue') {
-    kalWeekRange = null;
-    kalPilihTanggal(todayStr2);
-    Swal.fire('Mode Terlambat','Menampilkan kegiatan yang melewati tenggat.','info');
-  }
+  kalWeekRange = null;
+  kalPilihTanggal(todayStr2);
 }
 
 function kalFilterSearch() {
@@ -2552,7 +2469,9 @@ function renderDetail(r) {
 
   // Deadline countdown
   var deadlineEl = document.getElementById('dtDeadline');
-  if (a.tanggalSelesai) {
+  if (a.status === 'SELESAI') {
+    deadlineEl.innerHTML = '<span class="dt-deadline-ok"><i class="fas fa-check-circle"></i> Selesai</span>';
+  } else if (a.tanggalSelesai) {
     var now = new Date(), due = new Date(a.tanggalSelesai + 'T23:59:59');
     var diff = Math.ceil((due - now) / (1000*60*60*24));
     if (diff < 0) deadlineEl.innerHTML = '<span class="dt-deadline-overdue"><i class="fas fa-exclamation-triangle"></i> Terlambat ' + Math.abs(diff) + ' hari</span>';

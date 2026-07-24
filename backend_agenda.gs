@@ -596,6 +596,12 @@ function getListAgenda(filter) {
     const userEmail = (filter?.userEmail || "").toLowerCase().trim();
     const statusFilter = (filter?.status || "").trim();
     const subbagFilter = (filter?.subbag || "").trim();
+    const searchQuery = (filter?.searchQuery || "").trim().toLowerCase();
+    const tglMulaiFilter = (filter?.tglMulai || "").trim();
+    const tglSelesaiFilter = (filter?.tglSelesai || "").trim();
+    const tabJadwal = (filter?.tabJadwal || "semua").trim();
+
+    const isSearchActive = searchQuery.length > 0;
 
     let total=0, rencana=0, berjalan=0, selesai=0, overdue=0;
     const result = [];
@@ -605,7 +611,20 @@ function getListAgenda(filter) {
       if (!a) continue;
 
       if (statusFilter && a.status !== statusFilter) continue;
-      if (subbagFilter && a.subbagian !== subbagFilter) continue;
+      if (!isSearchActive && subbagFilter && a.subbagian !== subbagFilter) continue;
+
+      if (isSearchActive) {
+        const haystack = ((a.judul || "") + " " + (a.deskripsi || "") + " " + (a.nomorAgenda || "")).toLowerCase();
+        if (haystack.indexOf(searchQuery) === -1) continue;
+      }
+
+      if (tabJadwal === "terjadwal") {
+        if (!a.tanggalMulai && !a.tanggalSelesai) continue;
+        if (tglMulaiFilter && a.tanggalSelesai && a.tanggalSelesai < tglMulaiFilter) continue;
+        if (tglSelesaiFilter && a.tanggalMulai && a.tanggalMulai > tglSelesaiFilter) continue;
+      } else if (tabJadwal === "belum") {
+        if (a.tanggalMulai || a.tanggalSelesai) continue;
+      }
 
       total++;
       if (a.status === "RENCANA") rencana++;
@@ -1359,6 +1378,12 @@ function getCalendarData(userEmail, bulan, tahun, userRole) {
           if (parts2.length === 3 && parseInt(parts2[0]) === filterTahun && parseInt(parts2[1]) === filterBulan) match = true;
         }
         if (match) {
+          var anggotaEmails = [];
+          if (a.assignments && a.assignments.length) {
+            a.assignments.forEach(function(as) {
+              if (as.emailPegawai) anggotaEmails.push(as.emailPegawai.toLowerCase().trim());
+            });
+          }
           result.agenda.push({
             id: a.id, judul: a.judul, tanggalMulai: tglMulai,
             tanggalSelesai: tglSelesai, status: a.status,
@@ -1367,7 +1392,8 @@ function getCalendarData(userEmail, bulan, tahun, userRole) {
             picEmail: a.picEmail || a.createdByEmail || '',
             subbagian: a.subbagian || '',
             progressPersentase: a.progressPersentase || 0,
-            isOverdue: a.isOverdue || false
+            isOverdue: a.isOverdue || false,
+            anggotaEmails: anggotaEmails
           });
         }
       });

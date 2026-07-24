@@ -488,10 +488,12 @@
                                 <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
                                     <button type="button" class="btn-sm-outline" onclick="pilihSemuaPegawai()" style="font-size:12px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:20px;background:#f8fafc;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#f8fafc'"><i class="fas fa-users"></i> Semua Pegawai</button>
                                     <button type="button" class="btn-sm-outline" onclick="pilihKomisionerDanSekretariat()" style="font-size:12px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:20px;background:#f8fafc;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#f8fafc'"><i class="fas fa-gavel"></i> Komisioner & Sekretariat</button>
+                                    <button type="button" class="btn-sm-outline" onclick="pilihSekretarisDanKasubbag()" style="font-size:12px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:20px;background:#f8fafc;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#f8fafc'"><i class="fas fa-user-tie"></i> Sekretaris & Kasubbag</button>
+                                    <button type="button" class="btn-sm-outline" onclick="pilihKomisionerDanSeluruhPegawai()" style="font-size:12px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:20px;background:#f8fafc;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#f8fafc'"><i class="fas fa-people-arrows"></i> Komisioner & Seluruh Pegawai</button>
                                     <button type="button" class="btn-sm-outline" onclick="pilihSubbag('Keuangan, Umum dan Logistik')" style="font-size:12px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:20px;background:#f8fafc;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#f8fafc'">📂 Keuangan, Umum & Logistik</button>
                                     <button type="button" class="btn-sm-outline" onclick="pilihSubbag('Teknis Penyelenggara Pemilu dan Hukum')" style="font-size:12px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:20px;background:#f8fafc;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#f8fafc'">📂 Teknis Penyelenggara Pemilu & Hukum</button>
                                     <button type="button" class="btn-sm-outline" onclick="pilihSubbag('Perencanaan Data dan Informasi')" style="font-size:12px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:20px;background:#f8fafc;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#f8fafc'">📂 Perencanaan Data & Informasi</button>
-                                    <button type="button" class="btn-sm-outline" onclick="pilihSubbag('Partisipasi Hubungan Masyarakat dan Sumber Daya Manusia')" style="font-size:12px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:20px;background:#f8fafc;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#f8fafc'">📂 Parhubmas & SDM</button>
+                                    <button type="button" class="btn-sm-outline" onclick="pilihSubbag('Partisipasi Hubungan Masyarakat dan Sumber Daya Manusia')" style="font-size:12px;padding:4px 10px;border:1px solid #e2e8f0;border-radius:20px;background:#f8fafc;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#eef2ff'" onmouseout="this.style.background='#f8fafc'">📂 Parmas & SDM</button>
                                 </div>
                                 <div id="pesertaChipContainer" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;min-height:32px;"></div>
                                 <div style="display:flex;gap:8px;">
@@ -511,17 +513,15 @@
                         <div class="card-white" style="padding:24px;">
                             <h3 style="font-size:16px;font-weight:700;margin:0 0 18px;"><i
                                     class="fas fa-calendar-alt"></i> Agenda Rapat</h3>
-                            <p style="font-size:13px;color:#64748b;margin:0 0 16px;">Tulis agenda rapat secara manual.
-                                Kosongkan jika ingin digenerate otomatis berdasarkan poin rapat.</p>
+                            <p style="font-size:13px;color:#64748b;margin:0 0 16px;">Rincian agenda rapat sesuai undangan.</p>
                             <div class="form-group">
                                 <label>Agenda Rapat</label>
                                 <textarea id="notulenAgenda" class="form-control"
                                     style="min-height:200px;width:100%;resize:vertical;font-size:14px;line-height:1.6;font-family:monospace;"
                                     placeholder="Contoh:
-1. Pembukaan
-2. Evaluasi Kinerja Triwulan
-3. Pembahasan Anggaran
-4. Penutup"
+1. Evaluasi Kinerja Triwulan
+2. Pembahasan Anggaran
+3. Dll"
                                     oninput="simpanDraft()"></textarea>
                             </div>
                             <p style="font-size:12px;color:#94a3b8;margin:8px 0 0;"><i class="fas fa-info-circle"></i>
@@ -2094,7 +2094,9 @@
 
         function pilihSemuaPegawai() {
             if (!_pegawaiCache.length) return;
-            _selectedPeserta = _pegawaiCache.map(function(p) {
+            _selectedPeserta = _pegawaiCache.filter(function(p) {
+                return p.hakAkses !== 'KOMISIONER';
+            }).map(function(p) {
                 return { nama: p.nama, jabatan: p.jabatan, email: p.email, no: p.no };
             });
             renderPesertaChips();
@@ -2104,6 +2106,42 @@
         }
 
         function pilihKomisionerDanSekretariat() {
+            if (!_pegawaiCache.length) return;
+            var list = _pegawaiCache.filter(function(p) {
+                return p.hakAkses === 'KOMISIONER' || p.hakAkses === 'SEKRETARIS' || p.hakAkses === 'KASUBBAG';
+            });
+            if (!list.length) {
+                Swal.fire('Informasi', 'Tidak ada komisioner/sekretaris di data pegawai', 'info');
+                return;
+            }
+            _selectedPeserta = list.map(function(p) {
+                return { nama: p.nama, jabatan: p.jabatan, email: p.email, no: p.no };
+            });
+            renderPesertaChips();
+            document.getElementById('pesertaSearch').value = '';
+            document.getElementById('pesertaDropdown').style.display = 'none';
+            simpanDraft();
+        }
+
+        function pilihSekretarisDanKasubbag() {
+            if (!_pegawaiCache.length) return;
+            var list = _pegawaiCache.filter(function(p) {
+                return p.hakAkses === 'SEKRETARIS' || p.hakAkses === 'KASUBBAG';
+            });
+            if (!list.length) {
+                Swal.fire('Informasi', 'Tidak ada sekretaris/kasubbag di data pegawai', 'info');
+                return;
+            }
+            _selectedPeserta = list.map(function(p) {
+                return { nama: p.nama, jabatan: p.jabatan, email: p.email, no: p.no };
+            });
+            renderPesertaChips();
+            document.getElementById('pesertaSearch').value = '';
+            document.getElementById('pesertaDropdown').style.display = 'none';
+            simpanDraft();
+        }
+
+        function pilihKomisionerDanSeluruhPegawai() {
             if (!_pegawaiCache.length) return;
             _selectedPeserta = _pegawaiCache.map(function(p) {
                 return { nama: p.nama, jabatan: p.jabatan, email: p.email, no: p.no };
@@ -2152,10 +2190,10 @@
                 '</div>' +
                 '<div style="display:grid;grid-template-columns:1fr 2fr;gap:12px;">' +
                 '<div class="form-group">' +
-                '<input type="text" id="pembicara_' + notulenPembahasanCount + '" class="form-control" placeholder="Nama pembicara" oninput="simpanDraft()">' +
+                '<input type="text" id="pembicara_' + notulenPembahasanCount + '" class="form-control" placeholder="Nama & Jabatan Pembicara" oninput="simpanDraft()">' +
                 '</div>' +
                 '<div class="form-group">' +
-                '<textarea id="pokokBahasan_' + notulenPembahasanCount + '" class="form-control" rows="2" placeholder="Pokok bahasan yang disampaikan..." oninput="simpanDraft()"></textarea>' +
+                '<textarea id="pokokBahasan_' + notulenPembahasanCount + '" class="form-control" rows="3" placeholder="Pokok bahasan yang disampaikan..." oninput="simpanDraft()"></textarea>' +
                 '</div>' +
                 '</div>';
 
